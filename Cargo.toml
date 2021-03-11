@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["Robin Appelman <robin@icewind.nl>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+bollard = "0.10"
+color-eyre = "0.5"
+min-id = "0.1"
+maplit = "1"
+camino = "1"
+tokio = { version = "1" , features = ["fs", "macros"] }
