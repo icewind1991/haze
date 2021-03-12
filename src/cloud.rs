@@ -3,6 +3,7 @@ use bollard::container::{
     Config, CreateContainerOptions, ListContainersOptions, LogsOptions, NetworkingConfig,
     RemoveContainerOptions,
 };
+use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::models::{ContainerState, EndpointSettings, HostConfig};
 use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
@@ -418,8 +419,8 @@ impl Cloud {
                 config.work_dir, id
             ),
             format!(
-                "{}/{}/skeleton/welcome.txt:/var/www/html/core/skeleton/welcome.txt:ro",
-                config.sources_root, id
+                "{}/skeleton/welcome.txt:/var/www/html/core/skeleton/welcome.txt:ro",
+                config.sources_root
             ),
             format!(
                 "{}/{}/integration/vendor:/var/www/html/build/integration/vendor",
@@ -545,6 +546,27 @@ impl Cloud {
             logs.push(line?.to_string());
         }
         Ok(logs)
+    }
+
+    pub async fn exec(&self, docker: &mut Docker, cmd: Vec<String>) -> Result<()> {
+        let config = CreateExecOptions {
+            cmd: Some(cmd),
+            user: Some("haze".to_string()),
+            attach_stdout: Some(true),
+            attach_stderr: Some(true),
+            ..Default::default()
+        };
+        let message = docker.create_exec(&self.id, config).await?;
+        let mut exec = docker.start_exec(&message.id, None);
+        while let Some(res) = exec.next().await {
+            match res? {
+                StartExecResults::Attached { log } => {
+                    print!("{}", log);
+                }
+                _ => {}
+            }
+        }
+        Ok(())
     }
 }
 

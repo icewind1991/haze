@@ -62,11 +62,15 @@ async fn main() -> Result<()> {
             println!("http://{}", cloud.ip.unwrap());
         }
         HazeCommand::Logs => {
-            let cloud = get_by_filter(&mut docker, args.options.first().cloned(), &config).await?;
+            let cloud = get_by_filter(&mut docker, None, &config).await?;
             let logs = cloud.logs(&mut docker).await?;
             for log in logs {
                 print!("{}", log);
             }
+        }
+        HazeCommand::Exec => {
+            let cloud = get_by_filter(&mut docker, None, &config).await?;
+            cloud.exec(&mut docker, args.options).await?;
         }
         _ => todo!(),
     };
