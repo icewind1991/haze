@@ -48,6 +48,7 @@ pub enum HazeCommand {
     Occ,
     Db,
     Clean,
+    Logs,
 }
 
 impl FromStr for HazeCommand {
@@ -63,6 +64,7 @@ impl FromStr for HazeCommand {
             "occ" => Ok(HazeCommand::Occ),
             "db" => Ok(HazeCommand::Db),
             "clean" => Ok(HazeCommand::Clean),
+            "logs" => Ok(HazeCommand::Logs),
             _ => Err(Report::msg(format!("Unknown command: {}", s))),
         }
     }

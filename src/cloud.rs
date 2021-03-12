@@ -1,14 +1,20 @@
 use crate::config::HazeConfig;
-use bollard::container::{Config, CreateContainerOptions, RemoveContainerOptions};
-use bollard::models::{ContainerState, HostConfig};
+use bollard::container::{
+    Config, CreateContainerOptions, ListContainersOptions, LogsOptions, NetworkingConfig,
+    RemoveContainerOptions,
+};
+use bollard::models::{ContainerState, EndpointSettings, HostConfig};
 use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
 use camino::{Utf8Path, Utf8PathBuf};
 use color_eyre::{eyre::WrapErr, Report, Result};
+use futures_util::stream::StreamExt;
 use maplit::hashmap;
 use min_id::generate_id;
 use std::collections::HashMap;
+use std::fs;
 use std::net::IpAddr;
+use std::os::unix::fs::MetadataExt;
 use std::str::FromStr;
 use std::time::Duration;
 use tokio::fs::{create_dir_all, remove_dir_all, write};
@@ -85,12 +91,12 @@ impl Database {
             Database::MariaDB103 => "mariadb:10.3",
             Database::MariaDB104 => "mariadb:10.4",
             Database::MariaDB105 => "mariadb:10.5",
-            Database::Postgres => "postgresql",
-            Database::Postgres9 => "postgresql:9",
-            Database::Postgres10 => "postgresql:10",
-            Database::Postgres11 => "postgresql:11",
-            Database::Postgres12 => "postgresql:12",
-            Database::Postgres13 => "postgresql:13",
+            Database::Postgres => "postgres",
+            Database::Postgres9 => "postgres:9",
+            Database::Postgres10 => "postgres:10",
+            Database::Postgres11 => "postgres:11",
+            Database::Postgres12 => "postgres:12",
+            Database::Postgres13 => "postgres:13",
         }
     }
 
@@ -170,6 +176,14 @@ impl Database {
                 "haze-type" => "db",
                 "haze-cloud-id" => cloud_id
             }),
+            networking_config: Some(NetworkingConfig {
+                endpoints_config: hashmap! {
+                    network => EndpointSettings {
+                        aliases: Some(vec![self.name().to_string()]),
+                        ..Default::default()
+                    }
+                },
+            }),
             ..Default::default()
         };
         let id = docker.create_container(options, config).await?.id;
@@ -203,8 +217,8 @@ impl PhpVersion {
     fn image(&self) -> &'static str {
         // for now only 7.4
         match self {
-            PhpVersion::Latest => "icewind1991/nextcloud-dev:7",
-            PhpVersion::Php74 => "icewind1991/nextcloud-dev:7",
+            PhpVersion::Latest => "icewind1991/haze:7.4",
+            PhpVersion::Php74 => "icewind1991/haze:7.4",
         }
     }
 
@@ -222,7 +236,6 @@ impl PhpVersion {
         env: Vec<String>,
         db: &Database,
         network: &str,
-        links: Vec<String>,
         volumes: Vec<String>,
     ) -> Result<String> {
         let options = Some(CreateContainerOptions {
@@ -233,9 +246,17 @@ impl PhpVersion {
             env: Some(env),
             host_config: Some(HostConfig {
                 network_mode: Some(network.to_string()),
-                links: Some(links),
+                // links: Some(links),
                 binds: Some(volumes),
                 ..Default::default()
+            }),
+            networking_config: Some(NetworkingConfig {
+                endpoints_config: hashmap! {
+                    network.to_string() => EndpointSettings {
+                        aliases: Some(vec!["cloud".to_string()]),
+                        ..Default::default()
+                    }
+                },
             }),
             labels: Some(hashmap! {
                 "haze-type".to_string() => "cloud".to_string(),
@@ -347,7 +368,7 @@ pub struct Cloud {
     pub containers: Vec<String>,
     pub php: PhpVersion,
     pub db: Database,
-    pub ip: IpAddr,
+    pub ip: Option<IpAddr>,
     pub workdir: Utf8PathBuf,
 }
 
@@ -374,8 +395,16 @@ impl Cloud {
             .wrap_err("Failed to create network")?;
 
         let mut containers = Vec::new();
-        let mut links = Vec::new();
-        let mut env = vec!["PHP_IDE_CONFIG=serverName=haze".to_string()];
+
+        let sources_meta = fs::metadata(&config.sources_root)?;
+        let uid = sources_meta.uid();
+        let gid = sources_meta.gid();
+
+        let mut env = vec![
+            "PHP_IDE_CONFIG=serverName=haze".to_string(),
+            format!("UID={}", uid),
+            format!("GID={}", gid),
+        ];
         let volumes = vec![
             format!("{}:/var/www/html", config.sources_root),
             format!("{}/{}/data:/var/www/html/data", config.work_dir, id),
@@ -425,13 +454,12 @@ impl Cloud {
             .wrap_err("Failed to start database")?
         {
             containers.push(db_name);
-            links.push(format!("{}-db:{}", id, options.db.name()));
             env.push(format!("SQL={}", options.db.name()));
         }
 
         let container = options
             .php
-            .spawn(docker, &id, env, &options.db, &network, links, volumes)
+            .spawn(docker, &id, env, &options.db, &network, volumes)
             .await
             .wrap_err("Failed to start php container")?;
 
@@ -474,17 +502,16 @@ impl Cloud {
             containers,
             php: options.php,
             db: options.db,
-            ip,
+            ip: Some(ip),
             workdir,
         })
     }
 
-    #[allow(dead_code)]
     pub async fn destroy(self, docker: &mut Docker) -> Result<()> {
         for container in self.containers {
             docker
                 .remove_container(
-                    &container,
+                    container.trim_start_matches('/'),
                     Some(RemoveContainerOptions {
                         force: true,
                         ..Default::default()
@@ -502,6 +529,22 @@ impl Cloud {
             .wrap_err("Failed to remove work directory")?;
 
         Ok(())
+    }
+
+    pub async fn logs(&self, docker: &mut Docker) -> Result<Vec<String>> {
+        let mut logs = Vec::new();
+        let mut stream = docker.logs::<String>(
+            &self.id,
+            Some(LogsOptions {
+                stdout: true,
+                stderr: true,
+                ..Default::default()
+            }),
+        );
+        while let Some(line) = stream.next().await {
+            logs.push(line?.to_string());
+        }
+        Ok(logs)
     }
 }
 
@@ -524,22 +567,36 @@ async fn setup_workdir(base: &Utf8Path, id: &str) -> Result<Utf8PathBuf> {
     Ok(workdir)
 }
 
-pub async fn list(docker: &mut Docker, config: &HazeConfig) -> Result<Vec<Cloud>> {
-    let containers = docker.list_containers::<String>(None).await?;
+pub async fn list(
+    docker: &mut Docker,
+    filter: Option<String>,
+    config: &HazeConfig,
+) -> Result<Vec<Cloud>> {
+    let containers = docker
+        .list_containers::<String>(Some(ListContainersOptions {
+            all: true,
+            ..Default::default()
+        }))
+        .await?;
     let mut containers_by_id: HashMap<String, (Option<_>, Vec<_>)> = HashMap::new();
     for container in containers {
         let labels = container.labels.clone().unwrap_or_default();
         if let Some(cloud_id) = labels.get("haze-cloud-id") {
-            let mut entry = containers_by_id.entry(cloud_id.to_string()).or_default();
-            if labels.get("haze-type").map(String::as_str) == Some("cloud") {
-                entry.0 = Some(container);
-            } else {
-                entry.1.push(container)
+            if match filter.as_ref() {
+                Some(filter) => cloud_id.contains(filter),
+                None => true,
+            } {
+                let mut entry = containers_by_id.entry(cloud_id.to_string()).or_default();
+                if labels.get("haze-type").map(String::as_str) == Some("cloud") {
+                    entry.0 = Some(container);
+                } else {
+                    entry.1.push(container)
+                }
             }
         }
     }
 
-    Ok(containers_by_id
+    let mut sortable_containers: Vec<_> = containers_by_id
         .into_iter()
         .filter_map(|(id, (cloud, services))| {
             let cloud = cloud?;
@@ -555,15 +612,37 @@ pub async fn list(docker: &mut Docker, config: &HazeConfig) -> Result<Vec<Cloud>
                 .filter_map(|service| service.names.as_ref()?.first().map(String::clone))
                 .collect();
             service_ids.push(id.clone());
-            Some(Cloud {
-                id,
-                network,
-                db,
-                php,
-                containers: service_ids,
-                ip: network_info.ip_address.as_ref()?.parse().ok()?,
-                workdir,
-            })
+            Some((
+                cloud.created.unwrap_or_default(),
+                Cloud {
+                    id,
+                    network,
+                    db,
+                    php,
+                    containers: service_ids,
+                    ip: network_info.ip_address.as_ref()?.parse().ok(),
+                    workdir,
+                },
+            ))
         })
+        .collect();
+
+    sortable_containers.sort_by(|a, b| a.0.cmp(&b.0).reverse());
+
+    Ok(sortable_containers
+        .into_iter()
+        .map(|(_created, cloud)| cloud)
         .collect())
+}
+
+pub async fn get_by_filter(
+    docker: &mut Docker,
+    filter: Option<String>,
+    config: &HazeConfig,
+) -> Result<Cloud> {
+    list(docker, filter, config)
+        .await?
+        .into_iter()
+        .next()
+        .ok_or(Report::msg("No clouds running matching filter"))
 }

@@ -381,6 +381,7 @@ dependencies = [
  "bollard",
  "camino",
  "color-eyre",
+ "futures-util",
  "maplit",
  "min-id",
  "parse-display",
