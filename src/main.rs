@@ -7,6 +7,8 @@ use color_eyre::{eyre::WrapErr, Report, Result};
 mod args;
 mod cloud;
 mod config;
+mod database;
+mod php;
 
 #[tokio::main]
 async fn main() -> Result<()> {
