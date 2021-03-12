@@ -1,12 +1,11 @@
-use color_eyre::{eyre::WrapErr, Report, Result};
-use std::env::Args;
+use color_eyre::{Report, Result};
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct HazeArgs {
-    id: Option<String>,
-    command: Command,
-    options: Vec<String>,
+    pub id: Option<String>,
+    pub command: HazeCommand,
+    pub options: Vec<String>,
 }
 
 impl HazeArgs {
@@ -24,11 +23,11 @@ impl HazeArgs {
                     if let Some(sub) = args.next() {
                         (Some(sub_or_id.to_string()), sub.as_ref().parse()?)
                     } else {
-                        (Some(sub_or_id.to_string()), Command::List)
+                        (Some(sub_or_id.to_string()), HazeCommand::List)
                     }
                 }
             }
-            None => (None, Command::List),
+            None => (None, HazeCommand::List),
         };
         let options = args.map(|s| s.to_string()).collect();
         Ok(HazeArgs {
@@ -40,7 +39,7 @@ impl HazeArgs {
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
-pub enum Command {
+pub enum HazeCommand {
     List,
     Start,
     Stop,
@@ -48,20 +47,22 @@ pub enum Command {
     Exec,
     Occ,
     Db,
+    Clean,
 }
 
-impl FromStr for Command {
+impl FromStr for HazeCommand {
     type Err = Report;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "list" => Ok(Command::List),
-            "start" => Ok(Command::Start),
-            "stop" => Ok(Command::Stop),
-            "test" => Ok(Command::Test),
-            "exec" => Ok(Command::Exec),
-            "occ" => Ok(Command::Occ),
-            "db" => Ok(Command::Db),
+            "list" => Ok(HazeCommand::List),
+            "start" => Ok(HazeCommand::Start),
+            "stop" => Ok(HazeCommand::Stop),
+            "test" => Ok(HazeCommand::Test),
+            "exec" => Ok(HazeCommand::Exec),
+            "occ" => Ok(HazeCommand::Occ),
+            "db" => Ok(HazeCommand::Db),
+            "clean" => Ok(HazeCommand::Clean),
             _ => Err(Report::msg(format!("Unknown command: {}", s))),
         }
     }
@@ -73,7 +74,7 @@ fn test_arg_parse() {
         HazeArgs::parse(vec!["haze"].into_iter()).unwrap(),
         HazeArgs {
             id: None,
-            command: Command::List,
+            command: HazeCommand::List,
             options: Vec::new(),
         }
     );
@@ -81,7 +82,7 @@ fn test_arg_parse() {
         HazeArgs::parse(vec!["haze", "test"].into_iter()).unwrap(),
         HazeArgs {
             id: None,
-            command: Command::Test,
+            command: HazeCommand::Test,
             options: Vec::new(),
         }
     );
@@ -89,7 +90,7 @@ fn test_arg_parse() {
         HazeArgs::parse(vec!["haze", "asdasd"].into_iter()).unwrap(),
         HazeArgs {
             id: Some("asdasd".to_string()),
-            command: Command::List,
+            command: HazeCommand::List,
             options: Vec::new(),
         }
     );
@@ -97,7 +98,7 @@ fn test_arg_parse() {
         HazeArgs::parse(vec!["haze", "asdasd", "db"].into_iter()).unwrap(),
         HazeArgs {
             id: Some("asdasd".to_string()),
-            command: Command::Db,
+            command: HazeCommand::Db,
             options: Vec::new(),
         }
     );
@@ -105,7 +106,7 @@ fn test_arg_parse() {
         HazeArgs::parse(vec!["haze", "exec", "foo", "bar"].into_iter()).unwrap(),
         HazeArgs {
             id: None,
-            command: Command::Exec,
+            command: HazeCommand::Exec,
             options: vec!["foo".to_string(), "bar".to_string()],
         }
     );
@@ -113,7 +114,7 @@ fn test_arg_parse() {
         HazeArgs::parse(vec!["haze", "asdasd", "exec", "foo", "bar"].into_iter()).unwrap(),
         HazeArgs {
             id: Some("asdasd".to_string()),
-            command: Command::Exec,
+            command: HazeCommand::Exec,
             options: vec!["foo".to_string(), "bar".to_string()],
         }
     );

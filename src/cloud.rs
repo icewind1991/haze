@@ -14,7 +14,7 @@ use std::time::Duration;
 use tokio::fs::{create_dir_all, remove_dir_all, write};
 use tokio::time::sleep;
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum Database {
     Sqlite,
@@ -43,15 +43,30 @@ impl Default for Database {
 }
 
 impl FromStr for Database {
-    type Err = ();
+    type Err = Report;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "sqlite" => Ok(Database::Sqlite),
             "mysql" => Ok(Database::Mysql),
+            "mysql:8" => Ok(Database::Mysql80),
+            "mysql:5" => Ok(Database::Mysql57),
+            "mysql:5.7" => Ok(Database::Mysql57),
+            "mysql:5.6" => Ok(Database::Mysql56),
             "mariadb" => Ok(Database::MariaDB),
-            "postgresql" => Ok(Database::Postgres),
-            _ => Err(()),
+            "mariadb:10.1" => Ok(Database::MariaDB101),
+            "mariadb:10.2" => Ok(Database::MariaDB102),
+            "mariadb:10.3" => Ok(Database::MariaDB103),
+            "mariadb:10.4" => Ok(Database::MariaDB104),
+            "mariadb:10.5" => Ok(Database::MariaDB105),
+            "mariadb:10" => Ok(Database::MariaDB105),
+            "pgsql" => Ok(Database::Postgres),
+            "pgsql:9" => Ok(Database::Postgres9),
+            "pgsql:10" => Ok(Database::Postgres10),
+            "pgsql:11" => Ok(Database::Postgres11),
+            "pgsql:12" => Ok(Database::Postgres12),
+            "pgsql:13" => Ok(Database::Postgres13),
+            _ => Err(Report::msg("Unknown db type")),
         }
     }
 }
@@ -163,7 +178,7 @@ impl Database {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum PhpVersion {
     Latest,
@@ -172,12 +187,31 @@ pub enum PhpVersion {
     // Php73,
 }
 
+impl FromStr for PhpVersion {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "7" => Ok(PhpVersion::Php74),
+            "7.4" => Ok(PhpVersion::Php74),
+            _ => Err(()),
+        }
+    }
+}
+
 impl PhpVersion {
     fn image(&self) -> &'static str {
         // for now only 7.4
         match self {
             PhpVersion::Latest => "icewind1991/nextcloud-dev:7",
             PhpVersion::Php74 => "icewind1991/nextcloud-dev:7",
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
+        match self {
+            PhpVersion::Latest => "7.4",
+            PhpVersion::Php74 => "7.4",
         }
     }
 
@@ -206,6 +240,7 @@ impl PhpVersion {
             labels: Some(hashmap! {
                 "haze-type".to_string() => "cloud".to_string(),
                 "haze-db".to_string() => db.name().to_string(),
+                "haze-php".to_string() => self.name().to_string(),
                 "haze-cloud-id".to_string() => id.to_string(),
             }),
             ..Default::default()
@@ -223,20 +258,97 @@ impl Default for PhpVersion {
     }
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Eq, PartialEq)]
 pub struct CloudOptions {
     db: Database,
     php: PhpVersion,
 }
 
+impl CloudOptions {
+    pub fn parse<S>(options: Vec<S>) -> Result<(CloudOptions, Vec<S>)>
+    where
+        S: AsRef<str> + Clone,
+    {
+        let mut db = Database::default();
+        let mut php = PhpVersion::default();
+        let mut used = 0;
+
+        for option in options.iter() {
+            if let Ok(db_option) = Database::from_str(option.as_ref()) {
+                db = db_option;
+                used += 1;
+                continue;
+            }
+            if let Ok(php_option) = PhpVersion::from_str(option.as_ref()) {
+                php = php_option;
+                used += 1;
+                continue;
+            }
+        }
+
+        let rest = options[used..].to_vec();
+
+        Ok((CloudOptions { db, php }, rest))
+    }
+}
+
+#[test]
+fn test_option_parse() {
+    assert_eq!(
+        CloudOptions::parse::<&str>(vec![]).unwrap(),
+        (CloudOptions::default(), vec![])
+    );
+    assert_eq!(
+        CloudOptions::parse(vec!["mariadb"]).unwrap(),
+        (
+            CloudOptions {
+                db: Database::MariaDB,
+                ..Default::default()
+            },
+            vec![]
+        )
+    );
+    assert_eq!(
+        CloudOptions::parse(vec!["rest"]).unwrap(),
+        (
+            CloudOptions {
+                ..Default::default()
+            },
+            vec!["rest"]
+        )
+    );
+    assert_eq!(
+        CloudOptions::parse(vec!["7"]).unwrap(),
+        (
+            CloudOptions {
+                php: PhpVersion::Php74,
+                ..Default::default()
+            },
+            vec![]
+        )
+    );
+    assert_eq!(
+        CloudOptions::parse(vec!["7", "pgsql", "rest"]).unwrap(),
+        (
+            CloudOptions {
+                php: PhpVersion::Php74,
+                db: Database::Postgres,
+                ..Default::default()
+            },
+            vec!["rest"]
+        )
+    );
+}
+
 #[derive(Debug)]
 pub struct Cloud {
     pub id: String,
-    network: String,
-    containers: Vec<String>,
-    db: Database,
+    pub network: String,
+    pub containers: Vec<String>,
+    pub php: PhpVersion,
+    pub db: Database,
     pub ip: IpAddr,
-    workdir: Utf8PathBuf,
+    pub workdir: Utf8PathBuf,
 }
 
 impl Cloud {
@@ -360,6 +472,7 @@ impl Cloud {
             id,
             network,
             containers,
+            php: options.php,
             db: options.db,
             ip,
             workdir,
@@ -411,7 +524,7 @@ async fn setup_workdir(base: &Utf8Path, id: &str) -> Result<Utf8PathBuf> {
     Ok(workdir)
 }
 
-pub async fn parse(docker: &mut Docker, config: &HazeConfig) -> Result<Vec<Cloud>> {
+pub async fn list(docker: &mut Docker, config: &HazeConfig) -> Result<Vec<Cloud>> {
     let containers = docker.list_containers::<String>(None).await?;
     let mut containers_by_id: HashMap<String, (Option<_>, Vec<_>)> = HashMap::new();
     for container in containers {
@@ -434,7 +547,9 @@ pub async fn parse(docker: &mut Docker, config: &HazeConfig) -> Result<Vec<Cloud
             let networks = cloud.network_settings?.networks?;
             let network_info = networks.get(&network)?;
             let workdir = config.work_dir.join(&id);
-            let db = cloud.labels?.get("haze-db")?.parse().ok()?;
+            let labels = cloud.labels?;
+            let db = labels.get("haze-db")?.parse().ok()?;
+            let php = labels.get("haze-php")?.parse().ok()?;
             let mut service_ids: Vec<String> = services
                 .iter()
                 .filter_map(|service| service.names.as_ref()?.first().map(String::clone))
@@ -444,6 +559,7 @@ pub async fn parse(docker: &mut Docker, config: &HazeConfig) -> Result<Vec<Cloud
                 id,
                 network,
                 db,
+                php,
                 containers: service_ids,
                 ip: network_info.ip_address.as_ref()?.parse().ok()?,
                 workdir,
