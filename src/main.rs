@@ -3,6 +3,7 @@ use crate::config::HazeConfig;
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Result};
 
+mod args;
 mod cloud;
 mod config;
 

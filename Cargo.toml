@@ -11,3 +11,4 @@ min-id = "0.1"
 maplit = "1"
 camino = "1"
 tokio = { version = "1" , features = ["fs", "macros"] }
+parse-display = "0.4"
