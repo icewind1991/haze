@@ -1,0 +1,24 @@
+#!/bin/bash
+
+SQL=sqlite
+PHP_VERSION=7
+EXTRA_ARG=""
+WORKDIR="/tmp/oc-docker"
+
+echo "Starting servers"
+CONTAINERS=`ncserver $SQL $PHP_VERSION $EXTRA_ARG | tail -2 | head -1`
+
+IFS=',' read -a CONTAINERS <<< "$CONTAINERS"
+
+echo "Composer install"
+docker exec ${CONTAINERS[0]} composer install
+
+echo "Format"
+docker exec ${CONTAINERS[0]} composer run cs:fix $@
+
+docker exec ${CONTAINERS[0]} git clean -fd lib/composer
+docker exec ${CONTAINERS[0]} git checkout lib/composer
+
+docker rm -f ${CONTAINERS[0]}
+
+sudo rm -rf $WORKDIR/${CONTAINERS[0]}

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+/usr/local/bin/php -d memory_limit=512M /usr/local/bin/phpunit.phar $@

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+cd $WEBROOT
+
+# we need write permissions for these
+chmod 0777 tests/apps
+mkdir -p $WEBROOT/apps/namespacetestapp
+chmod 0777 $WEBROOT/apps/namespacetestapp
+chmod 0777 tests/data
+chown www-data /var/www/html/tests/.phpunit.result.cache
+
+command="cd $WEBROOT; phpunit --configuration $WEBROOT/tests/phpunit-autotest.xml $@"
+
+su - www-data -s /bin/sh -c "$command"

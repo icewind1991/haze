@@ -1,0 +1,18 @@
+#!/bin/sh
+
+USER=$1
+PASSWORD=$2
+
+if [ -z "$USER" ] || [ -z "$PASSWORD" ]; then
+	echo "Usage: install \$USER \$PASSWORD"
+	exit;
+fi
+
+cd $WEBROOT
+
+if [ "$SQL" = "oci" ]; then
+	# oracle is a special snowflake
+	occ maintenance:install --admin-user=$USER --admin-pass=$PASSWORD --database=$SQL --database-name=xe --database-host=$SQL --database-user=system --database-pass=oracle
+else
+	occ maintenance:install --admin-user=$USER --admin-pass=$PASSWORD --database=$SQL --database-name=haze --database-host=$SQL --database-user=haze --database-pass=haze
+fi;

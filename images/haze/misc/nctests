@@ -1,0 +1,62 @@
+#!/bin/bash
+
+SQL=$1
+PHP_VERSION=$2
+EXTRA=$3
+EXTRA_ARG=""
+WORKDIR="/tmp/oc-docker"
+
+shift
+shift
+
+if [ "$EXTRA" = "s3" ] || [ "$EXTRA" = "swift" ] || [ "$EXTRA" = "swiftv2" ] || [ "$EXTRA" = "swiftv3" ] || [ "$EXTRA" = "azure" ]; then
+    shift
+    EXTRA_ARG=$EXTRA
+fi
+
+echo "Starting servers"
+CONTAINERS=`ncserver $SQL $PHP_VERSION $EXTRA_ARG | tail -2 | head -1`
+
+if [ -n "$EXTRA_ARG" ]; then
+    sleep 3;
+fi
+
+IFS=',' read -a CONTAINERS <<< "$CONTAINERS"
+
+echo "Waiting for things to settle"
+if [ "$SQL" = "" ] || [ "$SQL" = "sqlite" ]; then
+	sleep 2 # less servers to wait for
+elif [ "$SQL" = "oci" ]; then
+	sleep 30 # oracle is always a bit lazy
+else
+	sleep 15
+fi
+
+TEST_PATH=$1
+
+if [[ "$TEST_PATH" =~ apps/([a-zA-Z_0-9]+)/? ]]; then 
+    APP=${BASH_REMATCH[1]};
+else
+    APP=""
+fi
+
+echo "Starting tests"
+docker exec ${CONTAINERS[0]} install admin admin
+
+if [[ "$TEST_PATH" =~ apps/files_([a-zA-Z_0-9]+)/ ]]; then
+    echo "Enabling app files_external"
+    docker exec ${CONTAINERS[0]} occ app:enable files_external --force
+fi
+
+if [ -n "$APP" ]; then
+    echo "Enabling app $APP"
+    docker exec ${CONTAINERS[0]} occ app:enable $APP --force
+fi
+docker exec ${CONTAINERS[0]} tests $@
+
+echo "Cleaning up"
+
+docker kill ${CONTAINERS[0]} ${CONTAINERS[1]}
+docker rm ${CONTAINERS[0]} ${CONTAINERS[1]}
+
+sudo rm -rf $WORKDIR/${CONTAINERS[0]}

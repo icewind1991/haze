@@ -1,0 +1,4 @@
+#!/bin/sh 
+
+cd $WEBROOT/build/integration
+sudo -u www-data ./run.sh "$@"
