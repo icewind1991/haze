@@ -74,6 +74,12 @@ async fn main() -> Result<()> {
             let cloud = get_by_filter(&mut docker, None, &config).await?;
             cloud.exec(&mut docker, args.options).await?;
         }
+        HazeCommand::Occ => {
+            let cloud = get_by_filter(&mut docker, None, &config).await?;
+            let mut options = args.options;
+            options.insert(0, "occ".to_string());
+            cloud.exec(&mut docker, options).await?;
+        }
         _ => todo!(),
     };
 
