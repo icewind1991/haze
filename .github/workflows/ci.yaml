@@ -36,13 +36,12 @@ jobs:
       - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/cargo@v1
         with:
-          use-cross: true
           command: build
           args: --release --target x86_64-unknown-linux-musl
       - uses: actions/upload-artifact@v2
         with:
           name: haze
-          path: target/${{ matrix.target }}/release/haze
+          path: target/x86_64-unknown-linux-musl/release/haze
 
   test:
     name: Tests
