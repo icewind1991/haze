@@ -1,4 +1,5 @@
 use crate::database::Database;
+use crate::image::pull_image;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
 use bollard::Docker;
@@ -52,6 +53,7 @@ impl PhpVersion {
         network: &str,
         volumes: Vec<String>,
     ) -> Result<String> {
+        pull_image(docker, self.image()).await?;
         let options = Some(CreateContainerOptions {
             name: id.to_string(),
         });
