@@ -8,6 +8,7 @@ mod args;
 mod cloud;
 mod config;
 mod database;
+mod image;
 mod php;
 mod tty;
 
@@ -95,7 +96,8 @@ async fn main() -> Result<()> {
             cloud.exec(&mut docker, options).await?;
         }
         HazeCommand::Db => {
-            todo!();
+            let cloud = get_by_filter(&mut docker, None, &config).await?;
+            cloud.db.exec(&mut docker, &cloud.id).await?;
         }
         HazeCommand::Test => {
             todo!();

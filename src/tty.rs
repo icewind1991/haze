@@ -9,12 +9,15 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::task::spawn;
 use tokio::time::sleep;
 
-pub async fn exec_tty(
+pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
     docker: &mut Docker,
-    container: &str,
+    container: S1,
     user: &str,
-    cmd: Vec<String>,
+    cmd: Vec<S2>,
+    env: Vec<&str>,
 ) -> Result<()> {
+    let cmd = cmd.into_iter().map(S2::into).collect();
+    let env = env.into_iter().map(String::from).collect();
     let config = CreateExecOptions {
         cmd: Some(cmd),
         user: Some(user.to_string()),
@@ -22,10 +25,11 @@ pub async fn exec_tty(
         attach_stderr: Some(true),
         attach_stdin: Some(true),
         tty: Some(true),
+        env: Some(env),
         ..Default::default()
     };
     let message = docker
-        .create_exec(container, config)
+        .create_exec(container.as_ref(), config)
         .await
         .wrap_err("Failed to setup exec")?;
     if let StartExecResults::AttachedTTY {

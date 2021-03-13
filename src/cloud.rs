@@ -288,7 +288,7 @@ impl Cloud {
     }
 
     pub async fn exec(&self, docker: &mut Docker, cmd: Vec<String>) -> Result<()> {
-        exec_tty(docker, &self.id, "haze", cmd).await
+        exec_tty(docker, &self.id, "haze", cmd, vec![]).await
     }
 }
 

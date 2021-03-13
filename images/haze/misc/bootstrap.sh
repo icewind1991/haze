@@ -11,6 +11,11 @@ then
 	cp /root/autoconfig_mysql.php /var/www/html/config/autoconfig.php
 fi
 
+if [ "$SQL" = "mariadb" ]
+then
+	cp /root/autoconfig_mariadb.php /var/www/html/config/autoconfig.php
+fi
+
 if [ "$SQL" = "pgsql" ]
 then
 	cp /root/autoconfig_pgsql.php /var/www/html/config/autoconfig.php

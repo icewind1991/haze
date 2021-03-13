@@ -1,9 +1,29 @@
+use crate::image::pull_image;
+use crate::tty::exec_tty;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
 use bollard::Docker;
 use color_eyre::{Report, Result};
 use maplit::hashmap;
 use std::str::FromStr;
+
+pub enum DatabaseFamily {
+    Sqlite,
+    Mysql,
+    MariaDB,
+    Postgres,
+}
+
+impl DatabaseFamily {
+    pub fn name(&self) -> &'static str {
+        match self {
+            DatabaseFamily::Sqlite => "sqlite",
+            DatabaseFamily::Mysql => "mysql",
+            DatabaseFamily::MariaDB => "mariadb",
+            DatabaseFamily::Postgres => "pgsql",
+        }
+    }
+}
 
 #[derive(Debug, Eq, PartialEq)]
 #[allow(dead_code)]
@@ -57,6 +77,18 @@ impl FromStr for Database {
             "pgsql:11" => Ok(Database::Postgres11),
             "pgsql:12" => Ok(Database::Postgres12),
             "pgsql:13" => Ok(Database::Postgres13),
+            "postgres" => Ok(Database::Postgres),
+            "postgres:9" => Ok(Database::Postgres9),
+            "postgres:10" => Ok(Database::Postgres10),
+            "postgres:11" => Ok(Database::Postgres11),
+            "postgres:12" => Ok(Database::Postgres12),
+            "postgres:13" => Ok(Database::Postgres13),
+            "postgresql" => Ok(Database::Postgres),
+            "postgresql:9" => Ok(Database::Postgres9),
+            "postgresql:10" => Ok(Database::Postgres10),
+            "postgresql:11" => Ok(Database::Postgres11),
+            "postgresql:12" => Ok(Database::Postgres12),
+            "postgresql:13" => Ok(Database::Postgres13),
             _ => Err(Report::msg("Unknown db type")),
         }
     }
@@ -66,17 +98,17 @@ impl Database {
     pub fn image(&self) -> &'static str {
         match self {
             Database::Sqlite => "",
-            Database::Mysql => "mysql",
+            Database::Mysql => "mysql:8",
             Database::Mysql80 => "mysql:8",
             Database::Mysql57 => "mysql:5.7",
             Database::Mysql56 => "mysql:5.6",
-            Database::MariaDB => "mariadb",
+            Database::MariaDB => "mariadb:10",
             Database::MariaDB101 => "mariadb:10.1",
             Database::MariaDB102 => "mariadb:10.2",
             Database::MariaDB103 => "mariadb:10.3",
             Database::MariaDB104 => "mariadb:10.4",
             Database::MariaDB105 => "mariadb:10.5",
-            Database::Postgres => "postgres",
+            Database::Postgres => "postgres:9",
             Database::Postgres9 => "postgres:9",
             Database::Postgres10 => "postgres:10",
             Database::Postgres11 => "postgres:11",
@@ -85,52 +117,41 @@ impl Database {
         }
     }
 
-    pub fn name(&self) -> &'static str {
+    pub fn name(&self) -> &str {
+        self.family().name()
+    }
+
+    pub fn family(&self) -> DatabaseFamily {
         match self {
-            Database::Sqlite => "sqlite",
-            Database::Mysql
-            | Database::Mysql80
-            | Database::Mysql57
-            | Database::Mysql56
-            | Database::MariaDB
+            Database::Sqlite => DatabaseFamily::Sqlite,
+            Database::Mysql | Database::Mysql80 | Database::Mysql57 | Database::Mysql56 => {
+                DatabaseFamily::Mysql
+            }
+            Database::MariaDB
             | Database::MariaDB101
             | Database::MariaDB102
             | Database::MariaDB103
             | Database::MariaDB104
-            | Database::MariaDB105 => "mysql",
+            | Database::MariaDB105 => DatabaseFamily::MariaDB,
             Database::Postgres
             | Database::Postgres9
             | Database::Postgres10
             | Database::Postgres11
             | Database::Postgres12
-            | Database::Postgres13 => "pgsql",
+            | Database::Postgres13 => DatabaseFamily::Postgres,
         }
     }
 
     pub fn env(&self) -> Vec<&'static str> {
-        match self {
-            Database::Sqlite => Vec::new(),
-            Database::Mysql
-            | Database::Mysql80
-            | Database::Mysql57
-            | Database::Mysql56
-            | Database::MariaDB
-            | Database::MariaDB101
-            | Database::MariaDB102
-            | Database::MariaDB103
-            | Database::MariaDB104
-            | Database::MariaDB105 => vec![
+        match self.family() {
+            DatabaseFamily::Sqlite => Vec::new(),
+            DatabaseFamily::Mysql | DatabaseFamily::MariaDB => vec![
                 "MYSQL_ROOT_PASSWORD=haze",
                 "MYSQL_PASSWORD=haze",
                 "MYSQL_USER=haze",
                 "MYSQL_DATABASE=haze",
             ],
-            Database::Postgres
-            | Database::Postgres9
-            | Database::Postgres10
-            | Database::Postgres11
-            | Database::Postgres12
-            | Database::Postgres13 => vec![
+            DatabaseFamily::Postgres => vec![
                 "POSTGRES_PASSWORD=haze",
                 "POSTGRES_USER=haze",
                 "POSTGRES_DATABASE=haze",
@@ -147,6 +168,7 @@ impl Database {
         if matches!(self, Database::Sqlite) {
             return Ok(None);
         }
+        pull_image(docker, self.image()).await?;
         let options = Some(CreateContainerOptions {
             name: format!("{}-db", cloud_id),
         });
@@ -174,5 +196,40 @@ impl Database {
         let id = docker.create_container(options, config).await?.id;
         docker.start_container::<String>(&id, None).await?;
         Ok(Some(id))
+    }
+
+    pub async fn exec(&self, docker: &mut Docker, cloud_id: &str) -> Result<()> {
+        match self.family() {
+            DatabaseFamily::Sqlite => {
+                exec_tty(
+                    docker,
+                    cloud_id,
+                    "haze",
+                    vec!["sqlite3", "/var/www/html/data/owncloud.db"],
+                    vec![],
+                )
+                .await
+            }
+            DatabaseFamily::MariaDB | DatabaseFamily::Mysql => {
+                exec_tty(
+                    docker,
+                    format!("{}-db", cloud_id),
+                    "mysql",
+                    vec!["mysql", "-u", "haze", "-phaze", "haze"],
+                    vec![],
+                )
+                .await
+            }
+            DatabaseFamily::Postgres => {
+                exec_tty(
+                    docker,
+                    format!("{}-db", cloud_id),
+                    "root",
+                    vec!["psql", "haze", "haze"],
+                    vec!["PGPASSWORD=haze"],
+                )
+                .await
+            }
+        }
     }
 }
