@@ -99,6 +99,13 @@ async fn main() -> Result<()> {
             let cloud = get_by_filter(&mut docker, None, &config).await?;
             cloud.db.exec(&mut docker, &cloud.id).await?;
         }
+        HazeCommand::Open => {
+            let cloud = get_by_filter(&mut docker, None, &config).await?;
+            match cloud.ip {
+                Some(ip) => opener::open(format!("http://{}", ip))?,
+                None => eprintln!("{} is not running", cloud.id),
+            }
+        }
         HazeCommand::Test => {
             todo!();
         }

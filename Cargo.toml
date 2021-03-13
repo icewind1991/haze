@@ -14,3 +14,4 @@ tokio = { version = "1" , features = ["fs", "macros"] }
 parse-display = "0.4"
 futures-util = "0.3"
 termion = "1"
+opener = "0.4"
