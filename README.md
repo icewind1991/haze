@@ -25,7 +25,7 @@ work_dir = "/path/to/temp/folder" # optional, defaults to /tmp/haze
 haze start [database]
 ```
 
-Where database is one of `sqlite`, `mysql`, `mariadb` or `pgsql` with an option version (e.g. `pgsql:12`), defaults to `sqlite`.
+Where database is one of `sqlite`, `mysql`, `mariadb` or `pgsql` with an optional version (e.g. `pgsql:12`), defaults to `sqlite`.
 
 ### List running instances
 
