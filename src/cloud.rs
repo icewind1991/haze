@@ -1,8 +1,8 @@
 use crate::config::HazeConfig;
 use crate::database::Database;
 use crate::php::PhpVersion;
+use crate::tty::exec_tty;
 use bollard::container::{ListContainersOptions, LogsOptions, RemoveContainerOptions};
-use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::models::ContainerState;
 use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
@@ -12,17 +12,11 @@ use futures_util::stream::StreamExt;
 use min_id::generate_id;
 use std::collections::HashMap;
 use std::fs;
-use std::io::Write;
-use std::io::{stdout, Read};
 use std::net::IpAddr;
 use std::os::unix::fs::MetadataExt;
 use std::str::FromStr;
 use std::time::Duration;
-use termion::async_stdin;
-use termion::raw::IntoRawMode;
 use tokio::fs::{create_dir_all, remove_dir_all, write};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::task::spawn;
 use tokio::time::sleep;
 
 #[derive(Default, Debug, Eq, PartialEq)]
@@ -294,51 +288,7 @@ impl Cloud {
     }
 
     pub async fn exec(&self, docker: &mut Docker, cmd: Vec<String>) -> Result<()> {
-        let config = CreateExecOptions {
-            cmd: Some(cmd),
-            user: Some("haze".to_string()),
-            attach_stdout: Some(true),
-            attach_stderr: Some(true),
-            attach_stdin: Some(true),
-            tty: Some(true),
-            ..Default::default()
-        };
-        let message = docker.create_exec(&self.id, config).await?;
-        if let StartExecResults::AttachedTTY {
-            mut output,
-            mut input,
-        } = docker.start_exec(&message.id, None, true).await?
-        {
-            // pipe stdin into the docker exec stream input
-            spawn(async move {
-                let mut stdin = async_stdin().bytes();
-                loop {
-                    if let Some(Ok(byte)) = stdin.next() {
-                        input.write(&[byte]).await.ok();
-                    } else {
-                        sleep(Duration::from_nanos(10)).await;
-                    }
-                }
-            });
-
-            // set stdout in raw mode so we can do tty stuff
-            let stdout = stdout();
-            let mut stdout = stdout.lock().into_raw_mode()?;
-
-            // pipe docker exec output into stdout
-            let mut buff = [0; 128];
-            while let Ok(read) = output.read(&mut buff).await {
-                if read == 0 {
-                    break;
-                }
-                stdout.write(&buff[0..read])?;
-                stdout.flush()?;
-            }
-        } else {
-            unreachable!();
-        }
-
-        Ok(())
+        exec_tty(docker, &self.id, "haze", cmd).await
     }
 }
 

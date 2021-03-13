@@ -9,6 +9,7 @@ mod cloud;
 mod config;
 mod database;
 mod php;
+mod tty;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -93,7 +94,12 @@ async fn main() -> Result<()> {
             options.insert(0, "occ".to_string());
             cloud.exec(&mut docker, options).await?;
         }
-        _ => todo!(),
+        HazeCommand::Db => {
+            todo!();
+        }
+        HazeCommand::Test => {
+            todo!();
+        }
     };
 
     Ok(())
