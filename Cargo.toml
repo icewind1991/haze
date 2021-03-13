@@ -5,7 +5,7 @@ authors = ["Robin Appelman <robin@icewind.nl>"]
 edition = "2018"
 
 [dependencies]
-bollard = "0.10"
+bollard = { version = "0.10", git = "https://github.com/icewind1991/bollard", branch = "exec-input" }
 color-eyre = "0.5"
 min-id = "0.1"
 maplit = "1"
@@ -13,3 +13,4 @@ camino = "1"
 tokio = { version = "1" , features = ["fs", "macros"] }
 parse-display = "0.4"
 futures-util = "0.3"
+termion = "1"

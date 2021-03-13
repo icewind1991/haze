@@ -72,7 +72,16 @@ async fn main() -> Result<()> {
         }
         HazeCommand::Exec => {
             let cloud = get_by_filter(&mut docker, None, &config).await?;
-            cloud.exec(&mut docker, args.options).await?;
+            cloud
+                .exec(
+                    &mut docker,
+                    if args.options.is_empty() {
+                        vec!["bash".to_string()]
+                    } else {
+                        args.options
+                    },
+                )
+                .await?;
         }
         HazeCommand::Occ => {
             let cloud = get_by_filter(&mut docker, None, &config).await?;
