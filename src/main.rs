@@ -63,6 +63,10 @@ async fn main() -> Result<()> {
             let cloud = Cloud::create(&mut docker, options, &config).await?;
             println!("http://{}", cloud.ip.unwrap());
         }
+        HazeCommand::Stop => {
+            let cloud = get_by_filter(&mut docker, None, &config).await?;
+            cloud.destroy(&mut docker).await?;
+        }
         HazeCommand::Logs => {
             let cloud = get_by_filter(&mut docker, None, &config).await?;
             let logs = cloud.logs(&mut docker).await?;
