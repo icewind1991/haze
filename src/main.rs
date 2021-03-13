@@ -16,10 +16,7 @@ mod tty;
 async fn main() -> Result<()> {
     let mut docker =
         Docker::connect_with_local_defaults().wrap_err("Failed to connect to docker")?;
-    let config = HazeConfig {
-        sources_root: "/srv/http/owncloud".into(),
-        work_dir: "/tmp/haze".into(),
-    };
+    let config = HazeConfig::load().wrap_err("Failed to load config")?;
 
     let args = HazeArgs::parse(std::env::args())?;
 
@@ -66,18 +63,18 @@ async fn main() -> Result<()> {
             println!("http://{}", cloud.ip.unwrap());
         }
         HazeCommand::Stop => {
-            let cloud = get_by_filter(&mut docker, None, &config).await?;
+            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
             cloud.destroy(&mut docker).await?;
         }
         HazeCommand::Logs => {
-            let cloud = get_by_filter(&mut docker, None, &config).await?;
+            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
             let logs = cloud.logs(&mut docker).await?;
             for log in logs {
                 print!("{}", log);
             }
         }
         HazeCommand::Exec => {
-            let cloud = get_by_filter(&mut docker, None, &config).await?;
+            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
             cloud
                 .exec(
                     &mut docker,
@@ -90,17 +87,17 @@ async fn main() -> Result<()> {
                 .await?;
         }
         HazeCommand::Occ => {
-            let cloud = get_by_filter(&mut docker, None, &config).await?;
+            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
             let mut options = args.options;
             options.insert(0, "occ".to_string());
             cloud.exec(&mut docker, options).await?;
         }
         HazeCommand::Db => {
-            let cloud = get_by_filter(&mut docker, None, &config).await?;
+            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
             cloud.db.exec(&mut docker, &cloud.id).await?;
         }
         HazeCommand::Open => {
-            let cloud = get_by_filter(&mut docker, None, &config).await?;
+            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
             match cloud.ip {
                 Some(ip) => opener::open(format!("http://{}", ip))?,
                 None => eprintln!("{} is not running", cloud.id),
