@@ -250,8 +250,20 @@ impl Database {
     async fn is_healthy(&self, docker: &mut Docker, cloud_id: &str) -> Result<bool> {
         match self.family() {
             DatabaseFamily::Sqlite => Ok(true),
-            DatabaseFamily::Mysql => Ok(true),
-            DatabaseFamily::MariaDB => Ok(true),
+            DatabaseFamily::Mysql | DatabaseFamily::MariaDB => {
+                let mut output = Vec::new();
+                exec(
+                    docker,
+                    format!("{}-db", cloud_id),
+                    "root",
+                    vec!["mysql", "-u", "haze", "-phaze", "-e", "SELECT 1"],
+                    vec![],
+                    Some(&mut output),
+                )
+                .await?;
+                let output = String::from_utf8(output)?;
+                Ok(!output.contains("ERROR"))
+            }
             DatabaseFamily::Postgres => {
                 let is_ready_status = exec(
                     docker,
