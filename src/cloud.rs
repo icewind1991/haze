@@ -290,6 +290,86 @@ impl Cloud {
     pub async fn exec(&self, docker: &mut Docker, cmd: Vec<String>) -> Result<()> {
         exec_tty(docker, &self.id, "haze", cmd, vec![]).await
     }
+
+    pub async fn list(
+        docker: &mut Docker,
+        filter: Option<String>,
+        config: &HazeConfig,
+    ) -> Result<Vec<Cloud>> {
+        let containers = docker
+            .list_containers::<String>(Some(ListContainersOptions {
+                all: true,
+                ..Default::default()
+            }))
+            .await?;
+        let mut containers_by_id: HashMap<String, (Option<_>, Vec<_>)> = HashMap::new();
+        for container in containers {
+            let labels = container.labels.clone().unwrap_or_default();
+            if let Some(cloud_id) = labels.get("haze-cloud-id") {
+                if match filter.as_ref() {
+                    Some(filter) => cloud_id.contains(filter),
+                    None => true,
+                } {
+                    let mut entry = containers_by_id.entry(cloud_id.to_string()).or_default();
+                    if labels.get("haze-type").map(String::as_str) == Some("cloud") {
+                        entry.0 = Some(container);
+                    } else {
+                        entry.1.push(container)
+                    }
+                }
+            }
+        }
+
+        let mut sortable_containers: Vec<_> = containers_by_id
+            .into_iter()
+            .filter_map(|(id, (cloud, services))| {
+                let cloud = cloud?;
+                let network = id.clone();
+                let networks = cloud.network_settings?.networks?;
+                let network_info = networks.get(&network)?;
+                let workdir = config.work_dir.join(&id);
+                let labels = cloud.labels?;
+                let db = labels.get("haze-db")?.parse().ok()?;
+                let php = labels.get("haze-php")?.parse().ok()?;
+                let mut service_ids: Vec<String> = services
+                    .iter()
+                    .filter_map(|service| service.names.as_ref()?.first().map(String::clone))
+                    .collect();
+                service_ids.push(id.clone());
+                Some((
+                    cloud.created.unwrap_or_default(),
+                    Cloud {
+                        id,
+                        network,
+                        db,
+                        php,
+                        containers: service_ids,
+                        ip: network_info.ip_address.as_ref()?.parse().ok(),
+                        workdir,
+                    },
+                ))
+            })
+            .collect();
+
+        sortable_containers.sort_by(|a, b| a.0.cmp(&b.0).reverse());
+
+        Ok(sortable_containers
+            .into_iter()
+            .map(|(_created, cloud)| cloud)
+            .collect())
+    }
+
+    pub async fn get_by_filter(
+        docker: &mut Docker,
+        filter: Option<String>,
+        config: &HazeConfig,
+    ) -> Result<Cloud> {
+        Cloud::list(docker, filter, config)
+            .await?
+            .into_iter()
+            .next()
+            .ok_or(Report::msg("No clouds running matching filter"))
+    }
 }
 
 async fn setup_workdir(base: &Utf8Path, id: &str) -> Result<Utf8PathBuf> {
@@ -309,84 +389,4 @@ async fn setup_workdir(base: &Utf8Path, id: &str) -> Result<Utf8PathBuf> {
     create_dir_all(base.join("composer/cache")).await?;
 
     Ok(workdir)
-}
-
-pub async fn list(
-    docker: &mut Docker,
-    filter: Option<String>,
-    config: &HazeConfig,
-) -> Result<Vec<Cloud>> {
-    let containers = docker
-        .list_containers::<String>(Some(ListContainersOptions {
-            all: true,
-            ..Default::default()
-        }))
-        .await?;
-    let mut containers_by_id: HashMap<String, (Option<_>, Vec<_>)> = HashMap::new();
-    for container in containers {
-        let labels = container.labels.clone().unwrap_or_default();
-        if let Some(cloud_id) = labels.get("haze-cloud-id") {
-            if match filter.as_ref() {
-                Some(filter) => cloud_id.contains(filter),
-                None => true,
-            } {
-                let mut entry = containers_by_id.entry(cloud_id.to_string()).or_default();
-                if labels.get("haze-type").map(String::as_str) == Some("cloud") {
-                    entry.0 = Some(container);
-                } else {
-                    entry.1.push(container)
-                }
-            }
-        }
-    }
-
-    let mut sortable_containers: Vec<_> = containers_by_id
-        .into_iter()
-        .filter_map(|(id, (cloud, services))| {
-            let cloud = cloud?;
-            let network = id.clone();
-            let networks = cloud.network_settings?.networks?;
-            let network_info = networks.get(&network)?;
-            let workdir = config.work_dir.join(&id);
-            let labels = cloud.labels?;
-            let db = labels.get("haze-db")?.parse().ok()?;
-            let php = labels.get("haze-php")?.parse().ok()?;
-            let mut service_ids: Vec<String> = services
-                .iter()
-                .filter_map(|service| service.names.as_ref()?.first().map(String::clone))
-                .collect();
-            service_ids.push(id.clone());
-            Some((
-                cloud.created.unwrap_or_default(),
-                Cloud {
-                    id,
-                    network,
-                    db,
-                    php,
-                    containers: service_ids,
-                    ip: network_info.ip_address.as_ref()?.parse().ok(),
-                    workdir,
-                },
-            ))
-        })
-        .collect();
-
-    sortable_containers.sort_by(|a, b| a.0.cmp(&b.0).reverse());
-
-    Ok(sortable_containers
-        .into_iter()
-        .map(|(_created, cloud)| cloud)
-        .collect())
-}
-
-pub async fn get_by_filter(
-    docker: &mut Docker,
-    filter: Option<String>,
-    config: &HazeConfig,
-) -> Result<Cloud> {
-    list(docker, filter, config)
-        .await?
-        .into_iter()
-        .next()
-        .ok_or(Report::msg("No clouds running matching filter"))
 }

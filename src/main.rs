@@ -1,5 +1,5 @@
 use crate::args::{HazeArgs, HazeCommand};
-use crate::cloud::{get_by_filter, list, Cloud, CloudOptions};
+use crate::cloud::{Cloud, CloudOptions};
 use crate::config::HazeConfig;
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Report, Result};
@@ -22,7 +22,7 @@ async fn main() -> Result<()> {
 
     match args.command {
         HazeCommand::Clean => {
-            let list = list(&mut docker, None, &config).await?;
+            let list = Cloud::list(&mut docker, None, &config).await?;
             for cloud in list {
                 if let Err(e) = cloud.destroy(&mut docker).await {
                     eprintln!("Error while removing cloud: {:#}", e);
@@ -30,7 +30,7 @@ async fn main() -> Result<()> {
             }
         }
         HazeCommand::List => {
-            let list = list(&mut docker, args.options.first().cloned(), &config).await?;
+            let list = Cloud::list(&mut docker, args.options.first().cloned(), &config).await?;
             for cloud in list {
                 if let Some(filter) = &args.id {
                     if !cloud.id.contains(filter.as_str()) {
@@ -63,18 +63,18 @@ async fn main() -> Result<()> {
             println!("http://{}", cloud.ip.unwrap());
         }
         HazeCommand::Stop => {
-            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
+            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
             cloud.destroy(&mut docker).await?;
         }
         HazeCommand::Logs => {
-            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
+            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
             let logs = cloud.logs(&mut docker).await?;
             for log in logs {
                 print!("{}", log);
             }
         }
         HazeCommand::Exec => {
-            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
+            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
             cloud
                 .exec(
                     &mut docker,
@@ -87,17 +87,17 @@ async fn main() -> Result<()> {
                 .await?;
         }
         HazeCommand::Occ => {
-            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
+            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
             let mut options = args.options;
             options.insert(0, "occ".to_string());
             cloud.exec(&mut docker, options).await?;
         }
         HazeCommand::Db => {
-            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
+            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
             cloud.db.exec(&mut docker, &cloud.id).await?;
         }
         HazeCommand::Open => {
-            let cloud = get_by_filter(&mut docker, args.id, &config).await?;
+            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
             match cloud.ip {
                 Some(ip) => opener::open(format!("http://{}", ip))?,
                 None => eprintln!("{} is not running", cloud.id),
