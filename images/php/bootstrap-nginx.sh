@@ -11,7 +11,5 @@ GID=${GID:-1000}
 groupadd -g $GID haze
 useradd -u $UID -g $GID haze
 
-cat /usr/local/etc/php-fpm.conf
-
 /usr/local/sbin/php-fpm &
 /etc/init.d/nginx start
