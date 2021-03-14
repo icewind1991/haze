@@ -96,8 +96,31 @@ async fn main() -> Result<()> {
                 None => eprintln!("{} is not running", cloud.id),
             }
         }
-        HazeArgs::Test { .. } => {
-            todo!();
+        HazeArgs::Test { options, path } => {
+            let cloud = Cloud::create(&mut docker, options, &config).await?;
+            cloud.wait_for_start().await?;
+            println!("Installing");
+            cloud
+                .exec(&mut docker, vec!["install", "admin", "admin"])
+                .await?;
+            if let Some(app) = path
+                .as_ref()
+                .and_then(|path| path.strip_prefix("apps/"))
+                .map(|path| &path[0..path.find('/').unwrap_or(path.len())])
+            {
+                if app.starts_with("files_") {
+                    cloud.enable_app(&mut docker, "files_external").await?;
+                }
+                println!("Enabling {}", app);
+                cloud.enable_app(&mut docker, app).await?;
+            }
+            cloud
+                .exec(
+                    &mut docker,
+                    vec!["tests".to_string(), path.unwrap_or_default()],
+                )
+                .await?;
+            cloud.destroy(&mut docker).await?;
         }
     };
 

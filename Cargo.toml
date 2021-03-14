@@ -18,6 +18,7 @@ toml = "0.5"
 directories-next = "1"
 serde = "1"
 petname = "1"
+reqwest = { version = "0.11", default-features = false }
 
 [profile.release]
 lto = true
