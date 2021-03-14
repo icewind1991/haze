@@ -3,9 +3,13 @@ use crate::image::pull_image;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
 use bollard::Docker;
-use color_eyre::Result;
+use color_eyre::{eyre::WrapErr, Report, Result};
 use maplit::hashmap;
+use reqwest::{Client, Url};
+use std::net::IpAddr;
 use std::str::FromStr;
+use std::time::Duration;
+use tokio::time::{sleep, timeout};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
@@ -86,6 +90,21 @@ impl PhpVersion {
         let id = docker.create_container(options, config).await?.id;
         docker.start_container::<String>(&id, None).await?;
         Ok(id)
+    }
+
+    pub async fn wait_for_start(&self, ip: Option<IpAddr>) -> Result<()> {
+        let client = Client::new();
+        let url = Url::parse(&format!(
+            "http://{}/status.php",
+            ip.ok_or(Report::msg("Container not running"))?
+        ))?;
+        timeout(Duration::from_secs(5), async {
+            while !client.get(url.clone()).send().await.is_ok() {
+                sleep(Duration::from_millis(100)).await
+            }
+        })
+        .await
+        .wrap_err("Timeout after 5 seconds")
     }
 }
 

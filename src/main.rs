@@ -8,9 +8,9 @@ mod args;
 mod cloud;
 mod config;
 mod database;
+mod exec;
 mod image;
 mod php;
-mod tty;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -74,6 +74,7 @@ async fn main() -> Result<()> {
                     } else {
                         command
                     },
+                    true,
                 )
                 .await?;
         }
@@ -83,7 +84,7 @@ async fn main() -> Result<()> {
         } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             command.insert(0, "occ".to_string());
-            cloud.exec(&mut docker, command).await?;
+            cloud.exec(&mut docker, command, true).await?;
         }
         HazeArgs::Db { filter } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
@@ -98,10 +99,10 @@ async fn main() -> Result<()> {
         }
         HazeArgs::Test { options, path } => {
             let cloud = Cloud::create(&mut docker, options, &config).await?;
-            cloud.wait_for_start().await?;
+            cloud.wait_for_start(&mut docker).await?;
             println!("Installing");
             cloud
-                .exec(&mut docker, vec!["install", "admin", "admin"])
+                .exec(&mut docker, vec!["install", "admin", "admin"], false)
                 .await?;
             if let Some(app) = path
                 .as_ref()
@@ -118,6 +119,7 @@ async fn main() -> Result<()> {
                 .exec(
                     &mut docker,
                     vec!["tests".to_string(), path.unwrap_or_default()],
+                    false,
                 )
                 .await?;
             cloud.destroy(&mut docker).await?;

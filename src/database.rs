@@ -1,11 +1,14 @@
+use crate::exec::{exec, exec_tty};
 use crate::image::pull_image;
-use crate::tty::exec_tty;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
 use bollard::Docker;
-use color_eyre::{Report, Result};
+use color_eyre::{eyre::WrapErr, Report, Result};
 use maplit::hashmap;
+use std::io::Stdout;
 use std::str::FromStr;
+use std::time::Duration;
+use tokio::time::{sleep, timeout};
 
 pub enum DatabaseFamily {
     Sqlite,
@@ -198,7 +201,7 @@ impl Database {
         Ok(Some(id))
     }
 
-    pub async fn exec(&self, docker: &mut Docker, cloud_id: &str) -> Result<()> {
+    pub async fn exec(&self, docker: &mut Docker, cloud_id: &str) -> Result<i64> {
         match self.family() {
             DatabaseFamily::Sqlite => {
                 exec_tty(
@@ -229,6 +232,50 @@ impl Database {
                     vec!["PGPASSWORD=haze"],
                 )
                 .await
+            }
+        }
+    }
+
+    pub async fn wait_for_start(&self, docker: &mut Docker, cloud_id: &str) -> Result<()> {
+        timeout(Duration::from_secs(15), async {
+            while !self.is_healthy(docker, cloud_id).await? {
+                sleep(Duration::from_millis(100)).await
+            }
+            Ok(())
+        })
+        .await
+        .wrap_err("Timeout after 15 seconds")?
+    }
+
+    async fn is_healthy(&self, docker: &mut Docker, cloud_id: &str) -> Result<bool> {
+        match self.family() {
+            DatabaseFamily::Sqlite => Ok(true),
+            DatabaseFamily::Mysql => Ok(true),
+            DatabaseFamily::MariaDB => Ok(true),
+            DatabaseFamily::Postgres => {
+                let is_ready_status = exec(
+                    docker,
+                    format!("{}-db", cloud_id),
+                    "root",
+                    vec!["pg_isready", "-U", "haze", "-q"],
+                    vec![],
+                    Option::<Stdout>::None,
+                )
+                .await?;
+                if is_ready_status == 0 {
+                    let connect_status = exec(
+                        docker,
+                        format!("{}-db", cloud_id),
+                        "root",
+                        vec!["psql", "-U", "haze", "-qtA", "-c", ""],
+                        vec![],
+                        Option::<Stdout>::None,
+                    )
+                    .await?;
+                    Ok(connect_status == 0)
+                } else {
+                    Ok(false)
+                }
             }
         }
     }

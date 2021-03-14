@@ -1,6 +1,7 @@
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Result};
+use futures_util::StreamExt;
 use std::io::{stdout, Read, Write};
 use std::time::Duration;
 use termion::async_stdin;
@@ -15,7 +16,7 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
     user: &str,
     cmd: Vec<S2>,
     env: Vec<&str>,
-) -> Result<()> {
+) -> Result<i64> {
     let cmd = cmd.into_iter().map(S2::into).collect();
     let env = env.into_iter().map(String::from).collect();
     let config = CreateExecOptions {
@@ -68,5 +69,53 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
     } else {
         unreachable!();
     }
-    Ok(())
+
+    Ok(docker
+        .inspect_exec(&message.id)
+        .await?
+        .exit_code
+        .unwrap_or_default())
+}
+
+pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
+    docker: &mut Docker,
+    container: S1,
+    user: &str,
+    cmd: Vec<S2>,
+    env: Vec<&str>,
+    mut std_out: Option<impl Write>,
+) -> Result<i64> {
+    let cmd = cmd.into_iter().map(S2::into).collect();
+    let env = env.into_iter().map(String::from).collect();
+    let config = CreateExecOptions {
+        cmd: Some(cmd),
+        user: Some(user.to_string()),
+        attach_stdout: Some(true),
+        attach_stderr: Some(true),
+        env: Some(env),
+        ..Default::default()
+    };
+    let message = docker
+        .create_exec(container.as_ref(), config)
+        .await
+        .wrap_err("Failed to setup exec")?;
+    if let StartExecResults::Attached { mut output, .. } = docker
+        .start_exec(&message.id, None, false)
+        .await
+        .wrap_err("Failed to start exec")?
+    {
+        while let Some(Ok(line)) = output.next().await {
+            if let Some(std_out) = &mut std_out {
+                write!(std_out, "{}", line)?;
+            }
+        }
+    } else {
+        unreachable!();
+    }
+
+    Ok(docker
+        .inspect_exec(&message.id)
+        .await?
+        .exit_code
+        .unwrap_or_default())
 }

@@ -1,7 +1,7 @@
 use crate::config::HazeConfig;
 use crate::database::Database;
+use crate::exec::{exec, exec_tty};
 use crate::php::PhpVersion;
-use crate::tty::exec_tty;
 use bollard::container::{ListContainersOptions, LogsOptions, RemoveContainerOptions};
 use bollard::models::ContainerState;
 use bollard::network::CreateNetworkOptions;
@@ -10,17 +10,17 @@ use camino::{Utf8Path, Utf8PathBuf};
 use color_eyre::{eyre::WrapErr, Report, Result};
 use futures_util::stream::StreamExt;
 use petname::petname;
-use reqwest::{Client, Url};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
+use std::io::stdout;
 use std::iter::Peekable;
 use std::net::IpAddr;
 use std::os::unix::fs::MetadataExt;
 use std::str::FromStr;
 use std::time::Duration;
 use tokio::fs::{create_dir_all, remove_dir_all, write};
-use tokio::time::{sleep, timeout};
+use tokio::time::sleep;
 
 #[derive(Clone, Default, Debug, Eq, PartialEq)]
 pub struct CloudOptions {
@@ -288,8 +288,17 @@ impl Cloud {
         Ok(logs)
     }
 
-    pub async fn exec<S: Into<String>>(&self, docker: &mut Docker, cmd: Vec<S>) -> Result<()> {
-        exec_tty(docker, &self.id, "haze", cmd, vec![]).await
+    pub async fn exec<S: Into<String>>(
+        &self,
+        docker: &mut Docker,
+        cmd: Vec<S>,
+        tty: bool,
+    ) -> Result<i64> {
+        if tty {
+            exec_tty(docker, &self.id, "haze", cmd, vec![]).await
+        } else {
+            exec(docker, &self.id, "haze", cmd, vec![], Some(stdout())).await
+        }
     }
 
     pub async fn list(
@@ -372,19 +381,16 @@ impl Cloud {
             .ok_or(Report::msg("No clouds running matching filter"))
     }
 
-    pub async fn wait_for_start(&self) -> Result<()> {
-        let client = Client::new();
-        let url = Url::parse(&format!(
-            "http://{}/status.php",
-            self.ip.ok_or(Report::msg("Container not running"))?
-        ))?;
-        timeout(Duration::from_secs(5), async {
-            while !client.get(url.clone()).send().await.is_ok() {
-                sleep(Duration::from_millis(100)).await
-            }
-        })
-        .await
-        .wrap_err("Timeout after 5 seconds")
+    pub async fn wait_for_start(&self, docker: &mut Docker) -> Result<()> {
+        self.php
+            .wait_for_start(self.ip)
+            .await
+            .wrap_err("Failed to wait for php container")?;
+        self.db
+            .wait_for_start(docker, &self.id)
+            .await
+            .wrap_err("Failed to wait for database container")?;
+        Ok(())
     }
 
     pub async fn enable_app<S: Into<String>>(&self, docker: &mut Docker, app: S) -> Result<()> {
@@ -396,8 +402,10 @@ impl Cloud {
                 app.into(),
                 "--force".to_string(),
             ],
+            false,
         )
-        .await
+        .await?;
+        Ok(())
     }
 }
 
