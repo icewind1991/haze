@@ -25,7 +25,7 @@ impl DatabaseFamily {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum Database {
     Sqlite,

@@ -1,44 +1,115 @@
+use crate::cloud::CloudOptions;
 use color_eyre::{Report, Result};
+use parse_display::Display;
+use std::fmt::Display;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct HazeArgs {
-    pub id: Option<String>,
-    pub command: HazeCommand,
-    pub options: Vec<String>,
+pub enum HazeArgs {
+    List {
+        filter: Option<String>,
+    },
+    Start {
+        options: CloudOptions,
+    },
+    Stop {
+        filter: Option<String>,
+    },
+    Test {
+        options: CloudOptions,
+        path: Option<String>,
+    },
+    Exec {
+        filter: Option<String>,
+        command: Vec<String>,
+    },
+    Occ {
+        filter: Option<String>,
+        command: Vec<String>,
+    },
+    Db {
+        filter: Option<String>,
+    },
+    Clean,
+    Logs {
+        filter: Option<String>,
+    },
+    Open {
+        filter: Option<String>,
+    },
 }
 
 impl HazeArgs {
     pub fn parse<I, S>(mut args: I) -> Result<HazeArgs>
     where
-        S: AsRef<str> + ToString,
+        S: AsRef<str> + Into<String> + Display,
         I: Iterator<Item = S>,
     {
-        let _bin = args.next().unwrap();
-        let (id, command) = match args.next() {
-            Some(sub_or_id) => {
-                if let Ok(command) = sub_or_id.as_ref().parse() {
-                    (None, command)
-                } else {
-                    if let Some(sub) = args.next() {
-                        (Some(sub_or_id.to_string()), sub.as_ref().parse()?)
-                    } else {
-                        (Some(sub_or_id.to_string()), HazeCommand::List)
-                    }
-                }
-            }
-            None => (None, HazeCommand::List),
+        let _bin = args.next();
+        let command_or_filter = match args.next() {
+            Some(s) => s,
+            None => return Ok(HazeArgs::List { filter: None }),
         };
-        let options = args.map(|s| s.to_string()).collect();
-        Ok(HazeArgs {
-            id,
-            command,
-            options,
-        })
+        let (cmd, filter) = match HazeCommand::from_str(command_or_filter.as_ref()) {
+            Ok(cmd) => (cmd, None),
+            Err(_) => {
+                let cmd = match args.next() {
+                    Some(cmd) => HazeCommand::from_str(cmd.as_ref())?,
+                    None => {
+                        return Ok(HazeArgs::List {
+                            filter: Some(command_or_filter.into()),
+                        })
+                    }
+                };
+                if !cmd.allows_filter() {
+                    return Err(Report::msg(format!(
+                        "{} doesn't allow specifying a filter",
+                        cmd
+                    )));
+                }
+                (cmd, Some(command_or_filter.into()))
+            }
+        };
+
+        match cmd {
+            HazeCommand::List => Ok(HazeArgs::List {
+                filter: filter.or_else(|| args.next().map(S::into)),
+            }),
+            HazeCommand::Start => {
+                let mut args = args.peekable();
+                let options = CloudOptions::parse(&mut args)?;
+                if let Some(leftover) = args.next() {
+                    return Err(Report::msg(format!("unrecognized option {}", leftover)));
+                }
+                Ok(HazeArgs::Start { options })
+            }
+            HazeCommand::Stop => Ok(HazeArgs::Stop { filter }),
+            HazeCommand::Test => {
+                let mut args = args.peekable();
+                let options = CloudOptions::parse(&mut args)?;
+                let path = args.next().map(S::into);
+                if let Some(leftover) = args.next() {
+                    return Err(Report::msg(format!("unrecognized option {}", leftover)));
+                }
+                Ok(HazeArgs::Test { options, path })
+            }
+            HazeCommand::Exec => Ok(HazeArgs::Exec {
+                filter,
+                command: args.map(S::into).collect(),
+            }),
+            HazeCommand::Occ => Ok(HazeArgs::Occ {
+                filter,
+                command: args.map(S::into).collect(),
+            }),
+            HazeCommand::Db => Ok(HazeArgs::Db { filter }),
+            HazeCommand::Clean => Ok(HazeArgs::Clean),
+            HazeCommand::Logs => Ok(HazeArgs::Logs { filter }),
+            HazeCommand::Open => Ok(HazeArgs::Open { filter }),
+        }
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Display)]
 pub enum HazeCommand {
     List,
     Start,
@@ -72,54 +143,60 @@ impl FromStr for HazeCommand {
     }
 }
 
+impl HazeCommand {
+    pub fn allows_filter(&self) -> bool {
+        match self {
+            HazeCommand::List => true,
+            HazeCommand::Start => false,
+            HazeCommand::Stop => true,
+            HazeCommand::Test => false,
+            HazeCommand::Exec => true,
+            HazeCommand::Occ => true,
+            HazeCommand::Db => true,
+            HazeCommand::Clean => false,
+            HazeCommand::Logs => true,
+            HazeCommand::Open => true,
+        }
+    }
+}
+
 #[test]
 fn test_arg_parse() {
     assert_eq!(
         HazeArgs::parse(vec!["haze"].into_iter()).unwrap(),
-        HazeArgs {
-            id: None,
-            command: HazeCommand::List,
-            options: Vec::new(),
-        }
+        HazeArgs::List { filter: None }
     );
     assert_eq!(
         HazeArgs::parse(vec!["haze", "test"].into_iter()).unwrap(),
-        HazeArgs {
-            id: None,
-            command: HazeCommand::Test,
-            options: Vec::new(),
+        HazeArgs::Test {
+            options: Default::default(),
+            path: None
         }
     );
     assert_eq!(
         HazeArgs::parse(vec!["haze", "asdasd"].into_iter()).unwrap(),
-        HazeArgs {
-            id: Some("asdasd".to_string()),
-            command: HazeCommand::List,
-            options: Vec::new(),
+        HazeArgs::List {
+            filter: Some("asdasd".to_string())
         }
     );
     assert_eq!(
         HazeArgs::parse(vec!["haze", "asdasd", "db"].into_iter()).unwrap(),
-        HazeArgs {
-            id: Some("asdasd".to_string()),
-            command: HazeCommand::Db,
-            options: Vec::new(),
+        HazeArgs::Db {
+            filter: Some("asdasd".to_string())
         }
     );
     assert_eq!(
         HazeArgs::parse(vec!["haze", "exec", "foo", "bar"].into_iter()).unwrap(),
-        HazeArgs {
-            id: None,
-            command: HazeCommand::Exec,
-            options: vec!["foo".to_string(), "bar".to_string()],
+        HazeArgs::Exec {
+            filter: None,
+            command: vec!["foo".to_string(), "bar".to_string()],
         }
     );
     assert_eq!(
         HazeArgs::parse(vec!["haze", "asdasd", "exec", "foo", "bar"].into_iter()).unwrap(),
-        HazeArgs {
-            id: Some("asdasd".to_string()),
-            command: HazeCommand::Exec,
-            options: vec!["foo".to_string(), "bar".to_string()],
+        HazeArgs::Exec {
+            filter: Some("asdasd".to_string()),
+            command: vec!["foo".to_string(), "bar".to_string()],
         }
     );
 }

@@ -11,7 +11,9 @@ use color_eyre::{eyre::WrapErr, Report, Result};
 use futures_util::stream::StreamExt;
 use min_id::generate_id;
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::fs;
+use std::iter::Peekable;
 use std::net::IpAddr;
 use std::os::unix::fs::MetadataExt;
 use std::str::FromStr;
@@ -19,85 +21,82 @@ use std::time::Duration;
 use tokio::fs::{create_dir_all, remove_dir_all, write};
 use tokio::time::sleep;
 
-#[derive(Default, Debug, Eq, PartialEq)]
+#[derive(Clone, Default, Debug, Eq, PartialEq)]
 pub struct CloudOptions {
     db: Database,
     php: PhpVersion,
 }
 
 impl CloudOptions {
-    pub fn parse<S>(options: Vec<S>) -> Result<(CloudOptions, Vec<S>)>
+    pub fn parse<I, S>(args: &mut Peekable<I>) -> Result<CloudOptions>
     where
-        S: AsRef<str> + Clone,
+        S: AsRef<str> + Into<String> + Display,
+        I: Iterator<Item = S>,
     {
-        let mut db = Database::default();
-        let mut php = PhpVersion::default();
-        let mut used = 0;
+        let mut db = None;
+        let mut php = None;
 
-        for option in options.iter() {
+        while let Some(option) = args.peek() {
             if let Ok(db_option) = Database::from_str(option.as_ref()) {
-                db = db_option;
-                used += 1;
-                continue;
+                db = Some(db_option);
+                let _ = args.next();
+            } else if let Ok(php_option) = PhpVersion::from_str(option.as_ref()) {
+                php = Some(php_option);
+                let _ = args.next();
+            } else {
+                break;
             }
-            if let Ok(php_option) = PhpVersion::from_str(option.as_ref()) {
-                php = php_option;
-                used += 1;
-                continue;
+
+            if db.is_some() && php.is_some() {
+                break;
             }
         }
 
-        let rest = options[used..].to_vec();
-
-        Ok((CloudOptions { db, php }, rest))
+        Ok(CloudOptions {
+            db: db.unwrap_or_default(),
+            php: php.unwrap_or_default(),
+        })
     }
 }
 
 #[test]
 fn test_option_parse() {
+    let mut args = vec![].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse::<&str>(vec![]).unwrap(),
-        (CloudOptions::default(), vec![])
+        CloudOptions::parse::<_, &str>(&mut args).unwrap(),
+        CloudOptions::default()
     );
+    let mut args = vec!["mariadb"].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse(vec!["mariadb"]).unwrap(),
-        (
-            CloudOptions {
-                db: Database::MariaDB,
-                ..Default::default()
-            },
-            vec![]
-        )
+        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions {
+            db: Database::MariaDB,
+            ..Default::default()
+        }
     );
+    let mut args = vec!["rest"].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse(vec!["rest"]).unwrap(),
-        (
-            CloudOptions {
-                ..Default::default()
-            },
-            vec!["rest"]
-        )
+        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions {
+            ..Default::default()
+        }
     );
+    let mut args = vec!["7"].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse(vec!["7"]).unwrap(),
-        (
-            CloudOptions {
-                php: PhpVersion::Php74,
-                ..Default::default()
-            },
-            vec![]
-        )
+        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions {
+            php: PhpVersion::Php74,
+            ..Default::default()
+        }
     );
+    let mut args = vec!["7", "pgsql", "rest"].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse(vec!["7", "pgsql", "rest"]).unwrap(),
-        (
-            CloudOptions {
-                php: PhpVersion::Php74,
-                db: Database::Postgres,
-                ..Default::default()
-            },
-            vec!["rest"]
-        )
+        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions {
+            php: PhpVersion::Php74,
+            db: Database::Postgres,
+            ..Default::default()
+        }
     );
 }
 

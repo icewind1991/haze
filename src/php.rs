@@ -7,7 +7,7 @@ use color_eyre::Result;
 use maplit::hashmap;
 use std::str::FromStr;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum PhpVersion {
     Latest,

@@ -1,8 +1,8 @@
-use crate::args::{HazeArgs, HazeCommand};
-use crate::cloud::{Cloud, CloudOptions};
+use crate::args::HazeArgs;
+use crate::cloud::Cloud;
 use crate::config::HazeConfig;
 use bollard::Docker;
-use color_eyre::{eyre::WrapErr, Report, Result};
+use color_eyre::{eyre::WrapErr, Result};
 
 mod args;
 mod cloud;
@@ -20,8 +20,8 @@ async fn main() -> Result<()> {
 
     let args = HazeArgs::parse(std::env::args())?;
 
-    match args.command {
-        HazeCommand::Clean => {
+    match args {
+        HazeArgs::Clean => {
             let list = Cloud::list(&mut docker, None, &config).await?;
             for cloud in list {
                 if let Err(e) = cloud.destroy(&mut docker).await {
@@ -29,14 +29,9 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        HazeCommand::List => {
-            let list = Cloud::list(&mut docker, args.options.first().cloned(), &config).await?;
+        HazeArgs::List { filter } => {
+            let list = Cloud::list(&mut docker, filter, &config).await?;
             for cloud in list {
-                if let Some(filter) = &args.id {
-                    if !cloud.id.contains(filter.as_str()) {
-                        continue;
-                    }
-                }
                 match cloud.ip {
                     Some(ip) => println!(
                         "Cloud {}, {}, {}, running on http://{}",
@@ -54,56 +49,54 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        HazeCommand::Start => {
-            let (options, rest) = CloudOptions::parse(args.options)?;
-            if let Some(next) = rest.first() {
-                return Err(Report::msg(format!("Unknown option {}", next)));
-            }
+        HazeArgs::Start { options } => {
             let cloud = Cloud::create(&mut docker, options, &config).await?;
             println!("http://{}", cloud.ip.unwrap());
         }
-        HazeCommand::Stop => {
-            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
+        HazeArgs::Stop { filter } => {
+            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             cloud.destroy(&mut docker).await?;
         }
-        HazeCommand::Logs => {
-            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
+        HazeArgs::Logs { filter } => {
+            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             let logs = cloud.logs(&mut docker).await?;
             for log in logs {
                 print!("{}", log);
             }
         }
-        HazeCommand::Exec => {
-            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
+        HazeArgs::Exec { filter, command } => {
+            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             cloud
                 .exec(
                     &mut docker,
-                    if args.options.is_empty() {
+                    if command.is_empty() {
                         vec!["bash".to_string()]
                     } else {
-                        args.options
+                        command
                     },
                 )
                 .await?;
         }
-        HazeCommand::Occ => {
-            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
-            let mut options = args.options;
-            options.insert(0, "occ".to_string());
-            cloud.exec(&mut docker, options).await?;
+        HazeArgs::Occ {
+            filter,
+            mut command,
+        } => {
+            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
+            command.insert(0, "occ".to_string());
+            cloud.exec(&mut docker, command).await?;
         }
-        HazeCommand::Db => {
-            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
+        HazeArgs::Db { filter } => {
+            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             cloud.db.exec(&mut docker, &cloud.id).await?;
         }
-        HazeCommand::Open => {
-            let cloud = Cloud::get_by_filter(&mut docker, args.id, &config).await?;
+        HazeArgs::Open { filter } => {
+            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             match cloud.ip {
                 Some(ip) => opener::open(format!("http://{}", ip))?,
                 None => eprintln!("{} is not running", cloud.id),
             }
         }
-        HazeCommand::Test => {
+        HazeArgs::Test { .. } => {
             todo!();
         }
     };
