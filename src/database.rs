@@ -194,6 +194,14 @@ impl Database {
                     }
                 },
             }),
+            cmd: if self.image() == "mysql:8" {
+                Some(vec![
+                    "--default-authentication-plugin",
+                    "mysql_native_password",
+                ])
+            } else {
+                None
+            },
             ..Default::default()
         };
         let id = docker.create_container(options, config).await?.id;

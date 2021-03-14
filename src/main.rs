@@ -99,6 +99,7 @@ async fn main() -> Result<()> {
         }
         HazeArgs::Test { options, path } => {
             let cloud = Cloud::create(&mut docker, options, &config).await?;
+            println!("Waiting for servers to start");
             cloud.wait_for_start(&mut docker).await?;
             println!("Installing");
             cloud
