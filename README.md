@@ -22,10 +22,11 @@ work_dir = "/path/to/temp/folder" # optional, defaults to /tmp/haze
 #### Start an instance
 
 ```bash
-haze start [database]
+haze start [database] [php-version]
 ```
 
-Where database is one of `sqlite`, `mysql`, `mariadb` or `pgsql` with an optional version (e.g. `pgsql:12`), defaults to `sqlite`.
+Where `database` is one of `sqlite`, `mysql`, `mariadb` or `pgsql` with an optional version (e.g. `pgsql:12`), defaults to `sqlite`.
+And `php-version` is one of `7.2`, `7.3`, `7.4`, `8.0`, `7` or `8`, defaults to `8.0`
 
 ### List running instances
 

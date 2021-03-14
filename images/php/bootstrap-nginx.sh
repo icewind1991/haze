@@ -5,8 +5,8 @@ touch /var/log/nginx/error.log
 
 tail --follow --retry /var/log/nginx/*.log &
 
-UID=${UID:-$(id -u)}
-GID=${GID:-$(id -g)}
+UID=${UID:-1000}
+GID=${GID:-1000}
 
 groupadd -g $GID haze
 useradd -u $UID -g $GID haze

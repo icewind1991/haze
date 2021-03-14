@@ -14,10 +14,10 @@ use tokio::time::{sleep, timeout};
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum PhpVersion {
-    Latest,
-    // Php80,
+    Php80,
     Php74,
-    // Php73,
+    Php73,
+    Php72,
 }
 
 impl FromStr for PhpVersion {
@@ -26,7 +26,11 @@ impl FromStr for PhpVersion {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "7" => Ok(PhpVersion::Php74),
+            "7.2" => Ok(PhpVersion::Php72),
+            "7.3" => Ok(PhpVersion::Php73),
             "7.4" => Ok(PhpVersion::Php74),
+            "8" => Ok(PhpVersion::Php80),
+            "8.0" => Ok(PhpVersion::Php80),
             _ => Err(()),
         }
     }
@@ -36,15 +40,19 @@ impl PhpVersion {
     fn image(&self) -> &'static str {
         // for now only 7.4
         match self {
-            PhpVersion::Latest => "icewind1991/haze:7.4",
+            PhpVersion::Php72 => "icewind1991/haze:7.2",
+            PhpVersion::Php73 => "icewind1991/haze:7.3",
             PhpVersion::Php74 => "icewind1991/haze:7.4",
+            PhpVersion::Php80 => "icewind1991/haze:8.0",
         }
     }
 
     pub fn name(&self) -> &'static str {
         match self {
-            PhpVersion::Latest => "7.4",
+            PhpVersion::Php72 => "7.2",
+            PhpVersion::Php73 => "7.3",
             PhpVersion::Php74 => "7.4",
+            PhpVersion::Php80 => "8.0",
         }
     }
 
@@ -110,6 +118,6 @@ impl PhpVersion {
 
 impl Default for PhpVersion {
     fn default() -> Self {
-        PhpVersion::Latest
+        PhpVersion::Php80
     }
 }
