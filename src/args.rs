@@ -33,6 +33,7 @@ pub enum HazeArgs {
     Clean,
     Logs {
         filter: Option<String>,
+        count: Option<usize>,
     },
     Open {
         filter: Option<String>,
@@ -103,7 +104,10 @@ impl HazeArgs {
             }),
             HazeCommand::Db => Ok(HazeArgs::Db { filter }),
             HazeCommand::Clean => Ok(HazeArgs::Clean),
-            HazeCommand::Logs => Ok(HazeArgs::Logs { filter }),
+            HazeCommand::Logs => Ok(HazeArgs::Logs {
+                filter,
+                count: args.next().map(|arg| arg.as_ref().parse()).transpose()?,
+            }),
             HazeCommand::Open => Ok(HazeArgs::Open { filter }),
         }
     }

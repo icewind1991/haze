@@ -57,9 +57,9 @@ async fn main() -> Result<()> {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             cloud.destroy(&mut docker).await?;
         }
-        HazeArgs::Logs { filter } => {
+        HazeArgs::Logs { filter, count } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
-            let logs = cloud.logs(&mut docker).await?;
+            let logs = cloud.logs(&mut docker, count.unwrap_or(20)).await?;
             for log in logs {
                 print!("{}", log);
             }

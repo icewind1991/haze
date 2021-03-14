@@ -272,13 +272,14 @@ impl Cloud {
         Ok(())
     }
 
-    pub async fn logs(&self, docker: &mut Docker) -> Result<Vec<String>> {
+    pub async fn logs(&self, docker: &mut Docker, count: usize) -> Result<Vec<String>> {
         let mut logs = Vec::new();
         let mut stream = docker.logs::<String>(
             &self.id,
             Some(LogsOptions {
                 stdout: true,
                 stderr: true,
+                tail: format!("{}", count),
                 ..Default::default()
             }),
         );
