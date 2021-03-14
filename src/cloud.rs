@@ -9,7 +9,7 @@ use bollard::Docker;
 use camino::{Utf8Path, Utf8PathBuf};
 use color_eyre::{eyre::WrapErr, Report, Result};
 use futures_util::stream::StreamExt;
-use min_id::generate_id;
+use petname::petname;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
@@ -117,7 +117,7 @@ impl Cloud {
         options: CloudOptions,
         config: &HazeConfig,
     ) -> Result<Self> {
-        let id = format!("haze-{}", generate_id());
+        let id = format!("haze-{}", petname(2, "-"));
 
         let workdir = setup_workdir(&config.work_dir, &id)
             .await

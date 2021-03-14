@@ -7,7 +7,6 @@ edition = "2018"
 [dependencies]
 bollard = { version = "0.10", git = "https://github.com/icewind1991/bollard", branch = "exec-input" }
 color-eyre = "0.5"
-min-id = "0.1"
 maplit = "1"
 camino = { version = "1", features = ["serde1"] }
 tokio = { version = "1" , features = ["fs", "macros"] }
@@ -18,3 +17,7 @@ opener = "0.4"
 toml = "0.5"
 directories-next = "1"
 serde = "1"
+petname = "1"
+
+[profile.release]
+lto = true
