@@ -52,6 +52,37 @@ async fn main() -> Result<()> {
         HazeArgs::Start { options } => {
             let cloud = Cloud::create(&mut docker, options, &config).await?;
             println!("http://{}", cloud.ip.unwrap());
+            if config.auto_setup.enabled {
+                println!("Waiting for servers to start");
+                cloud.wait_for_start(&mut docker).await?;
+                println!(
+                    "Installing with username {} and password {}",
+                    config.auto_setup.username, config.auto_setup.password
+                );
+                cloud
+                    .exec(
+                        &mut docker,
+                        vec![
+                            "install",
+                            &config.auto_setup.username,
+                            &config.auto_setup.password,
+                        ],
+                        false,
+                    )
+                    .await?;
+                cloud
+                    .exec(
+                        &mut docker,
+                        vec![
+                            "sed",
+                            "-i",
+                            &format!("s/0 => 'localhost'/'{}'/", cloud.ip.unwrap()),
+                            "config/config.php",
+                        ],
+                        false,
+                    )
+                    .await?;
+            }
         }
         HazeArgs::Stop { filter } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
@@ -103,7 +134,15 @@ async fn main() -> Result<()> {
             cloud.wait_for_start(&mut docker).await?;
             println!("Installing");
             cloud
-                .exec(&mut docker, vec!["install", "admin", "admin"], false)
+                .exec(
+                    &mut docker,
+                    vec![
+                        "install",
+                        &config.auto_setup.username,
+                        &config.auto_setup.password,
+                    ],
+                    false,
+                )
                 .await?;
             if let Some(app) = path
                 .as_ref()

@@ -14,8 +14,9 @@ Create a file `~/.config/haze/haze.toml` with the following options:
 
 ```toml
 sources_root = "/path/to/nextcloud/sources"
-work_dir = "/path/to/temp/folder" # optional, defaults to /tmp/haze
 ```
+
+See the [configuration section](#configuration) for more options.
 
 ## Managing instances
 
@@ -94,4 +95,17 @@ haze [match] logs
 
 ```bash
 haze [match] stop
+```
+
+## Configuration
+
+Configuration is loaded from `~/.config/haze/haze.toml` and has the following options
+
+```toml
+sources_root = "/srv/http/owncloud"
+
+[auto_setup] # optional
+enabled = false # whether or not to automatically install nextcloud on `haze start`. optional, defaults to false
+username = "foo" # username for admin user during auto setup. optional, defaults to "admin"
+password = "bar" # password for admin user during auto setup. optional, defaults to "admin"
 ```
