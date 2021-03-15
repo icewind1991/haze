@@ -102,7 +102,8 @@ haze [match] stop
 Configuration is loaded from `~/.config/haze/haze.toml` and has the following options
 
 ```toml
-sources_root = "/srv/http/owncloud"
+sources_root = "/path/to/sources" # path of the nextcloud sources. required
+work_dir = "/path/to/temp/dir" # path to temporary directory. optional, defaults to "/tmp/haze"
 
 [auto_setup] # optional
 enabled = false # whether or not to automatically install nextcloud on `haze start`. optional, defaults to false
