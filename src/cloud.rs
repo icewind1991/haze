@@ -1,12 +1,13 @@
 use crate::config::HazeConfig;
 use crate::database::Database;
 use crate::exec::{exec, exec_tty};
+use crate::mapping::default_mappings;
 use crate::php::PhpVersion;
 use bollard::container::{ListContainersOptions, LogsOptions, RemoveContainerOptions};
 use bollard::models::ContainerState;
 use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use color_eyre::{eyre::WrapErr, Report, Result};
 use futures_util::stream::StreamExt;
 use petname::petname;
@@ -19,7 +20,7 @@ use std::net::IpAddr;
 use std::os::unix::fs::MetadataExt;
 use std::str::FromStr;
 use std::time::Duration;
-use tokio::fs::{create_dir_all, remove_dir_all, write};
+use tokio::fs::remove_dir_all;
 use tokio::time::sleep;
 
 #[derive(Clone, Default, Debug, Eq, PartialEq)]
@@ -120,9 +121,14 @@ impl Cloud {
     ) -> Result<Self> {
         let id = format!("haze-{}", petname(2, "-"));
 
-        let workdir = setup_workdir(&config.work_dir, &id)
-            .await
-            .wrap_err("Failed to setup work directories")?;
+        let workdir = config.work_dir.join(&id);
+        let mappings = default_mappings();
+        for mapping in &mappings {
+            mapping
+                .create(&id, config)
+                .await
+                .wrap_err_with(|| format!("Failed to setup work directory {}", mapping.source))?;
+        }
 
         let network = docker
             .create_network(CreateNetworkOptions {
@@ -146,47 +152,10 @@ impl Cloud {
             format!("GID={}", gid),
             format!("SQL={}", options.db.name()),
         ];
-        let volumes = vec![
-            format!("{}:/var/www/html", config.sources_root),
-            format!("{}/{}/data:/var/www/html/data", config.work_dir, id),
-            format!("{}/{}/config:/var/www/html/config", config.work_dir, id),
-            format!(
-                "{}/{}/data-autotest:/var/www/html/data-autotest",
-                config.work_dir, id
-            ),
-            format!(
-                "{}/{}/skeleton:/var/www/html/core/skeleton",
-                config.work_dir, id
-            ),
-            format!(
-                "{}/skeleton/welcome.txt:/var/www/html/core/skeleton/welcome.txt:ro",
-                config.sources_root
-            ),
-            format!(
-                "{}/{}/integration/vendor:/var/www/html/build/integration/vendor",
-                config.work_dir, id
-            ),
-            format!(
-                "{}/{}/integration/work:/var/www/html/build/integration/work",
-                config.work_dir, id
-            ),
-            format!(
-                "{}/{}/integration/output:/var/www/html/build/integration/output",
-                config.work_dir, id
-            ),
-            format!(
-                "{}/{}/integration/composer.lock:/var/www/html/build/integration/composer.lock",
-                config.work_dir, id
-            ),
-            format!(
-                "{}/composer/cache:/var/www/.composer/cache",
-                config.work_dir
-            ),
-            format!(
-                "{}/phpunit-cache:/var/www/html/tests/.phpunit.results.cache",
-                config.work_dir
-            ),
-        ];
+        let volumes = mappings
+            .into_iter()
+            .filter_map(|mapping| mapping.get_volume_arg(&id, config))
+            .collect();
 
         if let Some(db_name) = options
             .db
@@ -408,23 +377,4 @@ impl Cloud {
         .await?;
         Ok(())
     }
-}
-
-async fn setup_workdir(base: &Utf8Path, id: &str) -> Result<Utf8PathBuf> {
-    let workdir = base.join(id);
-    create_dir_all(workdir.join("data")).await?;
-    create_dir_all(workdir.join("config")).await?;
-    create_dir_all(workdir.join("data-autotest")).await?;
-    create_dir_all(workdir.join("skeleton")).await?;
-    create_dir_all(workdir.join("integration/output")).await?;
-    create_dir_all(workdir.join("integration/work")).await?;
-    create_dir_all(workdir.join("integration/vendor")).await?;
-
-    write(workdir.join("integration/composer.lock"), "").await?;
-    write(workdir.join("config/CAN_INSTALL"), "").await?;
-    write(workdir.join("phpunit-cache"), "").await?;
-
-    create_dir_all(base.join("composer/cache")).await?;
-
-    Ok(workdir)
 }

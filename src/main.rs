@@ -10,6 +10,7 @@ mod config;
 mod database;
 mod exec;
 mod image;
+mod mapping;
 mod php;
 
 #[tokio::main]
