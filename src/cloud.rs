@@ -3,12 +3,14 @@ use crate::database::Database;
 use crate::exec::{exec, exec_tty};
 use crate::mapping::default_mappings;
 use crate::php::PhpVersion;
+use crate::service::Service;
 use bollard::container::{ListContainersOptions, LogsOptions, RemoveContainerOptions};
 use bollard::models::ContainerState;
 use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
 use camino::Utf8PathBuf;
 use color_eyre::{eyre::WrapErr, Report, Result};
+use futures_util::future::try_join_all;
 use futures_util::stream::StreamExt;
 use petname::petname;
 use std::collections::HashMap;
@@ -27,6 +29,7 @@ use tokio::time::sleep;
 pub struct CloudOptions {
     db: Database,
     php: PhpVersion,
+    services: Vec<Service>,
 }
 
 impl CloudOptions {
@@ -37,6 +40,7 @@ impl CloudOptions {
     {
         let mut db = None;
         let mut php = None;
+        let mut services = Vec::new();
 
         while let Some(option) = args.peek() {
             if let Ok(db_option) = Database::from_str(option.as_ref()) {
@@ -44,6 +48,9 @@ impl CloudOptions {
                 let _ = args.next();
             } else if let Ok(php_option) = PhpVersion::from_str(option.as_ref()) {
                 php = Some(php_option);
+                let _ = args.next();
+            } else if let Some(service) = Service::from_type(option.as_ref()) {
+                services.push(service);
                 let _ = args.next();
             } else {
                 break;
@@ -54,10 +61,11 @@ impl CloudOptions {
             }
         }
 
-        Ok(CloudOptions {
+        Ok(dbg!(CloudOptions {
             db: db.unwrap_or_default(),
             php: php.unwrap_or_default(),
-        })
+            services,
+        }))
     }
 }
 
@@ -111,6 +119,7 @@ pub struct Cloud {
     pub db: Database,
     pub ip: Option<IpAddr>,
     pub workdir: Utf8PathBuf,
+    pub services: Vec<Service>,
 }
 
 impl Cloud {
@@ -167,6 +176,24 @@ impl Cloud {
             env.push(format!("SQL={}", options.db.name()));
         }
 
+        let service_containers = try_join_all(
+            options
+                .services
+                .iter()
+                .map(|service| service.spawn(docker, &id, &network)),
+        )
+        .await?;
+        containers.extend_from_slice(&service_containers);
+
+        env.extend(
+            options
+                .services
+                .iter()
+                .flat_map(Service::env)
+                .copied()
+                .map(String::from),
+        );
+
         let container = options
             .php
             .spawn(docker, &id, env, &options.db, &network, volumes)
@@ -214,6 +241,7 @@ impl Cloud {
             db: options.db,
             ip: Some(ip),
             workdir,
+            services: options.services,
         })
     }
 
@@ -311,6 +339,13 @@ impl Cloud {
                 let labels = cloud.labels?;
                 let db = labels.get("haze-db")?.parse().ok()?;
                 let php = labels.get("haze-php")?.parse().ok()?;
+                let found_services = services
+                    .iter()
+                    .flat_map(|container| &container.labels)
+                    .flat_map(|labels| labels.get("haze-type"))
+                    .map(String::as_str)
+                    .flat_map(Service::from_type)
+                    .collect();
                 let mut service_ids: Vec<String> = services
                     .iter()
                     .filter_map(|service| service.names.as_ref()?.first().map(String::clone))
@@ -326,6 +361,7 @@ impl Cloud {
                         containers: service_ids,
                         ip: network_info.ip_address.as_ref()?.parse().ok(),
                         workdir,
+                        services: found_services,
                     },
                 ))
             })
@@ -360,6 +396,13 @@ impl Cloud {
             .wait_for_start(docker, &self.id)
             .await
             .wrap_err("Failed to wait for database container")?;
+        try_join_all(
+            self.services
+                .iter()
+                .map(|service| service.wait_for_start(docker, &self.id)),
+        )
+        .await
+        .wrap_err("Failed to wait for service containers")?;
         Ok(())
     }
 

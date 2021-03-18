@@ -1,6 +1,7 @@
 use crate::args::HazeArgs;
 use crate::cloud::Cloud;
 use crate::config::HazeConfig;
+use crate::service::Service;
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Result};
 
@@ -12,6 +13,7 @@ mod exec;
 mod image;
 mod mapping;
 mod php;
+mod service;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -33,19 +35,22 @@ async fn main() -> Result<()> {
         HazeArgs::List { filter } => {
             let list = Cloud::list(&mut docker, filter, &config).await?;
             for cloud in list {
+                let mut services: Vec<_> = cloud.services.iter().map(Service::name).collect();
+                services.push(cloud.db.name());
+                let services = services.join(", ");
                 match cloud.ip {
                     Some(ip) => println!(
                         "Cloud {}, {}, {}, running on http://{}",
                         cloud.id,
                         cloud.php.name(),
-                        cloud.db.name(),
+                        services,
                         ip
                     ),
                     None => println!(
                         "Cloud {}, {}, {}, not running",
                         cloud.id,
                         cloud.php.name(),
-                        cloud.db.name()
+                        services
                     ),
                 }
             }

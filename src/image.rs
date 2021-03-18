@@ -8,7 +8,7 @@ use std::io::stdout;
 use std::io::Write;
 use termion::cursor;
 
-pub async fn pull_image(docker: &mut Docker, image: &str) -> Result<()> {
+pub async fn pull_image(docker: &Docker, image: &str) -> Result<()> {
     if let Err(_) = docker.inspect_image(image).await {
         let mut info_stream = docker.create_image(
             Some(CreateImageOptions {
