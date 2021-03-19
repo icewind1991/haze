@@ -4,14 +4,13 @@ use crate::exec::{exec, exec_tty};
 use crate::mapping::default_mappings;
 use crate::php::PhpVersion;
 use crate::service::Service;
-use bollard::container::{ListContainersOptions, LogsOptions, RemoveContainerOptions};
+use bollard::container::{ListContainersOptions, RemoveContainerOptions};
 use bollard::models::ContainerState;
 use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
 use camino::Utf8PathBuf;
 use color_eyre::{eyre::WrapErr, Report, Result};
 use futures_util::future::try_join_all;
-use futures_util::stream::StreamExt;
 use petname::petname;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -61,11 +60,11 @@ impl CloudOptions {
             }
         }
 
-        Ok(dbg!(CloudOptions {
+        Ok(CloudOptions {
             db: db.unwrap_or_default(),
             php: php.unwrap_or_default(),
             services,
-        }))
+        })
     }
 }
 
@@ -267,23 +266,6 @@ impl Cloud {
             .wrap_err("Failed to remove work directory")?;
 
         Ok(())
-    }
-
-    pub async fn logs(&self, docker: &mut Docker, count: usize) -> Result<Vec<String>> {
-        let mut logs = Vec::new();
-        let mut stream = docker.logs::<String>(
-            &self.id,
-            Some(LogsOptions {
-                stdout: true,
-                stderr: true,
-                tail: format!("{}", count),
-                ..Default::default()
-            }),
-        );
-        while let Some(line) = stream.next().await {
-            logs.push(line?.to_string());
-        }
-        Ok(logs)
     }
 
     pub async fn exec<S: Into<String>>(

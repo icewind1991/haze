@@ -1,6 +1,7 @@
 use crate::args::HazeArgs;
 use crate::cloud::Cloud;
 use crate::config::HazeConfig;
+use crate::exec::container_logs;
 use crate::service::Service;
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Result};
@@ -94,9 +95,18 @@ async fn main() -> Result<()> {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             cloud.destroy(&mut docker).await?;
         }
-        HazeArgs::Logs { filter, count } => {
+        HazeArgs::Logs {
+            filter,
+            count,
+            service,
+        } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
-            let logs = cloud.logs(&mut docker, count.unwrap_or(20)).await?;
+            let container = if let Some(service) = service {
+                service.container_name(&cloud.id)
+            } else {
+                cloud.id
+            };
+            let logs = container_logs(&docker, &container, count.unwrap_or(20)).await?;
             for log in logs {
                 print!("{}", log);
             }

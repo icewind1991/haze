@@ -1,3 +1,4 @@
+use bollard::container::LogsOptions;
 use bollard::exec::{CreateExecOptions, StartExecResults};
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Result};
@@ -118,4 +119,21 @@ pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
         .await?
         .exit_code
         .unwrap_or_default())
+}
+
+pub async fn container_logs(docker: &Docker, container: &str, count: usize) -> Result<Vec<String>> {
+    let mut logs = Vec::new();
+    let mut stream = docker.logs::<String>(
+        container,
+        Some(LogsOptions {
+            stdout: true,
+            stderr: true,
+            tail: format!("{}", count),
+            ..Default::default()
+        }),
+    );
+    while let Some(line) = stream.next().await {
+        logs.push(line?.to_string());
+    }
+    Ok(logs)
 }

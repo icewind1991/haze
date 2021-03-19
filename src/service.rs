@@ -54,6 +54,12 @@ impl Service {
         .await
         .wrap_err("Timeout after 15 seconds")?
     }
+
+    pub fn container_name(&self, cloud_id: &str) -> String {
+        match self {
+            Service::ObjectStore(store) => store.container_name(cloud_id),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -119,5 +125,9 @@ impl ObjectStore {
 
     async fn is_healthy(&self, _docker: &Docker, _cloud_id: &str) -> Result<bool> {
         Ok(true)
+    }
+
+    fn container_name(&self, cloud_id: &str) -> String {
+        format!("{}-object", cloud_id)
     }
 }

@@ -1,4 +1,5 @@
 use crate::cloud::CloudOptions;
+use crate::service::Service;
 use color_eyre::{Report, Result};
 use parse_display::Display;
 use std::fmt::Display;
@@ -33,6 +34,7 @@ pub enum HazeArgs {
     Clean,
     Logs {
         filter: Option<String>,
+        service: Option<Service>,
         count: Option<usize>,
     },
     Open {
@@ -104,10 +106,22 @@ impl HazeArgs {
             }),
             HazeCommand::Db => Ok(HazeArgs::Db { filter }),
             HazeCommand::Clean => Ok(HazeArgs::Clean),
-            HazeCommand::Logs => Ok(HazeArgs::Logs {
-                filter,
-                count: args.next().map(|arg| arg.as_ref().parse()).transpose()?,
-            }),
+            HazeCommand::Logs => {
+                let mut args = args.peekable();
+                let service = args
+                    .peek()
+                    .map(|s| s.as_ref())
+                    .map(Service::from_type)
+                    .flatten();
+                if service.is_some() {
+                    let _ = args.next();
+                }
+                Ok(HazeArgs::Logs {
+                    filter,
+                    service,
+                    count: args.next().map(|arg| arg.as_ref().parse()).transpose()?,
+                })
+            }
             HazeCommand::Open => Ok(HazeArgs::Open { filter }),
         }
     }
