@@ -149,7 +149,7 @@ async fn main() -> Result<()> {
             println!("Waiting for servers to start");
             cloud.wait_for_start(&mut docker).await?;
             println!("Installing");
-            cloud
+            if let Err(e) = cloud
                 .exec(
                     &mut docker,
                     vec![
@@ -159,7 +159,11 @@ async fn main() -> Result<()> {
                     ],
                     false,
                 )
-                .await?;
+                .await
+            {
+                cloud.destroy(&mut docker).await?;
+                return Err(e);
+            }
             if let Some(app) = path
                 .as_ref()
                 .and_then(|path| path.strip_prefix("apps/"))
