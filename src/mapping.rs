@@ -11,6 +11,7 @@ pub struct Mapping<'a> {
     mapping_type: MappingType,
     read_only: bool,
     map: bool,
+    create: bool,
 }
 
 impl<'a> Mapping<'a> {
@@ -30,6 +31,7 @@ impl<'a> Mapping<'a> {
             mapping_type: MappingType::Folder,
             read_only: false,
             map: true,
+            create: true,
         }
     }
 
@@ -44,6 +46,13 @@ impl<'a> Mapping<'a> {
         Self { map: false, ..self }
     }
 
+    pub fn dont_create(self) -> Self {
+        Self {
+            create: false,
+            ..self
+        }
+    }
+
     pub fn file(self) -> Self {
         Self {
             mapping_type: MappingType::File,
@@ -52,6 +61,9 @@ impl<'a> Mapping<'a> {
     }
 
     pub async fn create(&self, id: &str, config: &HazeConfig) -> Result<()> {
+        if !self.create {
+            return Ok(());
+        }
         let source = match self.source_type {
             MappingSourceType::WorkDir => config.work_dir.join(id).join(self.source),
             MappingSourceType::GlobalWorkDir => config.work_dir.join(self.source),
@@ -93,11 +105,12 @@ pub fn default_mappings() -> Vec<Mapping<'static>> {
         Mapping::new(WorkDir, "skeleton", "/var/www/html/core/skeleton"),
         Mapping::new(
             Sources,
-            "skeleton/welcome.txt",
+            "core/skeleton/welcome.txt",
             "/var/www/html/core/skeleton/welcome.txt",
         )
         .file()
-        .read_only(),
+        .read_only()
+        .dont_create(),
         Mapping::new(
             WorkDir,
             "integration/vendor",
