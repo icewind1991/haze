@@ -9,7 +9,7 @@ UID=${UID:-1000}
 GID=${GID:-1000}
 
 groupadd -g $GID haze
-useradd -u $UID -g $GID haze
+useradd -m -u $UID -g $GID haze
 
 /usr/local/sbin/php-fpm &
 /etc/init.d/nginx start
