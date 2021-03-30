@@ -132,7 +132,11 @@ pub fn default_mappings() -> Vec<Mapping<'static>> {
             "/var/www/html/build/integration/composer.lock",
         )
         .file(),
-        Mapping::new(GlobalWorkDir, "composer/cache", "/var/www/.composer/cache"),
+        Mapping::new(
+            GlobalWorkDir,
+            "composer/cache",
+            "/home/haze/.composer/cache",
+        ),
         Mapping::new(
             GlobalWorkDir,
             "phpunit-cache",
