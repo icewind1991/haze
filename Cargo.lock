@@ -65,7 +65,7 @@ checksum = "cf1de2fe8c75bc145a2f577add951f8134889b4795d47466a54a5c846d691693"
 [[package]]
 name = "bollard"
 version = "0.10.1"
-source = "git+https://github.com/icewind1991/bollard?branch=exec-input#31651016742357aa632944b05bb032cd0ce7d8ed"
+source = "git+https://github.com/icewind1991/bollard?branch=marged#f220f0cc1f4e8637ed6402074597fa84c6212d85"
 dependencies = [
  "base64",
  "bollard-stubs",

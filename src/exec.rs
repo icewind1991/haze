@@ -1,13 +1,13 @@
 use bollard::container::LogsOptions;
-use bollard::exec::{CreateExecOptions, StartExecResults};
+use bollard::exec::{CreateExecOptions, ResizeExecOptions, StartExecResults};
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Result};
 use futures_util::StreamExt;
 use std::io::{stdout, Read, Write};
 use std::time::Duration;
-use termion::async_stdin;
 use termion::raw::IntoRawMode;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use termion::{async_stdin, terminal_size};
+use tokio::io::AsyncWriteExt;
 use tokio::task::spawn;
 use tokio::time::sleep;
 
@@ -18,6 +18,7 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
     cmd: Vec<S2>,
     env: Vec<&str>,
 ) -> Result<i64> {
+    let tty_size = terminal_size()?;
     let cmd = cmd.into_iter().map(S2::into).collect();
     let env = env.into_iter().map(String::from).collect();
     let config = CreateExecOptions {
@@ -34,14 +35,24 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
         .create_exec(container.as_ref(), config)
         .await
         .wrap_err("Failed to setup exec")?;
-    if let StartExecResults::AttachedTTY {
+    if let StartExecResults::Attached {
         mut output,
         mut input,
     } = docker
-        .start_exec(&message.id, None, true)
+        .start_exec(&message.id, None)
         .await
         .wrap_err("Failed to start exec")?
     {
+        docker
+            .resize_exec(
+                &message.id,
+                ResizeExecOptions {
+                    height: tty_size.1,
+                    width: tty_size.0,
+                },
+            )
+            .await?;
+
         // pipe stdin into the docker exec stream input
         spawn(async move {
             let mut stdin = async_stdin().bytes();
@@ -59,12 +70,8 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
         let mut stdout = stdout.lock().into_raw_mode()?;
 
         // pipe docker exec output into stdout
-        let mut buff = [0; 128];
-        while let Ok(read) = output.read(&mut buff).await {
-            if read == 0 {
-                break;
-            }
-            stdout.write(&buff[0..read])?;
+        while let Some(Ok(output)) = output.next().await {
+            stdout.write(output.into_bytes().as_ref())?;
             stdout.flush()?;
         }
     } else {
@@ -101,7 +108,7 @@ pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
         .await
         .wrap_err("Failed to setup exec")?;
     if let StartExecResults::Attached { mut output, .. } = docker
-        .start_exec(&message.id, None, false)
+        .start_exec(&message.id, None)
         .await
         .wrap_err("Failed to start exec")?
     {
