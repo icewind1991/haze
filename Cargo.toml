@@ -5,7 +5,7 @@ authors = ["Robin Appelman <robin@icewind.nl>"]
 edition = "2018"
 
 [dependencies]
-bollard = { version = "0.10", git = "https://github.com/icewind1991/bollard", branch = "marged" }
+bollard = { version = "0.10", git = "https://github.com/fussybeaver/bollard" }
 color-eyre = "0.5"
 maplit = "1"
 camino = { version = "1", features = ["serde1"] }
