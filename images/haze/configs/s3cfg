@@ -1,0 +1,6 @@
+[default]
+access_key = DUMMY
+secret_key = DUMMY
+host_base = http://s3:4569/
+host_bucket = http://s3:4569/%(bucket)
+no_ssl = True
