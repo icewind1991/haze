@@ -51,7 +51,8 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
                     width: tty_size.0,
                 },
             )
-            .await?;
+            .await
+            .ok();
 
         // pipe stdin into the docker exec stream input
         spawn(async move {
