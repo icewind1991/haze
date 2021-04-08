@@ -19,11 +19,11 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
         nano \
         sqlite \
         s3cmd \
-        awscli \
         python3-pip && \
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.1.35.zip" -o "awscliv2.zip" && \
+        unzip awscliv2.zip && \
+        ./aws/install && \
     pip3 install awscli-plugin-endpoint
-        
-RUN wget https://phar.phpunit.de/phpunit-8.phar -O /usr/local/bin/phpunit.phar
 
 ADD configs/autoconfig_mariadb.php configs/autoconfig_mysql.php configs/autoconfig_pgsql.php configs/autoconfig_oci.php configs/s3.php configs/swift.php configs/swiftv3.php configs/azure.php configs/config.php /root/
 ADD configs/nginx-app.conf /etc/nginx/

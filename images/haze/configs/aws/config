@@ -1,6 +1,9 @@
 [default]
 s3 =
     endpoint_url = http://s3:4566
+s3api =
+    endpoint_url = http://s3:4566
 
 [plugins]
 endpoint = awscli_plugin_endpoint
+cli_legacy_plugin_path = /usr/local/lib/python3.7/dist-packages
