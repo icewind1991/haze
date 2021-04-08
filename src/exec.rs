@@ -6,7 +6,7 @@ use futures_util::StreamExt;
 use std::io::{stdout, Read, Write};
 use std::time::Duration;
 use termion::raw::IntoRawMode;
-use termion::{async_stdin, terminal_size};
+use termion::{async_stdin, is_tty, terminal_size};
 use tokio::io::AsyncWriteExt;
 use tokio::task::spawn;
 use tokio::time::sleep;
@@ -18,6 +18,12 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
     cmd: Vec<S2>,
     env: Vec<&str>,
 ) -> Result<i64> {
+    let stdout = stdout();
+
+    if !is_tty(&stdout) {
+        return exec(docker, container, user, cmd, env, Some(stdout)).await;
+    }
+
     let tty_size = terminal_size()?;
     let cmd = cmd.into_iter().map(S2::into).collect();
     let env = env.into_iter().map(String::from).collect();
@@ -67,7 +73,6 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
         });
 
         // set stdout in raw mode so we can do tty stuff
-        let stdout = stdout();
         let mut stdout = stdout.lock().into_raw_mode()?;
 
         // pipe docker exec output into stdout
