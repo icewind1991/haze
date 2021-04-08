@@ -86,7 +86,7 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
 }
 
 pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
-    docker: &mut Docker,
+    docker: &Docker,
     container: S1,
     user: &str,
     cmd: Vec<S2>,

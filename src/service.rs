@@ -1,3 +1,4 @@
+use crate::exec::exec;
 use crate::image::pull_image;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
@@ -123,8 +124,19 @@ impl ObjectStore {
         Ok(id)
     }
 
-    async fn is_healthy(&self, _docker: &Docker, _cloud_id: &str) -> Result<bool> {
-        Ok(true)
+    async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
+        let mut output = Vec::new();
+        exec(
+            docker,
+            format!("{}-object", cloud_id),
+            "root",
+            vec!["curl", "localhost:4569/"],
+            vec![],
+            Some(&mut output),
+        )
+        .await?;
+        let output = String::from_utf8(output)?;
+        Ok(output.contains("ListAllMyBucketsResult"))
     }
 
     fn container_name(&self, cloud_id: &str) -> String {
