@@ -7,7 +7,7 @@
 			'key'    => 'dummy',
 			'secret' => 'dummyj',
 			'hostname' => 's3',
-			'port' => 4569,
+			'port' => 4566,
 			'use_ssl' => false,
 			'use_path_style'=>true
 		],

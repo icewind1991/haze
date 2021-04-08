@@ -71,7 +71,7 @@ pub enum ObjectStore {
 impl ObjectStore {
     fn image(&self) -> &str {
         match self {
-            ObjectStore::S3 => "localstack/localstack:0.10.9",
+            ObjectStore::S3 => "localstack/localstack:0.12.7",
         }
     }
 
@@ -83,7 +83,7 @@ impl ObjectStore {
 
     fn self_env(&self) -> Vec<&str> {
         match self {
-            ObjectStore::S3 => vec!["DEBUG=1", "SERVICES=s3:4569"],
+            ObjectStore::S3 => vec!["DEBUG=1", "SERVICES=s3"],
         }
     }
 
@@ -130,13 +130,13 @@ impl ObjectStore {
             docker,
             format!("{}-object", cloud_id),
             "root",
-            vec!["curl", "localhost:4569/"],
+            vec!["curl", "localhost:4566/health"],
             vec![],
             Some(&mut output),
         )
         .await?;
         let output = String::from_utf8(output)?;
-        Ok(output.contains("ListAllMyBucketsResult"))
+        Ok(output.contains(r#""s3": "running""#))
     }
 
     fn container_name(&self, cloud_id: &str) -> String {
