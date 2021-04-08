@@ -46,14 +46,14 @@ impl Service {
     }
 
     pub async fn wait_for_start(&self, docker: &Docker, cloud_id: &str) -> Result<()> {
-        timeout(Duration::from_secs(15), async {
+        timeout(Duration::from_secs(30), async {
             while !self.is_healthy(docker, cloud_id).await? {
                 sleep(Duration::from_millis(100)).await
             }
             Ok(())
         })
         .await
-        .wrap_err("Timeout after 15 seconds")?
+        .wrap_err("Timeout after 30 seconds")?
     }
 
     pub fn container_name(&self, cloud_id: &str) -> String {
