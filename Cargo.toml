@@ -15,7 +15,7 @@ futures-util = "0.3"
 termion = "1"
 opener = "0.4"
 toml = "0.5"
-directories-next = "1"
+directories-next = "2"
 serde = "1"
 petname = "1"
 reqwest = { version = "0.11", default-features = false }
