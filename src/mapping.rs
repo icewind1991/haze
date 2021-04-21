@@ -1,4 +1,4 @@
-use crate::config::HazeConfig;
+use crate::config::{HazeConfig, HazeVolumeConfig};
 use camino::Utf8Path;
 use color_eyre::Result;
 use tokio::fs::{create_dir_all, write};
@@ -68,6 +68,7 @@ impl<'a> Mapping<'a> {
             MappingSourceType::WorkDir => config.work_dir.join(id).join(self.source),
             MappingSourceType::GlobalWorkDir => config.work_dir.join(self.source),
             MappingSourceType::Sources => return Ok(()),
+            MappingSourceType::Absolute => self.source.into(),
         };
         match self.mapping_type {
             MappingType::Folder => create_dir_all(source).await?,
@@ -85,6 +86,7 @@ impl<'a> Mapping<'a> {
             MappingSourceType::WorkDir => config.work_dir.join(id).join(self.source),
             MappingSourceType::GlobalWorkDir => config.work_dir.join(self.source),
             MappingSourceType::Sources => config.sources_root.join(self.source),
+            MappingSourceType::Absolute => self.source.into(),
         };
         Some(if self.read_only {
             format!("{}:{}:ro", source, self.target)
@@ -94,10 +96,10 @@ impl<'a> Mapping<'a> {
     }
 }
 
-pub fn default_mappings() -> Vec<Mapping<'static>> {
+pub fn default_mappings<'a>() -> impl IntoIterator<Item = Mapping<'a>> {
     use MappingSourceType::*;
 
-    vec![
+    let mappings = [
         Mapping::new(Sources, "", "/var/www/html"),
         Mapping::new(WorkDir, "data", "/var/www/html/data"),
         Mapping::new(WorkDir, "config", "/var/www/html/config"),
@@ -149,7 +151,8 @@ pub fn default_mappings() -> Vec<Mapping<'static>> {
         Mapping::new(Sources, ".htaccess", "/var/www/html/.htaccess")
             .file()
             .read_only(),
-    ]
+    ];
+    std::array::IntoIter::new(mappings)
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -157,10 +160,30 @@ pub enum MappingSourceType {
     Sources,
     WorkDir,
     GlobalWorkDir,
+    Absolute,
 }
 
 #[derive(Debug, Copy, Clone)]
 pub enum MappingType {
     Folder,
     File,
+}
+
+impl<'a> From<&'a HazeVolumeConfig> for Mapping<'a> {
+    fn from(config: &'a HazeVolumeConfig) -> Self {
+        let ty = if config.source.is_dir() {
+            MappingType::Folder
+        } else {
+            MappingType::File
+        };
+        Mapping {
+            source_type: MappingSourceType::Absolute,
+            source: config.source.as_path(),
+            target: config.target.as_path(),
+            mapping_type: ty,
+            read_only: config.read_only,
+            map: true,
+            create: config.create,
+        }
+    }
 }

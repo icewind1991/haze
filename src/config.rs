@@ -11,6 +11,8 @@ pub struct HazeConfig {
     pub work_dir: Utf8PathBuf,
     #[serde(default)]
     pub auto_setup: HazeAutoSetupConfig,
+    #[serde(default)]
+    pub volume: Vec<HazeVolumeConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -42,6 +44,16 @@ fn default_auto_setup_username() -> String {
 
 fn default_auto_setup_password() -> String {
     "admin".to_string()
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HazeVolumeConfig {
+    pub source: Utf8PathBuf,
+    pub target: Utf8PathBuf,
+    #[serde(default)]
+    pub read_only: bool,
+    #[serde(default)]
+    pub create: bool,
 }
 
 impl HazeConfig {

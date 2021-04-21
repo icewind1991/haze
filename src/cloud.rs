@@ -1,7 +1,7 @@
 use crate::config::HazeConfig;
 use crate::database::Database;
 use crate::exec::{exec, exec_tty};
-use crate::mapping::default_mappings;
+use crate::mapping::{default_mappings, Mapping};
 use crate::php::PhpVersion;
 use crate::service::Service;
 use bollard::container::{ListContainersOptions, RemoveContainerOptions};
@@ -130,7 +130,12 @@ impl Cloud {
         let id = format!("haze-{}", petname(2, "-"));
 
         let workdir = config.work_dir.join(&id);
-        let mappings = default_mappings();
+        let mappings = config
+            .volume
+            .iter()
+            .map(Mapping::from)
+            .chain(default_mappings())
+            .collect::<Vec<_>>();
         for mapping in &mappings {
             mapping
                 .create(&id, config)

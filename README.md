@@ -109,4 +109,14 @@ work_dir = "/path/to/temp/dir" # path to temporary directory. optional, defaults
 enabled = false # whether or not to automatically install nextcloud on `haze start`. optional, defaults to false
 username = "foo" # username for admin user during auto setup. optional, defaults to "admin"
 password = "bar" # password for admin user during auto setup. optional, defaults to "admin"
+
+[[volume]]
+source = "/tmp/haze-shared"
+target = "/shared"
+create = true
+
+[[volume]]
+source = "/home/me/Downloads"
+target = "/Downloads"
+read_only = true
 ```
