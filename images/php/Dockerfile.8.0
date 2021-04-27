@@ -33,10 +33,11 @@ RUN apt-get update \
         --enable-gd \
         --with-jpeg \
         --with-freetype \
+    && docker-php-ext-install gd \
     && mkdir -p /usr/src/php/ext/imagick \
     && curl -fsSL https://github.com/Imagick/imagick/archive/06116aa24b76edaf6b1693198f79e6c295eda8a9.tar.gz | tar xvz -C "/usr/src/php/ext/imagick" --strip 1 \
     && docker-php-ext-install imagick \
-	&& docker-php-ext-install iconv zip pdo pdo_pgsql pdo_sqlite pgsql pdo_mysql intl curl mbstring gd pcntl ldap \
+	&& docker-php-ext-install iconv zip pdo pdo_pgsql pdo_sqlite pgsql pdo_mysql intl curl mbstring pcntl ldap \
     && pecl install inotify \
     && pecl install smbclient \
 	&& apt-get remove -y \
