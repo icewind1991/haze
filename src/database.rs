@@ -216,7 +216,7 @@ impl Database {
                     docker,
                     cloud_id,
                     "haze",
-                    vec!["sqlite3", "/var/www/html/data/owncloud.db"],
+                    vec!["sqlite3", "/var/www/html/data/haze.db"],
                     vec![],
                 )
                 .await
