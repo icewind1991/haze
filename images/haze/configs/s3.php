@@ -9,6 +9,7 @@
 			'hostname' => 's3',
 			'port' => 4566,
 			'use_ssl' => false,
-			'use_path_style'=>true
+			'use_path_style' => true,
+			'uploadPartSize' => 52428800,
 		],
 	],
