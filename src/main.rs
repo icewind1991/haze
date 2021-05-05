@@ -144,7 +144,7 @@ async fn main() -> Result<()> {
                 None => eprintln!("{} is not running", cloud.id),
             }
         }
-        HazeArgs::Test { options, path } => {
+        HazeArgs::Test { options, mut args } => {
             let cloud = Cloud::create(&mut docker, options, &config).await?;
             println!("Waiting for servers to start");
             cloud.wait_for_start(&mut docker).await?;
@@ -164,7 +164,8 @@ async fn main() -> Result<()> {
                 cloud.destroy(&mut docker).await?;
                 return Err(e);
             }
-            if let Some(app) = path
+            if let Some(app) = args
+                .first()
                 .as_ref()
                 .and_then(|path| path.strip_prefix("apps/"))
                 .map(|path| &path[0..path.find('/').unwrap_or(path.len())])
@@ -175,13 +176,8 @@ async fn main() -> Result<()> {
                 println!("Enabling {}", app);
                 cloud.enable_app(&mut docker, app).await?;
             }
-            cloud
-                .exec(
-                    &mut docker,
-                    vec!["tests".to_string(), path.unwrap_or_default()],
-                    false,
-                )
-                .await?;
+            args.insert(0, "tests".to_string());
+            cloud.exec(&mut docker, args, false).await?;
             cloud.destroy(&mut docker).await?;
         }
     };

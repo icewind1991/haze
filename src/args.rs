@@ -18,7 +18,7 @@ pub enum HazeArgs {
     },
     Test {
         options: CloudOptions,
-        path: Option<String>,
+        args: Vec<String>,
     },
     Exec {
         filter: Option<String>,
@@ -90,11 +90,8 @@ impl HazeArgs {
             HazeCommand::Test => {
                 let mut args = args.peekable();
                 let options = CloudOptions::parse(&mut args)?;
-                let path = args.next().map(S::into);
-                if let Some(leftover) = args.next() {
-                    return Err(Report::msg(format!("unrecognized option {}", leftover)));
-                }
-                Ok(HazeArgs::Test { options, path })
+                let args = args.map(S::into).collect();
+                Ok(HazeArgs::Test { options, args })
             }
             HazeCommand::Exec => Ok(HazeArgs::Exec {
                 filter,
@@ -188,7 +185,7 @@ fn test_arg_parse() {
         HazeArgs::parse(vec!["haze", "test"].into_iter()).unwrap(),
         HazeArgs::Test {
             options: Default::default(),
-            path: None
+            args: vec![]
         }
     );
     assert_eq!(
@@ -215,6 +212,13 @@ fn test_arg_parse() {
         HazeArgs::Exec {
             filter: Some("asdasd".to_string()),
             command: vec!["foo".to_string(), "bar".to_string()],
+        }
+    );
+    assert_eq!(
+        HazeArgs::parse(vec!["haze", "test", "foo", "bar"].into_iter()).unwrap(),
+        HazeArgs::Test {
+            options: Default::default(),
+            args: vec!["foo".into(), "bar".into()]
         }
     );
 }
