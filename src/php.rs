@@ -64,6 +64,7 @@ impl PhpVersion {
         db: &Database,
         network: &str,
         volumes: Vec<String>,
+        host: &str,
     ) -> Result<String> {
         pull_image(docker, self.image()).await?;
         let options = Some(CreateContainerOptions {
@@ -76,6 +77,7 @@ impl PhpVersion {
                 network_mode: Some(network.to_string()),
                 // links: Some(links),
                 binds: Some(volumes),
+                extra_hosts: Some(vec![format!("hazehost:{}", host)]),
                 ..Default::default()
             }),
             networking_config: Some(NetworkingConfig {

@@ -153,6 +153,19 @@ impl Cloud {
             .ok_or(Report::msg("No network id in response"))
             .wrap_err("Failed to create network")?;
 
+        let network_info = docker.inspect_network::<String>(&network, None).await?;
+        let gateway = network_info
+            .ipam
+            .as_ref()
+            .ok_or(Report::msg("Network has no ip info"))?
+            .config
+            .as_deref()
+            .ok_or(Report::msg("Network has no ip info"))?
+            .first()
+            .ok_or(Report::msg("Network has no ip info"))?
+            .get("Gateway")
+            .ok_or(Report::msg("Network has no ip info"))?;
+
         let mut containers = Vec::new();
 
         let sources_meta = fs::metadata(&config.sources_root)?;
@@ -200,7 +213,15 @@ impl Cloud {
 
         let container = options
             .php
-            .spawn(docker, &id, env, &options.db, &network, volumes)
+            .spawn(
+                docker,
+                &id,
+                env,
+                &options.db,
+                &network,
+                volumes,
+                gateway.as_str(),
+            )
             .await
             .wrap_err("Failed to start php container")?;
 
