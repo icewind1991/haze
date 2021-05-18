@@ -73,6 +73,7 @@ RUN pecl install apcu \
     && echo "xdebug.start_with_request=trigger" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.client_port=9000" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.discover_client_host=true" >> $PHP_INI_DIR/conf.d/xdebug.ini \
+    && echo "xdebug.client_host=hazehost" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "memory_limit = 512M" > $PHP_INI_DIR/conf.d/memory_limit.ini
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer

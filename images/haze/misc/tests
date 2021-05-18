@@ -2,4 +2,6 @@
 
 cd $WEBROOT
 
+export XDEBUG_SESSION=haze
+
 phpunit --configuration $WEBROOT/tests/phpunit-autotest.xml $@
