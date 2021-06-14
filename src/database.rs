@@ -5,7 +5,7 @@ use bollard::models::{EndpointSettings, HostConfig};
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Report, Result};
 use maplit::hashmap;
-use std::io::Stdout;
+use std::io::{stdout, Stdout};
 use std::str::FromStr;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
@@ -207,6 +207,24 @@ impl Database {
         let id = docker.create_container(options, config).await?.id;
         docker.start_container::<String>(&id, None).await?;
         Ok(Some(id))
+    }
+
+    pub async fn exec_sh<S: Into<String>>(
+        &self,
+        docker: &mut Docker,
+        cloud_id: &str,
+        cmd: Vec<S>,
+        tty: bool,
+    ) -> Result<i64> {
+        let container = match self.family() {
+            DatabaseFamily::Sqlite => cloud_id.to_string(),
+            _ => format!("{}-db", cloud_id.to_string()),
+        };
+        if tty {
+            exec_tty(docker, &container, "root", cmd, vec![]).await
+        } else {
+            exec(docker, &container, "root", cmd, vec![], Some(stdout())).await
+        }
     }
 
     pub async fn exec(&self, docker: &mut Docker, cloud_id: &str, root: bool) -> Result<i64> {

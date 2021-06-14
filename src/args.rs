@@ -22,6 +22,7 @@ pub enum HazeArgs {
     },
     Exec {
         filter: Option<String>,
+        service: Option<ExecService>,
         command: Vec<String>,
     },
     Occ {
@@ -41,6 +42,11 @@ pub enum HazeArgs {
     Open {
         filter: Option<String>,
     },
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ExecService {
+    Db,
 }
 
 impl HazeArgs {
@@ -94,10 +100,24 @@ impl HazeArgs {
                 let args = args.map(S::into).collect();
                 Ok(HazeArgs::Test { options, args })
             }
-            HazeCommand::Exec => Ok(HazeArgs::Exec {
-                filter,
-                command: args.map(S::into).collect(),
-            }),
+            HazeCommand::Exec => {
+                let mut args = args.peekable();
+
+                let service = match args.peek() {
+                    Some(arg) if arg == "db" => {
+                        args.next();
+                        Some(ExecService::Db)
+                    }
+                    _ => None,
+                };
+
+                let command = args.map(S::into).collect();
+                Ok(HazeArgs::Exec {
+                    filter,
+                    service,
+                    command,
+                })
+            }
             HazeCommand::Occ => Ok(HazeArgs::Occ {
                 filter,
                 command: args.map(S::into).collect(),
@@ -209,6 +229,7 @@ fn test_arg_parse() {
         HazeArgs::parse(vec!["haze", "exec", "foo", "bar"].into_iter()).unwrap(),
         HazeArgs::Exec {
             filter: None,
+            service: None,
             command: vec!["foo".to_string(), "bar".to_string()],
         }
     );
@@ -216,6 +237,15 @@ fn test_arg_parse() {
         HazeArgs::parse(vec!["haze", "asdasd", "exec", "foo", "bar"].into_iter()).unwrap(),
         HazeArgs::Exec {
             filter: Some("asdasd".to_string()),
+            service: None,
+            command: vec!["foo".to_string(), "bar".to_string()],
+        }
+    );
+    assert_eq!(
+        HazeArgs::parse(vec!["haze", "asdasd", "exec", "db", "foo", "bar"].into_iter()).unwrap(),
+        HazeArgs::Exec {
+            filter: Some("asdasd".to_string()),
+            service: Some("db".to_string()),
             command: vec!["foo".to_string(), "bar".to_string()],
         }
     );

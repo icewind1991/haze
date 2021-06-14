@@ -1,4 +1,4 @@
-use crate::args::HazeArgs;
+use crate::args::{ExecService, HazeArgs};
 use crate::cloud::Cloud;
 use crate::config::HazeConfig;
 use crate::exec::container_logs;
@@ -111,19 +111,42 @@ async fn main() -> Result<()> {
                 print!("{}", log);
             }
         }
-        HazeArgs::Exec { filter, command } => {
+        HazeArgs::Exec {
+            filter,
+            service,
+            command,
+        } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
-            cloud
-                .exec(
-                    &mut docker,
-                    if command.is_empty() {
-                        vec!["bash".to_string()]
-                    } else {
-                        command
-                    },
-                    true,
-                )
-                .await?;
+            match service {
+                None => {
+                    cloud
+                        .exec(
+                            &mut docker,
+                            if command.is_empty() {
+                                vec!["bash".to_string()]
+                            } else {
+                                command
+                            },
+                            true,
+                        )
+                        .await?;
+                }
+                Some(ExecService::Db) => {
+                    cloud
+                        .db
+                        .exec_sh(
+                            &mut docker,
+                            &cloud.id,
+                            if command.is_empty() {
+                                vec!["bash".to_string()]
+                            } else {
+                                command
+                            },
+                            true,
+                        )
+                        .await?;
+                }
+            }
         }
         HazeArgs::Occ {
             filter,
