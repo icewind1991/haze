@@ -209,7 +209,7 @@ impl Database {
         Ok(Some(id))
     }
 
-    pub async fn exec(&self, docker: &mut Docker, cloud_id: &str) -> Result<i64> {
+    pub async fn exec(&self, docker: &mut Docker, cloud_id: &str, root: bool) -> Result<i64> {
         match self.family() {
             DatabaseFamily::Sqlite => {
                 exec_tty(
@@ -226,7 +226,13 @@ impl Database {
                     docker,
                     format!("{}-db", cloud_id),
                     "mysql",
-                    vec!["mysql", "-u", "haze", "-phaze", "haze"],
+                    vec![
+                        "mysql",
+                        "-u",
+                        if root { "root" } else { "haze" },
+                        "-phaze",
+                        "haze",
+                    ],
                     vec![],
                 )
                 .await

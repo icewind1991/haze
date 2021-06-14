@@ -133,9 +133,9 @@ async fn main() -> Result<()> {
             command.insert(0, "occ".to_string());
             cloud.exec(&mut docker, command, true).await?;
         }
-        HazeArgs::Db { filter } => {
+        HazeArgs::Db { filter, root } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
-            cloud.db.exec(&mut docker, &cloud.id).await?;
+            cloud.db.exec(&mut docker, &cloud.id, root).await?;
         }
         HazeArgs::Open { filter } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;

@@ -30,6 +30,7 @@ pub enum HazeArgs {
     },
     Db {
         filter: Option<String>,
+        root: bool,
     },
     Clean,
     Logs {
@@ -45,7 +46,7 @@ pub enum HazeArgs {
 impl HazeArgs {
     pub fn parse<I, S>(mut args: I) -> Result<HazeArgs>
     where
-        S: AsRef<str> + Into<String> + Display,
+        S: AsRef<str> + Into<String> + Display + PartialEq<str>,
         I: Iterator<Item = S>,
     {
         let _bin = args.next();
@@ -101,7 +102,10 @@ impl HazeArgs {
                 filter,
                 command: args.map(S::into).collect(),
             }),
-            HazeCommand::Db => Ok(HazeArgs::Db { filter }),
+            HazeCommand::Db => Ok(HazeArgs::Db {
+                filter,
+                root: args.next().filter(|arg| arg == "root").is_some(),
+            }),
             HazeCommand::Clean => Ok(HazeArgs::Clean),
             HazeCommand::Logs => {
                 let mut args = args.peekable();
@@ -197,7 +201,8 @@ fn test_arg_parse() {
     assert_eq!(
         HazeArgs::parse(vec!["haze", "asdasd", "db"].into_iter()).unwrap(),
         HazeArgs::Db {
-            filter: Some("asdasd".to_string())
+            filter: Some("asdasd".to_string()),
+            root: false
         }
     );
     assert_eq!(
