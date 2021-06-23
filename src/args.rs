@@ -42,6 +42,9 @@ pub enum HazeArgs {
     Open {
         filter: Option<String>,
     },
+    Fmt {
+        path: String,
+    },
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -144,6 +147,13 @@ impl HazeArgs {
                 })
             }
             HazeCommand::Open => Ok(HazeArgs::Open { filter }),
+            HazeCommand::Fmt => {
+                let path = args
+                    .next()
+                    .map(S::into)
+                    .ok_or_else(|| Report::msg("No path provided"))?;
+                Ok(HazeArgs::Fmt { path })
+            }
         }
     }
 }
@@ -160,6 +170,7 @@ pub enum HazeCommand {
     Clean,
     Logs,
     Open,
+    Fmt,
 }
 
 impl FromStr for HazeCommand {
@@ -177,6 +188,8 @@ impl FromStr for HazeCommand {
             "clean" => Ok(HazeCommand::Clean),
             "logs" => Ok(HazeCommand::Logs),
             "open" => Ok(HazeCommand::Open),
+            "fmt" => Ok(HazeCommand::Fmt),
+            "format" => Ok(HazeCommand::Fmt),
             _ => Err(Report::msg(format!("Unknown command: {}", s))),
         }
     }
@@ -195,6 +208,7 @@ impl HazeCommand {
             HazeCommand::Clean => false,
             HazeCommand::Logs => true,
             HazeCommand::Open => true,
+            HazeCommand::Fmt => false,
         }
     }
 }

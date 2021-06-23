@@ -152,7 +152,7 @@ pub fn default_mappings<'a>() -> impl IntoIterator<Item = Mapping<'a>> {
             .file()
             .read_only(),
     ];
-    std::array::IntoIter::new(mappings)
+    IntoIterator::into_iter(mappings)
 }
 
 #[derive(Debug, Copy, Clone)]

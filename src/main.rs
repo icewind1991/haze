@@ -1,5 +1,5 @@
 use crate::args::{ExecService, HazeArgs};
-use crate::cloud::Cloud;
+use crate::cloud::{Cloud, CloudOptions};
 use crate::config::HazeConfig;
 use crate::exec::container_logs;
 use crate::service::Service;
@@ -201,6 +201,67 @@ async fn main() -> Result<()> {
             }
             args.insert(0, "tests".to_string());
             cloud.exec(&mut docker, args, false).await?;
+            cloud.destroy(&mut docker).await?;
+        }
+        HazeArgs::Fmt { path } => {
+            let cloud = Cloud::create(&mut docker, CloudOptions::default(), &config).await?;
+            let mut out_buffer = Vec::<u8>::with_capacity(1024);
+            println!("Waiting for servers to start");
+            cloud.wait_for_start(&mut docker).await?;
+            println!("Installing composer");
+            if let Err(e) = cloud
+                .exec_with_output(
+                    &mut docker,
+                    vec!["composer", "install"],
+                    Some(&mut out_buffer),
+                )
+                .await
+                .and_then(|c| c.is_ok())
+            {
+                eprintln!("{}", String::from_utf8_lossy(&out_buffer));
+                cloud.destroy(&mut docker).await?;
+                return Err(e);
+            }
+            out_buffer.clear();
+            println!("Formatting");
+            if let Err(e) = cloud
+                .exec(
+                    &mut docker,
+                    vec!["composer", "run", "cs:fix", path.as_str()],
+                    false,
+                )
+                .await
+            {
+                cloud.destroy(&mut docker).await?;
+                return Err(e);
+            }
+            println!("Cleanup");
+            if let Err(e) = cloud
+                .exec_with_output(
+                    &mut docker,
+                    vec!["git", "clean", "-fd", "lib/composer"],
+                    Some(&mut out_buffer),
+                )
+                .await
+                .and_then(|c| c.is_ok())
+            {
+                eprintln!("{}", String::from_utf8_lossy(&out_buffer));
+                cloud.destroy(&mut docker).await?;
+                return Err(e);
+            }
+            if let Err(e) = cloud
+                .exec_with_output(
+                    &mut docker,
+                    vec!["git", "checkout", "lib/composer"],
+                    Some(&mut out_buffer),
+                )
+                .await
+                .and_then(|c| c.is_ok())
+            {
+                eprintln!("{}", String::from_utf8_lossy(&out_buffer));
+                cloud.destroy(&mut docker).await?;
+                return Err(e);
+            }
             cloud.destroy(&mut docker).await?;
         }
     };

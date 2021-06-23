@@ -1,6 +1,6 @@
 use crate::config::HazeConfig;
 use crate::database::Database;
-use crate::exec::{exec, exec_tty};
+use crate::exec::{exec, exec_tty, ExitCode};
 use crate::mapping::{default_mappings, Mapping};
 use crate::php::PhpVersion;
 use crate::service::Service;
@@ -15,7 +15,7 @@ use petname::petname;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
-use std::io::stdout;
+use std::io::{stdout, Write};
 use std::iter::Peekable;
 use std::net::IpAddr;
 use std::os::unix::fs::MetadataExt;
@@ -302,12 +302,21 @@ impl Cloud {
         docker: &mut Docker,
         cmd: Vec<S>,
         tty: bool,
-    ) -> Result<i64> {
+    ) -> Result<ExitCode> {
         if tty {
             exec_tty(docker, &self.id, "haze", cmd, vec![]).await
         } else {
             exec(docker, &self.id, "haze", cmd, vec![], Some(stdout())).await
         }
+    }
+
+    pub async fn exec_with_output<S: Into<String>>(
+        &self,
+        docker: &mut Docker,
+        cmd: Vec<S>,
+        output: Option<impl Write>,
+    ) -> Result<ExitCode> {
+        exec(docker, &self.id, "haze", cmd, vec![], output).await
     }
 
     pub async fn list(

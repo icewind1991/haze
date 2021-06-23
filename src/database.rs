@@ -1,4 +1,4 @@
-use crate::exec::{exec, exec_tty};
+use crate::exec::{exec, exec_tty, ExitCode};
 use crate::image::pull_image;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
@@ -215,7 +215,7 @@ impl Database {
         cloud_id: &str,
         cmd: Vec<S>,
         tty: bool,
-    ) -> Result<i64> {
+    ) -> Result<ExitCode> {
         let container = match self.family() {
             DatabaseFamily::Sqlite => cloud_id.to_string(),
             _ => format!("{}-db", cloud_id.to_string()),
@@ -227,7 +227,7 @@ impl Database {
         }
     }
 
-    pub async fn exec(&self, docker: &mut Docker, cloud_id: &str, root: bool) -> Result<i64> {
+    pub async fn exec(&self, docker: &mut Docker, cloud_id: &str, root: bool) -> Result<ExitCode> {
         match self.family() {
             DatabaseFamily::Sqlite => {
                 exec_tty(

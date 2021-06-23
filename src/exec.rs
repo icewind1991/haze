@@ -1,7 +1,7 @@
 use bollard::container::LogsOptions;
 use bollard::exec::{CreateExecOptions, ResizeExecOptions, StartExecResults};
 use bollard::Docker;
-use color_eyre::{eyre::WrapErr, Result};
+use color_eyre::{eyre::WrapErr, Report, Result};
 use futures_util::StreamExt;
 use std::io::{stdout, Read, Write};
 use std::time::Duration;
@@ -17,7 +17,7 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
     user: &str,
     cmd: Vec<S2>,
     env: Vec<&str>,
-) -> Result<i64> {
+) -> Result<ExitCode> {
     let stdout = stdout();
 
     if !is_tty(&stdout) {
@@ -88,7 +88,8 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
         .inspect_exec(&message.id)
         .await?
         .exit_code
-        .unwrap_or_default())
+        .unwrap_or_default()
+        .into())
 }
 
 pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
@@ -98,7 +99,7 @@ pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
     cmd: Vec<S2>,
     env: Vec<&str>,
     mut std_out: Option<impl Write>,
-) -> Result<i64> {
+) -> Result<ExitCode> {
     let cmd = cmd.into_iter().map(S2::into).collect();
     let env = env.into_iter().map(String::from).collect();
     let config = CreateExecOptions {
@@ -131,7 +132,8 @@ pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
         .inspect_exec(&message.id)
         .await?
         .exit_code
-        .unwrap_or_default())
+        .unwrap_or_default()
+        .into())
 }
 
 pub async fn container_logs(docker: &Docker, container: &str, count: usize) -> Result<Vec<String>> {
@@ -149,4 +151,30 @@ pub async fn container_logs(docker: &Docker, container: &str, count: usize) -> R
         logs.push(line?.to_string());
     }
     Ok(logs)
+}
+
+pub struct ExitCode(i64);
+
+impl ExitCode {
+    pub fn is_ok(&self) -> Result<()> {
+        match self.0 {
+            0 => Ok(()),
+            code => Err(Report::msg(format!(
+                "Command failed with exit code {}",
+                code
+            ))),
+        }
+    }
+}
+
+impl PartialEq<i64> for ExitCode {
+    fn eq(&self, other: &i64) -> bool {
+        &self.0 == other
+    }
+}
+
+impl From<i64> for ExitCode {
+    fn from(code: i64) -> Self {
+        ExitCode(code)
+    }
 }
