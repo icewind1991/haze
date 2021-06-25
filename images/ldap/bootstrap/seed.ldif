@@ -1,0 +1,22 @@
+# Entry 3: cn=ldaptest,dc=example,dc=org
+dn: cn=ldaptest,dc=example,dc=org
+cn: ldaptest
+gidnumber: 500
+givenname: ldap
+homedirectory: /home/users/ldaptest
+objectclass: inetOrgPerson
+objectclass: posixAccount
+objectclass: top
+objectclass: organizationalPerson
+sn: test
+uid: ldaptest
+uidnumber: 1000
+# userpassword = test
+userpassword: {MD5}CY9rzUYh03PK3k6DJie09g==
+
+# Entry 4: cn=test,dc=example,dc=org
+dn: cn=test,dc=example,dc=org
+cn: test
+gidnumber: 500
+objectclass: posixGroup
+objectclass: top

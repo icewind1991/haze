@@ -22,6 +22,7 @@ use std::os::unix::fs::MetadataExt;
 use std::str::FromStr;
 use std::time::Duration;
 use tokio::fs::remove_dir_all;
+use tokio::task::spawn;
 use tokio::time::sleep;
 
 #[derive(Clone, Default, Debug, Eq, PartialEq)]
@@ -49,7 +50,7 @@ impl CloudOptions {
                 php = Some(php_option);
                 let _ = args.next();
             } else if let Some(service) = Service::from_type(option.as_ref()) {
-                services.push(service);
+                services.extend_from_slice(service);
                 let _ = args.next();
             } else {
                 break;
@@ -258,6 +259,33 @@ impl Cloud {
 
         containers.push(container);
 
+        let services_clone = options.services.clone();
+        let cloud_id = id.clone();
+        let docker_clone = docker.clone();
+        spawn(async move {
+            if let Err(e) = try_join_all(
+                services_clone
+                    .iter()
+                    .map(|service| service.wait_for_start(&docker_clone, &cloud_id)),
+            )
+            .await
+            {
+                println!("{:#}", e);
+                return;
+            }
+            for service in services_clone {
+                match service.start_message(&docker_clone, &cloud_id).await {
+                    Ok(Some(msg)) => {
+                        println!("{}", msg);
+                    }
+                    Err(e) => {
+                        println!("{:#}", e);
+                    }
+                    _ => {}
+                }
+            }
+        });
+
         Ok(Cloud {
             id,
             network,
@@ -365,6 +393,8 @@ impl Cloud {
                     .flat_map(|labels| labels.get("haze-type"))
                     .map(String::as_str)
                     .flat_map(Service::from_type)
+                    .flatten()
+                    .cloned()
                     .collect();
                 let mut service_ids: Vec<String> = services
                     .iter()

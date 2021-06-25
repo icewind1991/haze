@@ -13,3 +13,5 @@ for version in "${versions[@]}"; do
   sed -i "s/<version>/$version/" haze/Dockerfile
   docker build -t "icewind1991/haze:$version" -f "haze/Dockerfile" haze
 done
+
+docker build -t "icewind1991/haze-ldap" -f "ldap/Dockerfile" ldap

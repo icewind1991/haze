@@ -135,8 +135,8 @@ impl HazeArgs {
                 let service = args
                     .peek()
                     .map(|s| s.as_ref())
-                    .map(Service::from_type)
-                    .flatten();
+                    .and_then(Service::from_type)
+                    .and_then(|list| list.first().cloned());
                 if service.is_some() {
                     let _ = args.next();
                 }

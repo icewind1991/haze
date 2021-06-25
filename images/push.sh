@@ -9,3 +9,5 @@ done
 for version in "${versions[@]}"; do
   docker push "icewind1991/haze:$version"
 done
+
+docker push "icewind1991/haze-ldap"

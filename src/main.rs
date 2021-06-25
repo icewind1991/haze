@@ -89,6 +89,17 @@ async fn main() -> Result<()> {
                         false,
                     )
                     .await?;
+                for service in &cloud.services {
+                    for app in service.apps() {
+                        cloud
+                            .exec(
+                                &mut docker,
+                                vec!["occ", "app:enable", *app, "--force"],
+                                false,
+                            )
+                            .await?;
+                    }
+                }
             }
         }
         HazeArgs::Stop { filter } => {
