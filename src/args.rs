@@ -55,7 +55,7 @@ pub enum ExecService {
 impl HazeArgs {
     pub fn parse<I, S>(mut args: I) -> Result<HazeArgs>
     where
-        S: AsRef<str> + Into<String> + Display + PartialEq<str>,
+        S: AsRef<str> + Into<String> + Display,
         I: Iterator<Item = S>,
     {
         let _bin = args.next();
@@ -107,7 +107,7 @@ impl HazeArgs {
                 let mut args = args.peekable();
 
                 let service = match args.peek() {
-                    Some(arg) if arg == "db" => {
+                    Some(arg) if arg.as_ref() == "db" => {
                         args.next();
                         Some(ExecService::Db)
                     }
@@ -127,7 +127,7 @@ impl HazeArgs {
             }),
             HazeCommand::Db => Ok(HazeArgs::Db {
                 filter,
-                root: args.next().filter(|arg| arg == "root").is_some(),
+                root: args.next().filter(|arg| arg.as_ref() == "root").is_some(),
             }),
             HazeCommand::Clean => Ok(HazeArgs::Clean),
             HazeCommand::Logs => {
@@ -259,7 +259,7 @@ fn test_arg_parse() {
         HazeArgs::parse(vec!["haze", "asdasd", "exec", "db", "foo", "bar"].into_iter()).unwrap(),
         HazeArgs::Exec {
             filter: Some("asdasd".to_string()),
-            service: Some("db".to_string()),
+            service: Some(ExecService::Db),
             command: vec!["foo".to_string(), "bar".to_string()],
         }
     );

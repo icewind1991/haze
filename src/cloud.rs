@@ -55,10 +55,6 @@ impl CloudOptions {
             } else {
                 break;
             }
-
-            if db.is_some() && php.is_some() {
-                break;
-            }
         }
 
         Ok(CloudOptions {
@@ -71,6 +67,8 @@ impl CloudOptions {
 
 #[test]
 fn test_option_parse() {
+    use crate::service::{LDAPAdmin, LDAP};
+
     let mut args = vec![].into_iter().peekable();
     assert_eq!(
         CloudOptions::parse::<_, &str>(&mut args).unwrap(),
@@ -105,6 +103,26 @@ fn test_option_parse() {
         CloudOptions {
             php: PhpVersion::Php74,
             db: Database::Postgres,
+            ..Default::default()
+        }
+    );
+    let mut args = vec!["7", "ldap", "pgsql"].into_iter().peekable();
+    assert_eq!(
+        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions {
+            php: PhpVersion::Php74,
+            db: Database::Postgres,
+            services: vec![Service::Ldap(LDAP), Service::LdapAdmin(LDAPAdmin)],
+            ..Default::default()
+        }
+    );
+    let mut args = vec!["7", "pgsql", "ldap"].into_iter().peekable();
+    assert_eq!(
+        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions {
+            php: PhpVersion::Php74,
+            db: Database::Postgres,
+            services: vec![Service::Ldap(LDAP), Service::LdapAdmin(LDAPAdmin)],
             ..Default::default()
         }
     );
