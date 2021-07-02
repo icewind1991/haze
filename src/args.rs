@@ -45,6 +45,10 @@ pub enum HazeArgs {
     Fmt {
         path: String,
     },
+    Integration {
+        options: CloudOptions,
+        args: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -102,6 +106,12 @@ impl HazeArgs {
                 let options = CloudOptions::parse(&mut args)?;
                 let args = args.map(S::into).collect();
                 Ok(HazeArgs::Test { options, args })
+            }
+            HazeCommand::Integration => {
+                let mut args = args.peekable();
+                let options = CloudOptions::parse(&mut args)?;
+                let args = args.map(S::into).collect();
+                Ok(HazeArgs::Integration { options, args })
             }
             HazeCommand::Exec => {
                 let mut args = args.peekable();
@@ -171,6 +181,7 @@ pub enum HazeCommand {
     Logs,
     Open,
     Fmt,
+    Integration,
 }
 
 impl FromStr for HazeCommand {
@@ -190,6 +201,7 @@ impl FromStr for HazeCommand {
             "open" => Ok(HazeCommand::Open),
             "fmt" => Ok(HazeCommand::Fmt),
             "format" => Ok(HazeCommand::Fmt),
+            "integration" => Ok(HazeCommand::Integration),
             _ => Err(Report::msg(format!("Unknown command: {}", s))),
         }
     }
@@ -209,6 +221,7 @@ impl HazeCommand {
             HazeCommand::Logs => true,
             HazeCommand::Open => true,
             HazeCommand::Fmt => false,
+            HazeCommand::Integration => false,
         }
     }
 }

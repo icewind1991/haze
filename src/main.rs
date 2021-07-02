@@ -214,6 +214,30 @@ async fn main() -> Result<()> {
             cloud.exec(&mut docker, args, false).await?;
             cloud.destroy(&mut docker).await?;
         }
+        HazeArgs::Integration { options, mut args } => {
+            let cloud = Cloud::create(&mut docker, options, &config).await?;
+            println!("Waiting for servers to start");
+            cloud.wait_for_start(&mut docker).await?;
+            println!("Installing");
+            if let Err(e) = cloud
+                .exec(
+                    &mut docker,
+                    vec![
+                        "install",
+                        &config.auto_setup.username,
+                        &config.auto_setup.password,
+                    ],
+                    false,
+                )
+                .await
+            {
+                cloud.destroy(&mut docker).await?;
+                return Err(e);
+            }
+            args.insert(0, "integration".to_string());
+            cloud.exec(&mut docker, args, false).await?;
+            cloud.destroy(&mut docker).await?;
+        }
         HazeArgs::Fmt { path } => {
             let cloud = Cloud::create(&mut docker, CloudOptions::default(), &config).await?;
             let mut out_buffer = Vec::<u8>::with_capacity(1024);
