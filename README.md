@@ -30,8 +30,9 @@ Where `database` is one of `sqlite`, `mysql`, `mariadb` or `pgsql` with an optio
 And `php-version` is one of `7.2`, `7.3`, `7.4`, `8.0`, `7` or `8`, defaults to `8.0`
 
 Additionally, you can use the following options when starting an instance:
- - `s3`: setup Nextcloud with S3 primary storage
+ - `s3`: setup an S3 server and configure to Nextcloud to use it as primary storage
  - `<path to app.tar.gz>`: by specifying the path to an app package this package will be extracted into the apps directory of the new instance (overwriting any existing app code). This can be used to quickly test a packaged app. 
+ - `ldap`: setup an LDAP server
 
 #### Run tests in a new instance
 
