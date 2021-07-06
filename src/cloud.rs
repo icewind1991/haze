@@ -1,4 +1,4 @@
-use crate::config::HazeConfig;
+use crate::config::{HazeConfig, HazeVolumeConfig};
 use crate::database::Database;
 use crate::exec::{exec, exec_tty, ExitCode};
 use crate::mapping::{default_mappings, Mapping};
@@ -10,6 +10,7 @@ use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
 use camino::Utf8PathBuf;
 use color_eyre::{eyre::WrapErr, Report, Result};
+use flate2::read::GzDecoder;
 use futures_util::future::try_join_all;
 use petname::petname;
 use std::collections::HashMap;
@@ -21,6 +22,7 @@ use std::net::IpAddr;
 use std::os::unix::fs::MetadataExt;
 use std::str::FromStr;
 use std::time::Duration;
+use tokio::fs::create_dir_all;
 use tokio::fs::remove_dir_all;
 use tokio::task::spawn;
 use tokio::time::sleep;
@@ -30,6 +32,7 @@ pub struct CloudOptions {
     db: Database,
     php: PhpVersion,
     services: Vec<Service>,
+    app_packages: Vec<Utf8PathBuf>,
 }
 
 impl CloudOptions {
@@ -41,6 +44,7 @@ impl CloudOptions {
         let mut db = None;
         let mut php = None;
         let mut services = Vec::new();
+        let mut app_package = Vec::new();
 
         while let Some(option) = args.peek() {
             if let Ok(db_option) = Database::from_str(option.as_ref()) {
@@ -52,6 +56,9 @@ impl CloudOptions {
             } else if let Some(service) = Service::from_type(option.as_ref()) {
                 services.extend_from_slice(service);
                 let _ = args.next();
+            } else if option.as_ref().ends_with(".tar.gz") {
+                app_package.push(option.to_string().into());
+                let _ = args.next();
             } else {
                 break;
             }
@@ -61,6 +68,7 @@ impl CloudOptions {
             db: db.unwrap_or_default(),
             php: php.unwrap_or_default(),
             services,
+            app_packages: app_package,
         })
     }
 }
@@ -149,11 +157,45 @@ impl Cloud {
         let id = format!("haze-{}", petname(2, "-"));
 
         let workdir = config.work_dir.join(&id);
+        let app_package_dir = workdir.join("app_package");
+
+        if !options.app_packages.is_empty() {
+            create_dir_all(&app_package_dir)
+                .await
+                .wrap_err("Failed to create directory for app packages")?;
+        }
+
+        let app_volumes = options
+            .app_packages
+            .into_iter()
+            .map(|app_package| {
+                let app_name = app_package.file_name().unwrap().trim_end_matches(".tar.gz");
+                let app_dir = app_package_dir.join(app_name);
+
+                let app_package_file = fs::File::open(&app_package)
+                    .wrap_err_with(|| format!("Failed to open app bundle {}", app_package))?;
+                if app_package.metadata()?.len() > 1024 * 1024 {
+                    println!("Extracting app archive for {}...", app_name);
+                }
+                let gz = GzDecoder::new(app_package_file);
+                tar::Archive::new(gz)
+                    .unpack(&app_package_dir)
+                    .wrap_err_with(|| format!("Failed to extract app bundle {}", app_package))?;
+
+                Ok(HazeVolumeConfig {
+                    create: false,
+                    source: app_dir,
+                    read_only: true,
+                    target: format!("/var/www/html/apps/{}", app_name).into(),
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
         let mappings = config
             .volume
             .iter()
             .map(Mapping::from)
             .chain(default_mappings())
+            .chain(app_volumes.iter().map(Mapping::from))
             .collect::<Vec<_>>();
         for mapping in &mappings {
             mapping
