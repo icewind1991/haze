@@ -90,6 +90,12 @@ If no `cmd` is specified it will launch `bash`
 haze [match] occ [cmd]
 ```
 
+#### Connect to the database on an instance
+
+```bash
+haze [match] db
+```
+
 #### Show the logs of an instance
 
 ```bash
