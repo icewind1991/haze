@@ -375,11 +375,13 @@ impl Cloud {
             .remove_network(&self.network)
             .await
             .wrap_err("Failed to remove network")?;
-        if let Err(e) = remove_dir_all(self.workdir)
-            .await
-            .wrap_err("Failed to remove work directory")
-        {
-            eprintln!("{}", e);
+        if self.workdir.exists() {
+            if let Err(e) = remove_dir_all(self.workdir)
+                .await
+                .wrap_err("Failed to remove work directory")
+            {
+                eprintln!("{}", e);
+            }
         }
 
         Ok(())
