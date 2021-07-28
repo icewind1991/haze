@@ -100,6 +100,13 @@ async fn main() -> Result<()> {
                             .await?;
                     }
                 }
+                for service in &cloud.services {
+                    for cmd in service.post_setup(&docker, &cloud.id).await? {
+                        cloud
+                            .exec(&mut docker, cmd.split(" ").collect(), false)
+                            .await?;
+                    }
+                }
             }
         }
         HazeArgs::Stop { filter } => {

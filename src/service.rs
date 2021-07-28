@@ -7,12 +7,12 @@ use color_eyre::{eyre::WrapErr, Report, Result};
 use maplit::hashmap;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
-
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Service {
     ObjectStore(ObjectStore),
     Ldap(LDAP),
     LdapAdmin(LDAPAdmin),
+    OnlyOffice(OnlyOffice),
 }
 
 impl Service {
@@ -21,6 +21,7 @@ impl Service {
             Service::ObjectStore(store) => store.name(),
             Service::Ldap(ldap) => ldap.name(),
             Service::LdapAdmin(ldap_admin) => ldap_admin.name(),
+            Service::OnlyOffice(office) => office.name(),
         }
     }
 
@@ -29,6 +30,7 @@ impl Service {
             Service::ObjectStore(store) => store.env(),
             Service::Ldap(ldap) => ldap.env(),
             Service::LdapAdmin(ldap_admin) => ldap_admin.env(),
+            Service::OnlyOffice(office) => office.env(),
         }
     }
 
@@ -37,6 +39,7 @@ impl Service {
             Service::ObjectStore(store) => store.spawn(docker, cloud_id, network).await,
             Service::Ldap(ldap) => ldap.spawn(docker, cloud_id, network).await,
             Service::LdapAdmin(ldap_admin) => ldap_admin.spawn(docker, cloud_id, network).await,
+            Service::OnlyOffice(office) => office.spawn(docker, cloud_id, network).await,
         }
     }
 
@@ -45,6 +48,7 @@ impl Service {
             Service::ObjectStore(store) => store.is_healthy(docker, cloud_id).await,
             Service::Ldap(ldap) => ldap.is_healthy(docker, cloud_id).await,
             Service::LdapAdmin(ldap_admin) => ldap_admin.is_healthy(docker, cloud_id).await,
+            Service::OnlyOffice(office) => office.is_healthy(docker, cloud_id).await,
         }
     }
 
@@ -52,6 +56,7 @@ impl Service {
         match ty {
             "s3" => Some(&[Service::ObjectStore(ObjectStore::S3)]),
             "ldap" => Some(&[Service::Ldap(LDAP), Service::LdapAdmin(LDAPAdmin)]),
+            "onlyoffice" => Some(&[Service::OnlyOffice(OnlyOffice)]),
             _ => None,
         }
     }
@@ -72,6 +77,7 @@ impl Service {
             Service::ObjectStore(store) => store.container_name(cloud_id),
             Service::Ldap(ldap) => ldap.container_name(cloud_id),
             Service::LdapAdmin(ldap_admin) => ldap_admin.container_name(cloud_id),
+            Service::OnlyOffice(office) => office.container_name(cloud_id),
         }
     }
 
@@ -80,6 +86,7 @@ impl Service {
             Service::ObjectStore(store) => store.start_message(docker, cloud_id).await,
             Service::Ldap(ldap) => ldap.start_message(docker, cloud_id).await,
             Service::LdapAdmin(ldap_admin) => ldap_admin.start_message(docker, cloud_id).await,
+            Service::OnlyOffice(office) => office.start_message(docker, cloud_id).await,
         }
     }
 
@@ -88,6 +95,16 @@ impl Service {
             Service::ObjectStore(store) => store.apps(),
             Service::Ldap(ldap) => ldap.apps(),
             Service::LdapAdmin(ldap_admin) => ldap_admin.apps(),
+            Service::OnlyOffice(office) => office.apps(),
+        }
+    }
+
+    pub async fn post_setup(&self, docker: &Docker, cloud_id: &str) -> Result<Vec<String>> {
+        match self {
+            Service::ObjectStore(store) => store.post_setup(docker, cloud_id).await,
+            Service::Ldap(ldap) => ldap.post_setup(docker, cloud_id).await,
+            Service::LdapAdmin(ldap_admin) => ldap_admin.post_setup(docker, cloud_id).await,
+            Service::OnlyOffice(office) => office.post_setup(docker, cloud_id).await,
         }
     }
 }
@@ -179,6 +196,10 @@ impl ObjectStore {
     fn apps(&self) -> &'static [&'static str] {
         &["files_external"]
     }
+
+    async fn post_setup(&self, _docker: &Docker, _cloud_id: &str) -> Result<Vec<String>> {
+        Ok(Vec::new())
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -247,6 +268,10 @@ impl LDAP {
 
     fn apps(&self) -> &'static [&'static str] {
         &["user_ldap"]
+    }
+
+    async fn post_setup(&self, _docker: &Docker, _cloud_id: &str) -> Result<Vec<String>> {
+        Ok(Vec::new())
     }
 }
 
@@ -349,7 +374,118 @@ impl LDAPAdmin {
         )))
     }
 
+    async fn post_setup(&self, _docker: &Docker, _cloud_id: &str) -> Result<Vec<String>> {
+        Ok(Vec::new())
+    }
+
     fn apps(&self) -> &'static [&'static str] {
         &[]
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct OnlyOffice;
+
+impl OnlyOffice {
+    fn image(&self) -> &str {
+        "onlyoffice/documentserver"
+    }
+
+    fn name(&self) -> &str {
+        "onlyoffice"
+    }
+
+    fn self_env(&self) -> Vec<&str> {
+        vec![]
+    }
+
+    fn env(&self) -> &[&str] {
+        &[]
+    }
+
+    async fn spawn(&self, docker: &Docker, cloud_id: &str, network: &str) -> Result<String> {
+        pull_image(docker, self.image()).await?;
+        let options = Some(CreateContainerOptions {
+            name: self.container_name(cloud_id),
+        });
+        let config = Config {
+            image: Some(self.image()),
+            env: Some(self.self_env()),
+            host_config: Some(HostConfig {
+                network_mode: Some(network.to_string()),
+                ..Default::default()
+            }),
+            labels: Some(hashmap! {
+                "haze-type" => self.name(),
+                "haze-cloud-id" => cloud_id
+            }),
+            networking_config: Some(NetworkingConfig {
+                endpoints_config: hashmap! {
+                    network => EndpointSettings {
+                        aliases: Some(vec![self.name().to_string()]),
+                        ..Default::default()
+                    }
+                },
+            }),
+            ..Default::default()
+        };
+        let id = docker.create_container(options, config).await?.id;
+        docker.start_container::<String>(&id, None).await?;
+        Ok(id)
+    }
+
+    async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
+        let info = docker
+            .inspect_container(&self.container_name(cloud_id), None)
+            .await?;
+        Ok(matches!(
+            info.state,
+            Some(ContainerState {
+                running: Some(true),
+                ..
+            })
+        ))
+    }
+
+    fn container_name(&self, cloud_id: &str) -> String {
+        format!("{}-onlyoffice", cloud_id)
+    }
+
+    async fn start_message(&self, _docker: &Docker, _cloud_id: &str) -> Result<Option<String>> {
+        Ok(None)
+    }
+
+    fn apps(&self) -> &'static [&'static str] {
+        &["onlyoffice"]
+    }
+
+    async fn post_setup(&self, docker: &Docker, cloud_id: &str) -> Result<Vec<String>> {
+        let info = docker
+            .inspect_container(&self.container_name(cloud_id), None)
+            .await?;
+        let ip = if matches!(
+            info.state,
+            Some(ContainerState {
+                running: Some(true),
+                ..
+            })
+        ) {
+            info.network_settings
+                .unwrap()
+                .networks
+                .unwrap()
+                .values()
+                .next()
+                .unwrap()
+                .ip_address
+                .clone()
+                .unwrap()
+        } else {
+            return Err(Report::msg("onlyoffice not started"));
+        };
+        Ok(vec![format!(
+            "occ config:app:set onlyoffice DocumentServerUrl --value http://{}/",
+            ip
+        )])
     }
 }
