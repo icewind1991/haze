@@ -1,3 +1,4 @@
+use crate::config::HazeConfig;
 use crate::image::pull_image;
 use crate::service::ServiceTrait;
 use crate::Result;
@@ -20,7 +21,13 @@ impl ServiceTrait for LDAP {
         &["LDAP=1"]
     }
 
-    async fn spawn(&self, docker: &Docker, cloud_id: &str, network: &str) -> Result<String> {
+    async fn spawn(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        network: &str,
+        _config: &HazeConfig,
+    ) -> Result<String> {
         let image = "icewind1991/haze-ldap";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
@@ -57,16 +64,8 @@ impl ServiceTrait for LDAP {
         format!("{}-ldap", cloud_id)
     }
 
-    async fn start_message(&self, _docker: &Docker, _cloud_id: &str) -> Result<Option<String>> {
-        Ok(None)
-    }
-
     fn apps(&self) -> &'static [&'static str] {
         &["user_ldap"]
-    }
-
-    async fn post_setup(&self, _docker: &Docker, _cloud_id: &str) -> Result<Vec<String>> {
-        Ok(Vec::new())
     }
 }
 
@@ -83,7 +82,13 @@ impl ServiceTrait for LDAPAdmin {
         &[]
     }
 
-    async fn spawn(&self, docker: &Docker, cloud_id: &str, network: &str) -> Result<String> {
+    async fn spawn(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        network: &str,
+        _config: &HazeConfig,
+    ) -> Result<String> {
         let image = "osixia/phpldapadmin";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
@@ -148,13 +153,5 @@ impl ServiceTrait for LDAPAdmin {
             "Ldap admin running at: https://{} with 'cn=admin,dc=example,dc=org' and password 'haze'",
             ip
         )))
-    }
-
-    async fn post_setup(&self, _docker: &Docker, _cloud_id: &str) -> Result<Vec<String>> {
-        Ok(Vec::new())
-    }
-
-    fn apps(&self) -> &'static [&'static str] {
-        &[]
     }
 }

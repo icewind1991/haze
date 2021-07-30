@@ -5,16 +5,19 @@ use crate::Result;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{ContainerState, EndpointSettings, HostConfig};
 use bollard::Docker;
+use color_eyre::eyre::WrapErr;
 use color_eyre::Report;
 use maplit::hashmap;
+use std::time::Duration;
+use tokio::time::{sleep, timeout};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct OnlyOffice;
+pub struct NotifyPush;
 
 #[async_trait::async_trait]
-impl ServiceTrait for OnlyOffice {
+impl ServiceTrait for NotifyPush {
     fn name(&self) -> &str {
-        "onlyoffice"
+        "push"
     }
 
     fn env(&self) -> &[&str] {
@@ -26,9 +29,9 @@ impl ServiceTrait for OnlyOffice {
         docker: &Docker,
         cloud_id: &str,
         network: &str,
-        _config: &HazeConfig,
+        config: &HazeConfig,
     ) -> Result<String> {
-        let image = "onlyoffice/documentserver";
+        let image = "icewind1991/notify_push";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
             name: self.container_name(cloud_id),
@@ -37,8 +40,17 @@ impl ServiceTrait for OnlyOffice {
             image: Some(image),
             host_config: Some(HostConfig {
                 network_mode: Some(network.to_string()),
+                binds: Some(vec![
+                    format!("{}/config:/config:ro", config.work_dir.join(cloud_id)),
+                    format!("{}/data:/var/www/html/data", config.work_dir.join(cloud_id)),
+                ]),
                 ..Default::default()
             }),
+            env: Some(vec![
+                "NEXTCLOUD_URL=http://cloud/",
+                "LOG=debug",
+                "REDIS_URL=redis://cloud/",
+            ]),
             labels: Some(hashmap! {
                 "haze-type" => self.name(),
                 "haze-cloud-id" => cloud_id
@@ -51,22 +63,33 @@ impl ServiceTrait for OnlyOffice {
                     }
                 },
             }),
+            cmd: Some(vec!["/notify_push", "/config/config.php"]),
             ..Default::default()
         };
         let id = docker.create_container(options, config).await?.id;
-        docker.start_container::<String>(&id, None).await?;
         Ok(id)
     }
 
     fn container_name(&self, cloud_id: &str) -> String {
-        format!("{}-onlyoffice", cloud_id)
+        format!("{}-push", cloud_id)
     }
 
     fn apps(&self) -> &'static [&'static str] {
-        &["onlyoffice"]
+        &["notify_push"]
+    }
+
+    async fn is_healthy(&self, _docker: &Docker, _cloud_id: &str) -> Result<bool> {
+        Ok(true)
     }
 
     async fn post_setup(&self, docker: &Docker, cloud_id: &str) -> Result<Vec<String>> {
+        docker
+            .start_container::<String>(&self.container_name(cloud_id), None)
+            .await?;
+        self.wait_for_push(docker, cloud_id).await?;
+
+        sleep(Duration::from_millis(100)).await;
+
         let info = docker
             .inspect_container(&self.container_name(cloud_id), None)
             .await?;
@@ -88,11 +111,37 @@ impl ServiceTrait for OnlyOffice {
                 .clone()
                 .unwrap()
         } else {
-            return Err(Report::msg("onlyoffice not started"));
+            return Err(Report::msg("notify_push not started"));
         };
-        Ok(vec![format!(
-            "occ config:app:set onlyoffice DocumentServerUrl --value http://{}/",
-            ip
-        )])
+        Ok(vec![
+            format!("occ config:system:set trusted_proxies 1 --value {}", ip),
+            format!("occ notify_push:setup http://{}:7867", ip),
+        ])
+    }
+}
+
+impl NotifyPush {
+    async fn is_push_running(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
+        let info = docker
+            .inspect_container(&self.container_name(cloud_id), None)
+            .await?;
+        Ok(matches!(
+            info.state,
+            Some(ContainerState {
+                running: Some(true),
+                ..
+            })
+        ))
+    }
+
+    async fn wait_for_push(&self, docker: &Docker, cloud_id: &str) -> Result<()> {
+        timeout(Duration::from_secs(30), async {
+            while !self.is_push_running(docker, cloud_id).await? {
+                sleep(Duration::from_millis(100)).await
+            }
+            Ok(())
+        })
+        .await
+        .wrap_err("Timeout after 30 seconds")?
     }
 }

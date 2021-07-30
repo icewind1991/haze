@@ -79,15 +79,31 @@ async fn main() -> Result<()> {
                     )
                     .await?;
                 cloud
-                    .exec(
+                    .exec_with_output(
                         &mut docker,
                         vec![
-                            "sed",
-                            "-i",
-                            &format!("s/0 => 'localhost'/'{}'/", cloud.ip.unwrap()),
-                            "config/config.php",
+                            "occ",
+                            "config:system:set",
+                            "trusted_domains",
+                            "1",
+                            "--value",
+                            &format!("{}", cloud.ip.unwrap()),
                         ],
-                        false,
+                        Option::<&mut Vec<u8>>::None,
+                    )
+                    .await?;
+                cloud
+                    .exec_with_output(
+                        &mut docker,
+                        vec![
+                            "occ",
+                            "config:system:set",
+                            "trusted_domains",
+                            "2",
+                            "--value",
+                            "cloud",
+                        ],
+                        Option::<&mut Vec<u8>>::None,
                     )
                     .await?;
                 for service in &cloud.services {

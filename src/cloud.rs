@@ -259,7 +259,7 @@ impl Cloud {
             options
                 .services
                 .iter()
-                .map(|service| service.spawn(docker, &id, &network)),
+                .map(|service| service.spawn(docker, &id, &network, config)),
         )
         .await?;
         containers.extend_from_slice(&service_containers);

@@ -75,7 +75,6 @@ impl PhpVersion {
             env: Some(env),
             host_config: Some(HostConfig {
                 network_mode: Some(network.to_string()),
-                // links: Some(links),
                 binds: Some(volumes),
                 extra_hosts: Some(vec![format!("hazehost:{}", host)]),
                 ..Default::default()

@@ -61,5 +61,5 @@ then
 fi
 
 /usr/sbin/cron -f &
-/usr/bin/redis-server &
+/usr/bin/redis-server --protected-mode no &
 /usr/local/bin/bootstrap-nginx.sh

@@ -1,3 +1,4 @@
+use crate::config::HazeConfig;
 use crate::exec::exec;
 use crate::image::pull_image;
 use crate::service::ServiceTrait;
@@ -40,7 +41,13 @@ impl ServiceTrait for ObjectStore {
         }
     }
 
-    async fn spawn(&self, docker: &Docker, cloud_id: &str, network: &str) -> Result<String> {
+    async fn spawn(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        network: &str,
+        _config: &HazeConfig,
+    ) -> Result<String> {
         pull_image(docker, self.image()).await?;
         let options = Some(CreateContainerOptions {
             name: format!("{}-object", cloud_id),
@@ -90,15 +97,7 @@ impl ServiceTrait for ObjectStore {
         format!("{}-object", cloud_id)
     }
 
-    async fn start_message(&self, _docker: &Docker, _cloud_id: &str) -> Result<Option<String>> {
-        Ok(None)
-    }
-
     fn apps(&self) -> &'static [&'static str] {
         &["files_external"]
-    }
-
-    async fn post_setup(&self, _docker: &Docker, _cloud_id: &str) -> Result<Vec<String>> {
-        Ok(Vec::new())
     }
 }
