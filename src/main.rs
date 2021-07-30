@@ -3,6 +3,7 @@ use crate::cloud::{Cloud, CloudOptions};
 use crate::config::HazeConfig;
 use crate::exec::container_logs;
 use crate::service::Service;
+use crate::service::ServiceTrait;
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Result};
 

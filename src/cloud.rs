@@ -4,6 +4,7 @@ use crate::exec::{exec, exec_tty, ExitCode};
 use crate::mapping::{default_mappings, Mapping};
 use crate::php::PhpVersion;
 use crate::service::Service;
+use crate::service::ServiceTrait;
 use bollard::container::{ListContainersOptions, RemoveContainerOptions};
 use bollard::models::ContainerState;
 use bollard::network::CreateNetworkOptions;

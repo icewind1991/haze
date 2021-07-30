@@ -21,8 +21,7 @@ pub async fn pull_image(docker: &Docker, image: &str) -> Result<()> {
 
         let mut bars: HashMap<String, u16> = HashMap::new();
 
-        let stdout = stdout();
-        let mut stdout = stdout.lock();
+        let mut stdout = stdout();
         while let Some(info) = info_stream.next().await {
             let info: CreateImageInfo = info?;
             // dbg!(&info);
