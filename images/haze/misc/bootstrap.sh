@@ -60,6 +60,8 @@ then
     sed -i '/\/\/PLACEHOLDER/ r /root/azure.php' /var/www/html/config/config.php
 fi
 
+crontab /etc/oc-cron.conf
+
 /usr/sbin/cron -f &
 /usr/bin/redis-server --protected-mode no &
 /usr/local/bin/bootstrap-nginx.sh

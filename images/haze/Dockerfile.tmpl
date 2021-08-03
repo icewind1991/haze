@@ -31,7 +31,6 @@ ADD configs/nginx-app.conf /etc/nginx/
 
 RUN mkdir --parent /var/log/cron
 ADD configs/cron.conf /etc/oc-cron.conf
-RUN crontab /etc/oc-cron.conf
 
 ADD misc/bootstrap.sh misc/occ misc/tests misc/phpunit misc/install misc/occ misc/integration /usr/local/bin/
 ADD configs/sudoers /etc/sudoers.d/haze
