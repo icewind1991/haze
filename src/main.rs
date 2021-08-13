@@ -2,6 +2,7 @@ use crate::args::{ExecService, HazeArgs};
 use crate::cloud::{Cloud, CloudOptions};
 use crate::config::HazeConfig;
 use crate::exec::container_logs;
+use crate::network::clear_networks;
 use crate::service::Service;
 use crate::service::ServiceTrait;
 use bollard::Docker;
@@ -14,6 +15,7 @@ mod database;
 mod exec;
 mod image;
 mod mapping;
+mod network;
 mod php;
 mod service;
 
@@ -33,6 +35,7 @@ async fn main() -> Result<()> {
                     eprintln!("Error while removing cloud: {:#}", e);
                 }
             }
+            clear_networks(&docker).await?;
         }
         HazeArgs::List { filter } => {
             let list = Cloud::list(&mut docker, filter, &config).await?;
