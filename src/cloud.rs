@@ -121,7 +121,7 @@ fn test_option_parse() {
         CloudOptions {
             php: PhpVersion::Php74,
             db: Database::Postgres,
-            services: vec![Service::Ldap(LDAP), Service::LdapAdmin(LDAPAdmin)],
+            services: vec![Service::LDAP(LDAP), Service::LDAPAdmin(LDAPAdmin)],
             ..Default::default()
         }
     );
@@ -131,7 +131,7 @@ fn test_option_parse() {
         CloudOptions {
             php: PhpVersion::Php74,
             db: Database::Postgres,
-            services: vec![Service::Ldap(LDAP), Service::LdapAdmin(LDAPAdmin)],
+            services: vec![Service::LDAP(LDAP), Service::LDAPAdmin(LDAPAdmin)],
             ..Default::default()
         }
     );

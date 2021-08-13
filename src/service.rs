@@ -4,10 +4,10 @@ mod onlyoffice;
 mod push;
 
 use crate::config::HazeConfig;
-use crate::service::ldap::{LDAPAdmin, LDAP};
-use crate::service::objectstore::ObjectStore;
-use crate::service::onlyoffice::OnlyOffice;
-use crate::service::push::NotifyPush;
+pub use crate::service::ldap::{LDAPAdmin, LDAP};
+pub use crate::service::objectstore::ObjectStore;
+pub use crate::service::onlyoffice::OnlyOffice;
+pub use crate::service::push::NotifyPush;
 use bollard::models::ContainerState;
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Result};
