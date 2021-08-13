@@ -109,6 +109,20 @@ async fn main() -> Result<()> {
                         Option::<&mut Vec<u8>>::None,
                     )
                     .await?;
+                cloud
+                    .exec_with_output(
+                        &mut docker,
+                        vec![
+                            "occ",
+                            "config:system:set",
+                            "trusted_domains",
+                            "3",
+                            "--value",
+                            &cloud.id,
+                        ],
+                        Option::<&mut Vec<u8>>::None,
+                    )
+                    .await?;
                 for service in &cloud.services {
                     for app in service.apps() {
                         cloud

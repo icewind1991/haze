@@ -1,7 +1,9 @@
 use crate::database::Database;
 use crate::image::pull_image;
+use crate::network::ensure_network_exists;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
+use bollard::network::ConnectNetworkOptions;
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Report, Result};
 use maplit::hashmap;
@@ -66,6 +68,7 @@ impl PhpVersion {
         volumes: Vec<String>,
         host: &str,
     ) -> Result<String> {
+        ensure_network_exists(docker, "haze").await?;
         pull_image(docker, self.image()).await?;
         let options = Some(CreateContainerOptions {
             name: id.to_string(),
@@ -98,6 +101,20 @@ impl PhpVersion {
 
         let id = docker.create_container(options, config).await?.id;
         docker.start_container::<String>(&id, None).await?;
+
+        docker
+            .connect_network(
+                "haze",
+                ConnectNetworkOptions {
+                    container: id.as_str(),
+                    endpoint_config: EndpointSettings {
+                        aliases: Some(vec![id.to_string()]),
+                        ..Default::default()
+                    },
+                },
+            )
+            .await?;
+
         Ok(id)
     }
 

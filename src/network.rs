@@ -1,3 +1,4 @@
+use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Result};
 
@@ -18,4 +19,34 @@ pub async fn clear_networks(docker: &Docker) -> Result<()> {
         }
     }
     Ok(())
+}
+
+async fn get_network_id(docker: &Docker, name: &str) -> Result<Option<String>> {
+    let networks = docker
+        .list_networks::<&str>(None)
+        .await
+        .wrap_err("Failed to list docker networks")?;
+    Ok(networks.into_iter().find_map(|network| {
+        if network.name.as_deref() == Some(name) {
+            Some(network.id.unwrap())
+        } else {
+            None
+        }
+    }))
+}
+
+pub async fn ensure_network_exists(docker: &Docker, name: &str) -> Result<String> {
+    if let Some(id) = get_network_id(docker, name).await? {
+        Ok(id)
+    } else {
+        Ok(docker
+            .create_network(CreateNetworkOptions {
+                name,
+                check_duplicate: true,
+                ..Default::default()
+            })
+            .await?
+            .id
+            .unwrap())
+    }
 }
