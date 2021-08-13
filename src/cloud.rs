@@ -302,7 +302,8 @@ impl Cloud {
                     .unwrap()
                     .networks
                     .unwrap()
-                    .values()
+                    .iter()
+                    .filter_map(|(name, network)| name.eq("haze").then(|| network))
                     .next()
                     .unwrap()
                     .ip_address
@@ -401,9 +402,18 @@ impl Cloud {
         }
     }
 
+    pub async fn occ<S: Into<String>>(
+        &self,
+        docker: &Docker,
+        cmd: Vec<S>,
+        output: Option<&mut Vec<u8>>,
+    ) -> Result<ExitCode> {
+        self.exec_with_output(docker, cmd, output).await
+    }
+
     pub async fn exec_with_output<S: Into<String>>(
         &self,
-        docker: &mut Docker,
+        docker: &Docker,
         cmd: Vec<S>,
         output: Option<impl Write>,
     ) -> Result<ExitCode> {
@@ -445,7 +455,7 @@ impl Cloud {
                 let cloud = cloud?;
                 let network = id.clone();
                 let networks = cloud.network_settings?.networks?;
-                let network_info = networks.get(&network)?;
+                let network_info = networks.get("haze")?;
                 let workdir = config.work_dir.join(&id);
                 let labels = cloud.labels?;
                 let db = labels.get("haze-db")?.parse().ok()?;

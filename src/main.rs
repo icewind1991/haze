@@ -70,6 +70,7 @@ async fn main() -> Result<()> {
                     "Installing with username {} and password {}",
                     config.auto_setup.username, config.auto_setup.password
                 );
+                let ip_str = format!("{}", cloud.ip.unwrap());
                 cloud
                     .exec(
                         &mut docker,
@@ -82,47 +83,42 @@ async fn main() -> Result<()> {
                     )
                     .await?;
                 cloud
-                    .exec_with_output(
+                    .occ(
                         &mut docker,
                         vec![
-                            "occ",
                             "config:system:set",
-                            "trusted_domains",
-                            "1",
+                            "overwrite.cli.url",
                             "--value",
-                            &format!("{}", cloud.ip.unwrap()),
+                            &format!("http://{}", cloud.ip.unwrap()),
                         ],
-                        Option::<&mut Vec<u8>>::None,
+                        None,
                     )
                     .await?;
                 cloud
-                    .exec_with_output(
+                    .occ(
                         &mut docker,
-                        vec![
-                            "occ",
-                            "config:system:set",
-                            "trusted_domains",
-                            "2",
-                            "--value",
-                            "cloud",
-                        ],
-                        Option::<&mut Vec<u8>>::None,
+                        vec!["config:system:set", "overwritehost", "--value", &ip_str],
+                        None,
                     )
                     .await?;
-                cloud
-                    .exec_with_output(
-                        &mut docker,
-                        vec![
-                            "occ",
-                            "config:system:set",
-                            "trusted_domains",
-                            "3",
-                            "--value",
-                            &cloud.id,
-                        ],
-                        Option::<&mut Vec<u8>>::None,
-                    )
-                    .await?;
+
+                let domains = [ip_str.as_str(), "cloud", &cloud.id];
+                for (i, domain) in domains.iter().enumerate() {
+                    cloud
+                        .occ(
+                            &mut docker,
+                            vec![
+                                "config:system:set",
+                                "trusted_domains",
+                                &format!("{}", i),
+                                "--value",
+                                domain,
+                            ],
+                            None,
+                        )
+                        .await?;
+                }
+
                 for service in &cloud.services {
                     for app in service.apps() {
                         cloud
