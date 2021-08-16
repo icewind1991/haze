@@ -402,12 +402,13 @@ impl Cloud {
         }
     }
 
-    pub async fn occ<S: Into<String>>(
+    pub async fn occ<'a, S: Into<String> + From<&'a str>>(
         &self,
         docker: &Docker,
-        cmd: Vec<S>,
+        mut cmd: Vec<S>,
         output: Option<&mut Vec<u8>>,
     ) -> Result<ExitCode> {
+        cmd.insert(0, "occ".into());
         self.exec_with_output(docker, cmd, output).await
     }
 
