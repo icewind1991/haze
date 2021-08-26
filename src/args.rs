@@ -1,5 +1,5 @@
 use crate::cloud::CloudOptions;
-use crate::service::Service;
+use crate::service::{Service, ServiceTrait};
 use color_eyre::{Report, Result};
 use parse_display::Display;
 use std::fmt::Display;
@@ -36,7 +36,7 @@ pub enum HazeArgs {
     Clean,
     Logs {
         filter: Option<String>,
-        service: Option<Service>,
+        service: Option<LogService>,
         count: Option<usize>,
     },
     Open {
@@ -49,6 +49,32 @@ pub enum HazeArgs {
         options: CloudOptions,
         args: Vec<String>,
     },
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum LogService {
+    Service(Service),
+    Database,
+}
+
+impl LogService {
+    pub fn from_type(ty: &str) -> Option<Self> {
+        if ty == "db" {
+            return Some(LogService::Database);
+        }
+        Some(LogService::Service(
+            Service::from_type(ty)?.first()?.clone(),
+        ))
+    }
+
+    pub fn container_name(&self, cloud_id: &str) -> String {
+        match self {
+            LogService::Database => {
+                format!("{}-db", cloud_id)
+            }
+            LogService::Service(service) => service.container_name(cloud_id),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -145,8 +171,7 @@ impl HazeArgs {
                 let service = args
                     .peek()
                     .map(|s| s.as_ref())
-                    .and_then(Service::from_type)
-                    .and_then(|list| list.first().cloned());
+                    .and_then(LogService::from_type);
                 if service.is_some() {
                     let _ = args.next();
                 }
