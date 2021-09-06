@@ -2,6 +2,12 @@
 
 Hazy with a chance of clouds.
 
+Easy setup and management of Nextcloud test instances using docker
+
+## What
+
+`haze` provides an easy way to setup Nextcloud test instances with a choice of php version, database server, optional s3 or ldap setup and more.
+
 ## Setup
 
 ### Requirements
