@@ -10,9 +10,11 @@ use termion::cursor;
 
 pub async fn pull_image(docker: &Docker, image: &str) -> Result<()> {
     if let Err(_) = docker.inspect_image(image).await {
+        println!("Pulling image {}", image);
+
         let mut info_stream = docker.create_image(
             Some(CreateImageOptions {
-                from_image: image,
+                from_image: format!("{}:latest", image),
                 ..Default::default()
             }),
             None,
