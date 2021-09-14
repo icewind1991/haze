@@ -40,6 +40,7 @@ Additionally, you can use the following options when starting an instance:
  - `<path to app.tar.gz>`: by specifying the path to an app package this package will be extracted into the apps directory of the new instance (overwriting any existing app code). This can be used to quickly test a packaged app. 
  - `ldap`: setup an LDAP server
  - `onlyoffice` setup an onlyoffice document server
+ - `push` setup [client push](https://github.com/nextcloud/notify_push)
 
 #### Run tests in a new instance
 
