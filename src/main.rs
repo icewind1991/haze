@@ -3,6 +3,7 @@ use crate::cloud::{Cloud, CloudOptions};
 use crate::config::HazeConfig;
 use crate::exec::container_logs;
 use crate::network::clear_networks;
+use crate::php::PhpVersion;
 use crate::service::Service;
 use crate::service::ServiceTrait;
 use bollard::Docker;
@@ -276,7 +277,12 @@ async fn main() -> Result<()> {
             cloud.destroy(&mut docker).await?;
         }
         HazeArgs::Fmt { path } => {
-            let cloud = Cloud::create(&mut docker, CloudOptions::default(), &config).await?;
+            let cloud = Cloud::create(
+                &mut docker,
+                CloudOptions::default().with_php(PhpVersion::Php74),
+                &config,
+            )
+            .await?;
             let mut out_buffer = Vec::<u8>::with_capacity(1024);
             println!("Waiting for servers to start");
             cloud.wait_for_start(&mut docker).await?;

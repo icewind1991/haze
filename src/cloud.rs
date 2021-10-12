@@ -72,6 +72,10 @@ impl CloudOptions {
             app_packages: app_package,
         })
     }
+
+    pub fn with_php(self, php: PhpVersion) -> Self {
+        CloudOptions { php, ..self }
+    }
 }
 
 #[test]
