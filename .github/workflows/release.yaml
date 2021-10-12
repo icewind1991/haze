@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    name: Build Static Linux Binaries
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: musl-tools
+        run: |
+          sudo apt-get install musl-tools
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all --target x86_64-unknown-linux-musl
+      - name: Upload binary
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/x86_64-unknown-linux-musl/release/haze
+          asset_name: haze
+          tag: ${{ github.ref }}
+      - name: Create archive
+        run: tar -czvf haze.tgz -C target/x86_64-unknown-linux-musl/release haze
+      - name: Upload archive
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: haze.tgz
+          asset_name: haze.tgz
+          tag: ${{ github.ref }}
