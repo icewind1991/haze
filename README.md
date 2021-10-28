@@ -41,6 +41,7 @@ Additionally, you can use the following options when starting an instance:
  - `ldap`: setup an LDAP server
  - `onlyoffice` setup an onlyoffice document server
  - `push` setup [client push](https://github.com/nextcloud/notify_push)
+ - `smb`: setup a samba server for external storage use
 
 #### Run tests in a new instance
 
