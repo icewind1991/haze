@@ -2,12 +2,14 @@ mod ldap;
 mod objectstore;
 mod onlyoffice;
 mod push;
+mod smb;
 
 use crate::config::HazeConfig;
 pub use crate::service::ldap::{LDAPAdmin, LDAP};
 pub use crate::service::objectstore::ObjectStore;
 pub use crate::service::onlyoffice::OnlyOffice;
 pub use crate::service::push::NotifyPush;
+use crate::service::smb::Smb;
 use bollard::models::ContainerState;
 use bollard::Docker;
 use color_eyre::{eyre::WrapErr, Result};
@@ -66,6 +68,7 @@ pub enum Service {
     LDAPAdmin(LDAPAdmin),
     OnlyOffice(OnlyOffice),
     Push(NotifyPush),
+    Smb(Smb),
 }
 
 impl Service {
@@ -75,6 +78,7 @@ impl Service {
             "ldap" => Some(&[Service::LDAP(LDAP), Service::LDAPAdmin(LDAPAdmin)]),
             "onlyoffice" => Some(&[Service::OnlyOffice(OnlyOffice)]),
             "push" => Some(&[Service::Push(NotifyPush)]),
+            "smb" => Some(&[Service::Smb(Smb)]),
             _ => None,
         }
     }
