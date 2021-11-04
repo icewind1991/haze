@@ -11,18 +11,27 @@ use maplit::hashmap;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ObjectStore {
     S3,
+    S3mb,
 }
 
 impl ObjectStore {
     fn image(&self) -> &str {
         match self {
             ObjectStore::S3 => "localstack/localstack:0.12.7",
+            ObjectStore::S3mb => "localstack/localstack:0.12.7",
         }
     }
 
     fn self_env(&self) -> Vec<&str> {
         match self {
             ObjectStore::S3 => vec!["DEBUG=1", "SERVICES=s3"],
+            ObjectStore::S3mb => vec!["DEBUG=1", "SERVICES=s3"],
+        }
+    }
+    fn host_name(&self) -> &str {
+        match self {
+            ObjectStore::S3 => "s3",
+            ObjectStore::S3mb => "s3",
         }
     }
 }
@@ -32,12 +41,14 @@ impl ServiceTrait for ObjectStore {
     fn name(&self) -> &str {
         match self {
             ObjectStore::S3 => "s3",
+            ObjectStore::S3mb => "s3mb",
         }
     }
 
     fn env(&self) -> &[&str] {
         match self {
             ObjectStore::S3 => &["S3=1"],
+            ObjectStore::S3mb => &["S3MB=1"],
         }
     }
 
@@ -66,7 +77,7 @@ impl ServiceTrait for ObjectStore {
             networking_config: Some(NetworkingConfig {
                 endpoints_config: hashmap! {
                     network => EndpointSettings {
-                        aliases: Some(vec![self.name().to_string()]),
+                        aliases: Some(vec![self.host_name().to_string()]),
                         ..Default::default()
                     }
                 },

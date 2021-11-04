@@ -1,7 +1,8 @@
-	'objectstore' => [
+	'objectstore_multibucket' => [
 		'class' => 'OC\Files\ObjectStore\S3',
 		'arguments' => [
-			'bucket' => 'nextcloud',
+		    'num_buckets' => 64,
+			'bucket' => 'nextcloud-',
 			'autocreate' => true,
 			'key'    => 'dummy',
 			'secret' => 'dummyj',
