@@ -8,6 +8,10 @@ use std::io::stdout;
 use std::io::Write;
 use termion::cursor;
 
+pub async fn image_exists(docker: &Docker, image: &str) -> bool {
+    docker.inspect_image(image).await.is_ok()
+}
+
 pub async fn pull_image(docker: &Docker, image: &str) -> Result<()> {
     if let Err(_) = docker.inspect_image(image).await {
         println!("Pulling image {}", image);

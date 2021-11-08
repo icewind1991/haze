@@ -1,3 +1,4 @@
+mod kaspersky;
 mod ldap;
 mod objectstore;
 mod onlyoffice;
@@ -5,6 +6,7 @@ mod push;
 mod smb;
 
 use crate::config::HazeConfig;
+use crate::service::kaspersky::Kaspersky;
 pub use crate::service::ldap::{LDAPAdmin, LDAP};
 pub use crate::service::objectstore::ObjectStore;
 pub use crate::service::onlyoffice::OnlyOffice;
@@ -69,6 +71,7 @@ pub enum Service {
     OnlyOffice(OnlyOffice),
     Push(NotifyPush),
     Smb(Smb),
+    Kaspersky(Kaspersky),
 }
 
 impl Service {
@@ -80,6 +83,7 @@ impl Service {
             "onlyoffice" => Some(&[Service::OnlyOffice(OnlyOffice)]),
             "push" => Some(&[Service::Push(NotifyPush)]),
             "smb" => Some(&[Service::Smb(Smb)]),
+            "kaspersky" => Some(&[Service::Kaspersky(Kaspersky)]),
             _ => None,
         }
     }
