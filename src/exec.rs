@@ -157,7 +157,7 @@ pub async fn container_logs(docker: &Docker, container: &str, count: usize) -> R
 pub struct ExitCode(i64);
 
 impl ExitCode {
-    pub fn is_ok(&self) -> Result<()> {
+    pub fn to_result(&self) -> Result<()> {
         match self.0 {
             0 => Ok(()),
             code => Err(Report::msg(format!(

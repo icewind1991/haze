@@ -1,4 +1,5 @@
 use crate::config::HazeConfig;
+use crate::exec::exec;
 use crate::image::{image_exists, pull_image};
 use crate::service::ServiceTrait;
 use crate::Result;
@@ -7,6 +8,7 @@ use bollard::models::{EndpointSettings, HostConfig};
 use bollard::Docker;
 use color_eyre::eyre::eyre;
 use maplit::hashmap;
+use std::io::Stdout;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Kaspersky;
@@ -18,7 +20,7 @@ impl ServiceTrait for Kaspersky {
     }
 
     fn env(&self) -> &[&str] {
-        &[]
+        &["KASPERSKY_HOST=kaspersky", "KASPERSKY_PORT=80"]
     }
 
     async fn spawn(
@@ -61,8 +63,17 @@ impl ServiceTrait for Kaspersky {
         Ok(id)
     }
 
-    async fn is_healthy(&self, _docker: &Docker, _cloud_id: &str) -> Result<bool> {
-        Ok(true)
+    async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
+        let exit = exec(
+            docker,
+            self.container_name(cloud_id),
+            "root",
+            vec!["curl", "localhost/licenseinfo"],
+            vec![],
+            Option::<Stdout>::None,
+        )
+        .await?;
+        Ok(exit.to_result().is_ok())
     }
 
     fn container_name(&self, cloud_id: &str) -> String {

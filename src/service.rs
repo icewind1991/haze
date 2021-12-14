@@ -24,7 +24,9 @@ use tokio::time::{sleep, timeout};
 pub trait ServiceTrait {
     fn name(&self) -> &str;
 
-    fn env(&self) -> &[&str];
+    fn env(&self) -> &[&str] {
+        &[]
+    }
 
     async fn spawn(
         &self,

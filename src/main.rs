@@ -294,7 +294,7 @@ async fn main() -> Result<()> {
                     Some(&mut out_buffer),
                 )
                 .await
-                .and_then(|c| c.is_ok())
+                .and_then(|c| c.to_result())
             {
                 eprintln!("{}", String::from_utf8_lossy(&out_buffer));
                 cloud.destroy(&mut docker).await?;
@@ -321,7 +321,7 @@ async fn main() -> Result<()> {
                     Some(&mut out_buffer),
                 )
                 .await
-                .and_then(|c| c.is_ok())
+                .and_then(|c| c.to_result())
             {
                 eprintln!("{}", String::from_utf8_lossy(&out_buffer));
                 cloud.destroy(&mut docker).await?;
@@ -334,7 +334,7 @@ async fn main() -> Result<()> {
                     Some(&mut out_buffer),
                 )
                 .await
-                .and_then(|c| c.is_ok())
+                .and_then(|c| c.to_result())
             {
                 eprintln!("{}", String::from_utf8_lossy(&out_buffer));
                 cloud.destroy(&mut docker).await?;
