@@ -16,6 +16,7 @@ use tokio::time::{sleep, timeout};
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum PhpVersion {
+    Php81,
     Php80,
     Php74,
     Php73,
@@ -33,6 +34,7 @@ impl FromStr for PhpVersion {
             "7.4" => Ok(PhpVersion::Php74),
             "8" => Ok(PhpVersion::Php80),
             "8.0" => Ok(PhpVersion::Php80),
+            "8.1" => Ok(PhpVersion::Php81),
             _ => Err(()),
         }
     }
@@ -46,6 +48,7 @@ impl PhpVersion {
             PhpVersion::Php73 => "icewind1991/haze:7.3",
             PhpVersion::Php74 => "icewind1991/haze:7.4",
             PhpVersion::Php80 => "icewind1991/haze:8.0",
+            PhpVersion::Php81 => "icewind1991/haze:8.1",
         }
     }
 
@@ -55,6 +58,7 @@ impl PhpVersion {
             PhpVersion::Php73 => "7.3",
             PhpVersion::Php74 => "7.4",
             PhpVersion::Php80 => "8.0",
+            PhpVersion::Php81 => "8.1",
         }
     }
 
@@ -136,6 +140,6 @@ impl PhpVersion {
 
 impl Default for PhpVersion {
     fn default() -> Self {
-        PhpVersion::Php80
+        PhpVersion::Php74
     }
 }
