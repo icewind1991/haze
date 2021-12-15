@@ -1,8 +1,5 @@
-FROM icewind1991/haze-php:<version>
-MAINTAINER  Robin Appelman <robin@icewind.nl>
-# MAINTAINER Robin Schneider <ypid@riseup.net>
-# MAINTAINER silvio <silvio@port1024.net>
-# MAINTAINER Josh Chaney <josh@chaney.io>
+ARG PHP_VERSION
+FROM icewind1991/haze-php:$PHP_VERSION
 
 RUN DEBIAN_FRONTEND=noninteractive ;\
     echo 'deb http://http.debian.net/debian buster-backports main' >> /etc/apt/sources.list && \

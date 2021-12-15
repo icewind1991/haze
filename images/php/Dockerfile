@@ -12,6 +12,8 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
         unzip \
     && rm -rf /var/lib/apt/lists/*
 
+ADD configure_gd.sh /
+
 # php exceptions
 RUN apt-get update \
     && apt-get install -y \
@@ -30,12 +32,7 @@ RUN apt-get update \
         libonig-dev \
         libldap2-dev \
         libsmbclient-dev \
-    && docker-php-ext-configure gd \
-        --with-gd \
-        --with-jpeg-dir \
-        --with-png-dir \
-        --with-zlib-dir \
-        --with-freetype-dir \
+    && /configure_gd.sh \
     && docker-php-ext-install gd \
     && docker-php-ext-install iconv zip pdo pdo_pgsql pdo_sqlite pgsql pdo_mysql intl curl mbstring pcntl ldap \
     && pecl install inotify \
@@ -73,7 +70,6 @@ RUN pecl install apcu \
     && echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.mode=debug,trace,profile" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.start_with_request=trigger" >> $PHP_INI_DIR/conf.d/xdebug.ini \
-    && echo "xdebug.remote_port=9000" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.discover_client_host=true" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.client_host=hazehost" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.log_level=0" >> $PHP_INI_DIR/conf.d/xdebug.ini \
