@@ -48,6 +48,7 @@ pub enum Database {
     Postgres11,
     Postgres12,
     Postgres13,
+    Postgres14,
 }
 
 impl Default for Database {
@@ -92,6 +93,7 @@ impl FromStr for Database {
             "postgresql:11" => Ok(Database::Postgres11),
             "postgresql:12" => Ok(Database::Postgres12),
             "postgresql:13" => Ok(Database::Postgres13),
+            "postgresql:14" => Ok(Database::Postgres14),
             _ => Err(Report::msg("Unknown db type")),
         }
     }
@@ -111,12 +113,13 @@ impl Database {
             Database::MariaDB103 => "mariadb:10.3",
             Database::MariaDB104 => "mariadb:10.4",
             Database::MariaDB105 => "mariadb:10.5",
-            Database::Postgres => "postgres:9",
+            Database::Postgres => "postgres:14",
             Database::Postgres9 => "postgres:9",
             Database::Postgres10 => "postgres:10",
             Database::Postgres11 => "postgres:11",
             Database::Postgres12 => "postgres:12",
             Database::Postgres13 => "postgres:13",
+            Database::Postgres14 => "postgres:14",
         }
     }
 
@@ -141,7 +144,8 @@ impl Database {
             | Database::Postgres10
             | Database::Postgres11
             | Database::Postgres12
-            | Database::Postgres13 => DatabaseFamily::Postgres,
+            | Database::Postgres13
+            | Database::Postgres14 => DatabaseFamily::Postgres,
         }
     }
 
