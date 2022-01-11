@@ -12,5 +12,8 @@ groupadd -g $GID haze
 useradd -m -u $UID -g $GID haze
 chown -R haze:haze /home/haze
 
+groupadd docker -g $(stat --format "%g" /var/run/docker.sock)
+usermod -a -G docker haze
+
 /usr/local/sbin/php-fpm &
 /etc/init.d/nginx start

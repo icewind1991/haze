@@ -151,7 +151,9 @@ pub fn default_mappings<'a>() -> impl IntoIterator<Item = Mapping<'a>> {
         Mapping::new(Sources, ".htaccess", "/var/www/html/.htaccess")
             .file()
             .read_only(),
-        Mapping::new(Absolute, "/var/run/docker.sock", "/var/run/docker.sock"),
+        Mapping::new(Absolute, "/var/run/docker.sock", "/var/run/docker.sock")
+            .file()
+            .dont_create(),
     ];
     IntoIterator::into_iter(mappings)
 }
