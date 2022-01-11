@@ -1,6 +1,6 @@
 use crate::config::{HazeConfig, HazeVolumeConfig};
 use camino::Utf8Path;
-use color_eyre::Result;
+use miette::{IntoDiagnostic, Result};
 use tokio::fs::{create_dir_all, write};
 
 #[derive(Debug)]
@@ -71,8 +71,8 @@ impl<'a> Mapping<'a> {
             MappingSourceType::Absolute => self.source.into(),
         };
         match self.mapping_type {
-            MappingType::Folder => create_dir_all(source).await?,
-            MappingType::File => write(source, "").await?,
+            MappingType::Folder => create_dir_all(source).await.into_diagnostic()?,
+            MappingType::File => write(source, "").await.into_diagnostic()?,
         }
 
         Ok(())
@@ -151,6 +151,7 @@ pub fn default_mappings<'a>() -> impl IntoIterator<Item = Mapping<'a>> {
         Mapping::new(Sources, ".htaccess", "/var/www/html/.htaccess")
             .file()
             .read_only(),
+        Mapping::new(Absolute, "/var/run/docker.sock", "/var/run/docker.sock"),
     ];
     IntoIterator::into_iter(mappings)
 }

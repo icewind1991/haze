@@ -7,6 +7,7 @@ use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
 use bollard::Docker;
 use maplit::hashmap;
+use miette::IntoDiagnostic;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ObjectStore {
@@ -84,8 +85,15 @@ impl ServiceTrait for ObjectStore {
             }),
             ..Default::default()
         };
-        let id = docker.create_container(options, config).await?.id;
-        docker.start_container::<String>(&id, None).await?;
+        let id = docker
+            .create_container(options, config)
+            .await
+            .into_diagnostic()?
+            .id;
+        docker
+            .start_container::<String>(&id, None)
+            .await
+            .into_diagnostic()?;
         Ok(id)
     }
 
@@ -100,7 +108,7 @@ impl ServiceTrait for ObjectStore {
             Some(&mut output),
         )
         .await?;
-        let output = String::from_utf8(output)?;
+        let output = String::from_utf8(output).into_diagnostic()?;
         Ok(output.contains(r#""s3": "running""#))
     }
 

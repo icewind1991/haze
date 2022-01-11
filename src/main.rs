@@ -7,7 +7,7 @@ use crate::php::PhpVersion;
 use crate::service::Service;
 use crate::service::ServiceTrait;
 use bollard::Docker;
-use color_eyre::{eyre::WrapErr, Result};
+use miette::{IntoDiagnostic, Result, WrapErr};
 
 mod args;
 mod cloud;
@@ -22,8 +22,11 @@ mod service;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut docker =
-        Docker::connect_with_local_defaults().wrap_err("Failed to connect to docker")?;
+    miette::set_panic_hook();
+
+    let mut docker = Docker::connect_with_local_defaults()
+        .into_diagnostic()
+        .wrap_err("Failed to connect to docker")?;
     let config = HazeConfig::load().wrap_err("Failed to load config")?;
 
     let args = HazeArgs::parse(std::env::args())?;
@@ -212,7 +215,7 @@ async fn main() -> Result<()> {
         HazeArgs::Open { filter } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             match cloud.ip {
-                Some(ip) => opener::open(format!("http://{}", ip))?,
+                Some(ip) => opener::open(format!("http://{}", ip)).into_diagnostic()?,
                 None => eprintln!("{} is not running", cloud.id),
             }
         }

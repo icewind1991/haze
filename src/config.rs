@@ -1,6 +1,6 @@
 use camino::Utf8PathBuf;
-use color_eyre::{eyre::WrapErr, Report, Result};
 use directories_next::ProjectDirs;
+use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use serde::Deserialize;
 use std::fs::read;
 
@@ -66,7 +66,11 @@ impl HazeConfig {
                 file.to_string_lossy()
             )));
         }
-        let content = read(&file).wrap_err("Failed to read config file")?;
-        toml::from_slice(&content).wrap_err("Failed to parse config file")
+        let content = read(&file)
+            .into_diagnostic()
+            .wrap_err("Failed to read config file")?;
+        toml::from_slice(&content)
+            .into_diagnostic()
+            .wrap_err("Failed to parse config file")
     }
 }

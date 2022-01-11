@@ -3,8 +3,8 @@ use crate::image::pull_image;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
 use bollard::Docker;
-use color_eyre::{eyre::WrapErr, Report, Result};
 use maplit::hashmap;
+use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use std::io::{stdout, Stdout};
 use std::str::FromStr;
 use std::time::Duration;
@@ -208,8 +208,15 @@ impl Database {
             },
             ..Default::default()
         };
-        let id = docker.create_container(options, config).await?.id;
-        docker.start_container::<String>(&id, None).await?;
+        let id = docker
+            .create_container(options, config)
+            .await
+            .into_diagnostic()?
+            .id;
+        docker
+            .start_container::<String>(&id, None)
+            .await
+            .into_diagnostic()?;
         Ok(Some(id))
     }
 
@@ -280,6 +287,7 @@ impl Database {
             Ok(())
         })
         .await
+        .into_diagnostic()
         .wrap_err("Timeout after 15 seconds")?
     }
 
@@ -297,7 +305,7 @@ impl Database {
                     Some(&mut output),
                 )
                 .await?;
-                let output = String::from_utf8(output)?;
+                let output = String::from_utf8(output).into_diagnostic()?;
                 Ok(!output.contains("ERROR"))
             }
             DatabaseFamily::Postgres => {

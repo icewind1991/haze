@@ -14,8 +14,8 @@ pub use crate::service::push::NotifyPush;
 use crate::service::smb::Smb;
 use bollard::models::ContainerState;
 use bollard::Docker;
-use color_eyre::{eyre::WrapErr, Result};
 use enum_dispatch::enum_dispatch;
+use miette::{IntoDiagnostic, Result, WrapErr};
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
 
@@ -39,7 +39,8 @@ pub trait ServiceTrait {
     async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
         let info = docker
             .inspect_container(&self.container_name(cloud_id), None)
-            .await?;
+            .await
+            .into_diagnostic()?;
         Ok(matches!(
             info.state,
             Some(ContainerState {
@@ -98,6 +99,7 @@ impl Service {
             Ok(())
         })
         .await
+        .into_diagnostic()
         .wrap_err("Timeout after 30 seconds")?
     }
 }

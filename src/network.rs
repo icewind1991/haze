@@ -1,11 +1,12 @@
 use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
-use color_eyre::{eyre::WrapErr, Result};
+use miette::{IntoDiagnostic, Result, WrapErr};
 
 pub async fn clear_networks(docker: &Docker) -> Result<()> {
     let networks = docker
         .list_networks::<&str>(None)
         .await
+        .into_diagnostic()
         .wrap_err("Failed to list docker networks")?;
     for network in networks {
         match network.name.as_deref() {
@@ -13,6 +14,7 @@ pub async fn clear_networks(docker: &Docker) -> Result<()> {
                 docker
                     .remove_network(name)
                     .await
+                    .into_diagnostic()
                     .wrap_err("Failed to remove docker network")?;
             }
             _ => {}
@@ -25,6 +27,7 @@ async fn get_network_id(docker: &Docker, name: &str) -> Result<Option<String>> {
     let networks = docker
         .list_networks::<&str>(None)
         .await
+        .into_diagnostic()
         .wrap_err("Failed to list docker networks")?;
     Ok(networks.into_iter().find_map(|network| {
         if network.name.as_deref() == Some(name) {
@@ -45,7 +48,8 @@ pub async fn ensure_network_exists(docker: &Docker, name: &str) -> Result<String
                 check_duplicate: true,
                 ..Default::default()
             })
-            .await?
+            .await
+            .into_diagnostic()?
             .id
             .unwrap())
     }

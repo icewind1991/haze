@@ -1,6 +1,6 @@
 use crate::cloud::CloudOptions;
 use crate::service::{Service, ServiceTrait};
-use color_eyre::{Report, Result};
+use miette::{IntoDiagnostic, Report, Result};
 use parse_display::Display;
 use std::fmt::Display;
 use std::str::FromStr;
@@ -178,7 +178,11 @@ impl HazeArgs {
                 Ok(HazeArgs::Logs {
                     filter,
                     service,
-                    count: args.next().map(|arg| arg.as_ref().parse()).transpose()?,
+                    count: args
+                        .next()
+                        .map(|arg| arg.as_ref().parse())
+                        .transpose()
+                        .into_diagnostic()?,
                 })
             }
             HazeCommand::Open => Ok(HazeArgs::Open { filter }),

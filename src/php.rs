@@ -5,8 +5,8 @@ use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
 use bollard::network::ConnectNetworkOptions;
 use bollard::Docker;
-use color_eyre::{eyre::WrapErr, Report, Result};
 use maplit::hashmap;
+use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use reqwest::{Client, Url};
 use std::net::IpAddr;
 use std::str::FromStr;
@@ -103,8 +103,15 @@ impl PhpVersion {
             ..Default::default()
         };
 
-        let id = docker.create_container(options, config).await?.id;
-        docker.start_container::<String>(&id, None).await?;
+        let id = docker
+            .create_container(options, config)
+            .await
+            .into_diagnostic()?
+            .id;
+        docker
+            .start_container::<String>(&id, None)
+            .await
+            .into_diagnostic()?;
 
         docker
             .connect_network(
@@ -117,7 +124,8 @@ impl PhpVersion {
                     },
                 },
             )
-            .await?;
+            .await
+            .into_diagnostic()?;
 
         Ok(id)
     }
@@ -127,13 +135,15 @@ impl PhpVersion {
         let url = Url::parse(&format!(
             "http://{}/status.php",
             ip.ok_or(Report::msg("Container not running"))?
-        ))?;
+        ))
+        .into_diagnostic()?;
         timeout(Duration::from_secs(5), async {
             while !client.get(url.clone()).send().await.is_ok() {
                 sleep(Duration::from_millis(100)).await
             }
         })
         .await
+        .into_diagnostic()
         .wrap_err("Timeout after 5 seconds")
     }
 }

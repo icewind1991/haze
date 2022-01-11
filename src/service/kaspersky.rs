@@ -6,8 +6,8 @@ use crate::Result;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
 use bollard::Docker;
-use color_eyre::eyre::eyre;
 use maplit::hashmap;
+use miette::{bail, IntoDiagnostic};
 use std::io::Stdout;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -32,7 +32,7 @@ impl ServiceTrait for Kaspersky {
     ) -> Result<String> {
         let image = "kaspersky";
         if !image_exists(docker, image).await {
-            eyre!("You need to manually create the 'kaspersky' image");
+            bail!("You need to manually create the 'kaspersky' image");
         }
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
@@ -58,8 +58,15 @@ impl ServiceTrait for Kaspersky {
             }),
             ..Default::default()
         };
-        let id = docker.create_container(options, config).await?.id;
-        docker.start_container::<String>(&id, None).await?;
+        let id = docker
+            .create_container(options, config)
+            .await
+            .into_diagnostic()?
+            .id;
+        docker
+            .start_container::<String>(&id, None)
+            .await
+            .into_diagnostic()?;
         Ok(id)
     }
 

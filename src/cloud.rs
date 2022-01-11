@@ -10,9 +10,9 @@ use bollard::models::ContainerState;
 use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
 use camino::Utf8PathBuf;
-use color_eyre::{eyre::WrapErr, Report, Result};
 use flate2::read::GzDecoder;
 use futures_util::future::try_join_all;
+use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use petname::petname;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -167,6 +167,7 @@ impl Cloud {
         if !options.app_packages.is_empty() {
             create_dir_all(&app_package_dir)
                 .await
+                .into_diagnostic()
                 .wrap_err("Failed to create directory for app packages")?;
         }
 
@@ -178,13 +179,15 @@ impl Cloud {
                 let app_dir = app_package_dir.join(app_name);
 
                 let app_package_file = fs::File::open(&app_package)
+                    .into_diagnostic()
                     .wrap_err_with(|| format!("Failed to open app bundle {}", app_package))?;
-                if app_package.metadata()?.len() > 1024 * 1024 {
+                if app_package.metadata().into_diagnostic()?.len() > 1024 * 1024 {
                     println!("Extracting app archive for {}...", app_name);
                 }
                 let gz = GzDecoder::new(app_package_file);
                 tar::Archive::new(gz)
                     .unpack(&app_package_dir)
+                    .into_diagnostic()
                     .wrap_err_with(|| format!("Failed to extract app bundle {}", app_package))?;
 
                 Ok(HazeVolumeConfig {
@@ -214,12 +217,16 @@ impl Cloud {
                 name: id.as_str(),
                 ..Default::default()
             })
-            .await?
+            .await
+            .into_diagnostic()?
             .id
             .ok_or(Report::msg("No network id in response"))
             .wrap_err("Failed to create network")?;
 
-        let network_info = docker.inspect_network::<String>(&network, None).await?;
+        let network_info = docker
+            .inspect_network::<String>(&network, None)
+            .await
+            .into_diagnostic()?;
         let gateway = network_info
             .ipam
             .as_ref()
@@ -234,7 +241,7 @@ impl Cloud {
 
         let mut containers = Vec::new();
 
-        let sources_meta = fs::metadata(&config.sources_root)?;
+        let sources_meta = fs::metadata(&config.sources_root).into_diagnostic()?;
         let uid = sources_meta.uid();
         let gid = sources_meta.gid();
 
@@ -293,7 +300,10 @@ impl Cloud {
 
         let mut tries = 0;
         let ip = loop {
-            let info = docker.inspect_container(&container, None).await?;
+            let info = docker
+                .inspect_container(&container, None)
+                .await
+                .into_diagnostic()?;
             if matches!(
                 info.state,
                 Some(ContainerState {
@@ -375,15 +385,18 @@ impl Cloud {
                     }),
                 )
                 .await
+                .into_diagnostic()
                 .wrap_err("Failed to remove container")?;
         }
         docker
             .remove_network(&self.network)
             .await
+            .into_diagnostic()
             .wrap_err("Failed to remove network")?;
         if self.workdir.exists() {
             if let Err(e) = remove_dir_all(self.workdir)
                 .await
+                .into_diagnostic()
                 .wrap_err("Failed to remove work directory")
             {
                 eprintln!("{}", e);
@@ -435,7 +448,8 @@ impl Cloud {
                 all: true,
                 ..Default::default()
             }))
-            .await?;
+            .await
+            .into_diagnostic()?;
         let mut containers_by_id: HashMap<String, (Option<_>, Vec<_>)> = HashMap::new();
         for container in containers {
             let labels = container.labels.clone().unwrap_or_default();

@@ -1,8 +1,8 @@
 use bollard::image::CreateImageOptions;
 use bollard::models::CreateImageInfo;
 use bollard::Docker;
-use color_eyre::Result;
 use futures_util::StreamExt;
+use miette::{IntoDiagnostic, Result};
 use std::collections::HashMap;
 use std::io::stdout;
 use std::io::Write;
@@ -29,7 +29,7 @@ pub async fn pull_image(docker: &Docker, image: &str) -> Result<()> {
 
         let mut stdout = stdout();
         while let Some(info) = info_stream.next().await {
-            let info: CreateImageInfo = info?;
+            let info: CreateImageInfo = info.into_diagnostic()?;
             // dbg!(&info);
             if let (Some(id), Some(status), Some(progress)) = (info.id, info.status, info.progress)
             {
@@ -45,14 +45,16 @@ pub async fn pull_image(docker: &Docker, image: &str) -> Result<()> {
                             status,
                             progress,
                             cursor::Restore
-                        )?;
+                        )
+                        .into_diagnostic()?;
                     }
                     None => {
-                        writeln!(stdout, "{} - {:12} {}", id, status, progress)?;
+                        writeln!(stdout, "{} - {:12} {}", id, status, progress)
+                            .into_diagnostic()?;
                         bars.insert(id, bars.len() as u16);
                     }
                 }
-                stdout.flush()?;
+                stdout.flush().into_diagnostic()?;
             }
         }
     }

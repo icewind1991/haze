@@ -5,8 +5,8 @@ use crate::Result;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{ContainerState, EndpointSettings, HostConfig};
 use bollard::Docker;
-use color_eyre::Report;
 use maplit::hashmap;
+use miette::{IntoDiagnostic, Report};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LDAP;
@@ -55,8 +55,15 @@ impl ServiceTrait for LDAP {
             cmd: Some(vec!["--copy-service"]),
             ..Default::default()
         };
-        let id = docker.create_container(options, config).await?.id;
-        docker.start_container::<String>(&id, None).await?;
+        let id = docker
+            .create_container(options, config)
+            .await
+            .into_diagnostic()?
+            .id;
+        docker
+            .start_container::<String>(&id, None)
+            .await
+            .into_diagnostic()?;
         Ok(id)
     }
 
@@ -116,8 +123,15 @@ impl ServiceTrait for LDAPAdmin {
             cmd: Some(vec!["--copy-service"]),
             ..Default::default()
         };
-        let id = docker.create_container(options, config).await?.id;
-        docker.start_container::<String>(&id, None).await?;
+        let id = docker
+            .create_container(options, config)
+            .await
+            .into_diagnostic()?
+            .id;
+        docker
+            .start_container::<String>(&id, None)
+            .await
+            .into_diagnostic()?;
         Ok(id)
     }
 
@@ -128,7 +142,8 @@ impl ServiceTrait for LDAPAdmin {
     async fn start_message(&self, docker: &Docker, cloud_id: &str) -> Result<Option<String>> {
         let info = docker
             .inspect_container(&self.container_name(cloud_id), None)
-            .await?;
+            .await
+            .into_diagnostic()?;
         let ip = if matches!(
             info.state,
             Some(ContainerState {

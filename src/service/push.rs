@@ -1,13 +1,11 @@
 use crate::config::HazeConfig;
 use crate::image::pull_image;
 use crate::service::ServiceTrait;
-use crate::Result;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{ContainerState, EndpointSettings, HostConfig};
 use bollard::Docker;
-use color_eyre::eyre::WrapErr;
-use color_eyre::Report;
 use maplit::hashmap;
+use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
 
@@ -66,7 +64,11 @@ impl ServiceTrait for NotifyPush {
             cmd: Some(vec!["/notify_push", "/config/config.php"]),
             ..Default::default()
         };
-        let id = docker.create_container(options, config).await?.id;
+        let id = docker
+            .create_container(options, config)
+            .await
+            .into_diagnostic()?
+            .id;
         Ok(id)
     }
 
@@ -85,14 +87,16 @@ impl ServiceTrait for NotifyPush {
     async fn post_setup(&self, docker: &Docker, cloud_id: &str) -> Result<Vec<String>> {
         docker
             .start_container::<String>(&self.container_name(cloud_id), None)
-            .await?;
+            .await
+            .into_diagnostic()?;
         self.wait_for_push(docker, cloud_id).await?;
 
         sleep(Duration::from_millis(100)).await;
 
         let info = docker
             .inspect_container(&self.container_name(cloud_id), None)
-            .await?;
+            .await
+            .into_diagnostic()?;
         let ip = if matches!(
             info.state,
             Some(ContainerState {
@@ -124,7 +128,8 @@ impl NotifyPush {
     async fn is_push_running(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
         let info = docker
             .inspect_container(&self.container_name(cloud_id), None)
-            .await?;
+            .await
+            .into_diagnostic()?;
         Ok(matches!(
             info.state,
             Some(ContainerState {
@@ -142,6 +147,7 @@ impl NotifyPush {
             Ok(())
         })
         .await
+        .into_diagnostic()
         .wrap_err("Timeout after 30 seconds")?
     }
 }

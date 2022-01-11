@@ -9,7 +9,6 @@ description = "Easy setup and management of Nextcloud test instances using docke
 
 [dependencies]
 bollard = { version = "0.11" }
-color-eyre = "0.5"
 maplit = "1"
 camino = { version = "1", features = ["serde1"] }
 tokio = { version = "1" , features = ["fs", "macros"] }
@@ -26,6 +25,7 @@ tar = "0.4"
 flate2 = "1"
 async-trait = "0.1"
 enum_dispatch = "0.3"
+miette = { version = "3", features = ["fancy"] }
 
 [profile.release]
 lto = true

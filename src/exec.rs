@@ -1,8 +1,8 @@
 use bollard::container::LogsOptions;
 use bollard::exec::{CreateExecOptions, ResizeExecOptions, StartExecResults};
 use bollard::Docker;
-use color_eyre::{eyre::WrapErr, Report, Result};
 use futures_util::StreamExt;
+use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use std::io::{stdout, Read, Write};
 use std::time::Duration;
 use termion::raw::IntoRawMode;
@@ -24,7 +24,7 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
         return exec(docker, container, user, cmd, env, Some(stdout)).await;
     }
 
-    let tty_size = terminal_size()?;
+    let tty_size = terminal_size().into_diagnostic()?;
     let cmd = cmd.into_iter().map(S2::into).collect();
     let env = env.into_iter().map(String::from).collect();
     let config = CreateExecOptions {
@@ -40,6 +40,7 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
     let message = docker
         .create_exec(container.as_ref(), config)
         .await
+        .into_diagnostic()
         .wrap_err("Failed to setup exec")?;
     if let StartExecResults::Attached {
         mut output,
@@ -47,6 +48,7 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
     } = docker
         .start_exec(&message.id, None)
         .await
+        .into_diagnostic()
         .wrap_err("Failed to start exec")?
     {
         docker
@@ -73,12 +75,14 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
         });
 
         // set stdout in raw mode so we can do tty stuff
-        let mut stdout = stdout.lock().into_raw_mode()?;
+        let mut stdout = stdout.lock().into_raw_mode().into_diagnostic()?;
 
         // pipe docker exec output into stdout
         while let Some(Ok(output)) = output.next().await {
-            stdout.write(output.into_bytes().as_ref())?;
-            stdout.flush()?;
+            stdout
+                .write(output.into_bytes().as_ref())
+                .into_diagnostic()?;
+            stdout.flush().into_diagnostic()?;
         }
     } else {
         unreachable!();
@@ -86,7 +90,8 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
 
     Ok(docker
         .inspect_exec(&message.id)
-        .await?
+        .await
+        .into_diagnostic()?
         .exit_code
         .unwrap_or_default()
         .into())
@@ -114,15 +119,17 @@ pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
     let message = docker
         .create_exec(container.as_ref(), config)
         .await
+        .into_diagnostic()
         .wrap_err("Failed to setup exec")?;
     if let StartExecResults::Attached { mut output, .. } = docker
         .start_exec(&message.id, None)
         .await
+        .into_diagnostic()
         .wrap_err("Failed to start exec")?
     {
         while let Some(Ok(line)) = output.next().await {
             if let Some(std_out) = &mut std_out {
-                write!(std_out, "{}", line)?;
+                write!(std_out, "{}", line).into_diagnostic()?;
             }
         }
     } else {
@@ -131,7 +138,8 @@ pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
 
     Ok(docker
         .inspect_exec(&message.id)
-        .await?
+        .await
+        .into_diagnostic()?
         .exit_code
         .unwrap_or_default()
         .into())
@@ -149,7 +157,7 @@ pub async fn container_logs(docker: &Docker, container: &str, count: usize) -> R
         }),
     );
     while let Some(line) = stream.next().await {
-        logs.push(line?.to_string());
+        logs.push(line.into_diagnostic()?.to_string());
     }
     Ok(logs)
 }
