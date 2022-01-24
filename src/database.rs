@@ -81,6 +81,7 @@ impl FromStr for Database {
             "pgsql:11" => Ok(Database::Postgres11),
             "pgsql:12" => Ok(Database::Postgres12),
             "pgsql:13" => Ok(Database::Postgres13),
+            "pgsql:14" => Ok(Database::Postgres14),
             "postgres" => Ok(Database::Postgres),
             "postgres:9" => Ok(Database::Postgres9),
             "postgres:10" => Ok(Database::Postgres10),
