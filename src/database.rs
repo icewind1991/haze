@@ -176,7 +176,7 @@ impl Database {
         if matches!(self, Database::Sqlite) {
             return Ok(None);
         }
-        pull_image(docker, self.image())
+        pull_image(docker, &format!("library/{}", self.image()))
             .await
             .wrap_err("Failed to pull database image")?;
         let options = Some(CreateContainerOptions {

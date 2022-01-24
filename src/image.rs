@@ -18,7 +18,11 @@ pub async fn pull_image(docker: &Docker, image: &str) -> Result<()> {
 
         let mut info_stream = docker.create_image(
             Some(CreateImageOptions {
-                from_image: format!("{}:latest", image),
+                from_image: if image.contains(":") {
+                    image.to_string()
+                } else {
+                    format!("{}:latest", image)
+                },
                 ..Default::default()
             }),
             None,
