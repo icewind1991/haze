@@ -14,6 +14,10 @@ Easy setup and management of Nextcloud test instances using docker
 
  - Docker
 
+### Installation
+
+- Grab a binary from the [github releases](https://github.com/icewind1991/haze/releases) and place it in your `$PATH`
+
 ### Config
 
 Create a file `~/.config/haze/haze.toml` with the following options:
