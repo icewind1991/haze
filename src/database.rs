@@ -175,7 +175,9 @@ impl Database {
         if matches!(self, Database::Sqlite) {
             return Ok(None);
         }
-        pull_image(docker, self.image()).await?;
+        pull_image(docker, self.image())
+            .await
+            .wrap_err("Failed to pull database image")?;
         let options = Some(CreateContainerOptions {
             name: format!("{}-db", cloud_id),
         });

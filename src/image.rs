@@ -2,7 +2,7 @@ use bollard::image::CreateImageOptions;
 use bollard::models::CreateImageInfo;
 use bollard::Docker;
 use futures_util::StreamExt;
-use miette::{IntoDiagnostic, Result};
+use miette::{IntoDiagnostic, Result, WrapErr};
 use std::collections::HashMap;
 use std::io::stdout;
 use std::io::Write;
@@ -29,7 +29,9 @@ pub async fn pull_image(docker: &Docker, image: &str) -> Result<()> {
 
         let mut stdout = stdout();
         while let Some(info) = info_stream.next().await {
-            let info: CreateImageInfo = info.into_diagnostic()?;
+            let info: CreateImageInfo = info
+                .into_diagnostic()
+                .wrap_err_with(|| format!("Error while pulling image {}", image))?;
             // dbg!(&info);
             if let (Some(id), Some(status), Some(progress)) = (info.id, info.status, info.progress)
             {
