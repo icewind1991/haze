@@ -141,6 +141,11 @@ async fn main() -> Result<()> {
                             .await?;
                     }
                 }
+                for cmd in &config.auto_setup.post_setup {
+                    cloud
+                        .exec(&mut docker, cmd.split(" ").collect(), false)
+                        .await?;
+                }
             }
         }
         HazeArgs::Stop { filter } => {

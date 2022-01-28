@@ -22,6 +22,8 @@ pub struct HazeAutoSetupConfig {
     pub username: String,
     #[serde(default = "default_auto_setup_password")]
     pub password: String,
+    #[serde(default)]
+    pub post_setup: Vec<String>,
 }
 
 impl Default for HazeAutoSetupConfig {
@@ -30,6 +32,7 @@ impl Default for HazeAutoSetupConfig {
             enabled: false,
             username: default_auto_setup_username(),
             password: default_auto_setup_password(),
+            post_setup: Vec::default(),
         }
     }
 }
