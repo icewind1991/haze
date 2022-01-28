@@ -90,4 +90,12 @@ impl ServiceTrait for Kaspersky {
     fn apps(&self) -> &'static [&'static str] {
         &["files_antivirus"]
     }
+
+    async fn post_setup(&self, _docker: &Docker, _cloud_id: &str) -> Result<Vec<String>> {
+        Ok(vec![
+            "occ config:app:set files_antivirus av_mode --value=kaspersky".into(),
+            "occ config:app:set files_antivirus av_host --value=kaspersky".into(),
+            "occ config:app:set files_antivirus av_port --value=80".into(),
+        ])
+    }
 }
