@@ -81,4 +81,14 @@ impl ServiceTrait for Smb {
     async fn is_healthy(&self, _docker: &Docker, _cloud_id: &str) -> Result<bool> {
         Ok(true)
     }
+
+    async fn post_setup(&self, _docker: &Docker, _cloud_id: &str) -> Result<Vec<String>> {
+        Ok(vec![
+            "occ files_external:create smb smb password::password".into(),
+            "occ files_external:config 1 host smb".into(),
+            "occ files_external:config 1 user test".into(),
+            "occ files_external:config 1 password test".into(),
+            "occ files_external:config 1 share test".into(),
+        ])
+    }
 }
