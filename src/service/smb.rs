@@ -17,10 +17,6 @@ impl ServiceTrait for Smb {
         "smb"
     }
 
-    fn env(&self) -> &[&str] {
-        &[]
-    }
-
     async fn spawn(
         &self,
         docker: &Docker,
@@ -78,6 +74,7 @@ impl ServiceTrait for Smb {
         &["files_external"]
     }
 
+    // no need to wait for smb, as it won't be used until the user logs in
     async fn is_healthy(&self, _docker: &Docker, _cloud_id: &str) -> Result<bool> {
         Ok(true)
     }
