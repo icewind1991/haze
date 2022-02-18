@@ -8,6 +8,7 @@ use crate::service::Service;
 use crate::service::ServiceTrait;
 use bollard::Docker;
 use miette::{IntoDiagnostic, Result, WrapErr};
+use std::io::stdout;
 
 mod args;
 mod cloud;
@@ -154,6 +155,7 @@ async fn main() -> Result<()> {
         }
         HazeArgs::Logs {
             filter,
+            follow,
             count,
             service,
         } => {
@@ -163,10 +165,7 @@ async fn main() -> Result<()> {
             } else {
                 cloud.id
             };
-            let logs = container_logs(&docker, &container, count.unwrap_or(20)).await?;
-            for log in logs {
-                print!("{}", log);
-            }
+            container_logs(&docker, stdout(), &container, count.unwrap_or(20), follow).await?;
         }
         HazeArgs::Exec {
             filter,

@@ -36,6 +36,7 @@ pub enum HazeArgs {
     Clean,
     Logs {
         filter: Option<String>,
+        follow: bool,
         service: Option<LogService>,
         count: Option<usize>,
     },
@@ -168,15 +169,13 @@ impl HazeArgs {
             HazeCommand::Clean => Ok(HazeArgs::Clean),
             HazeCommand::Logs => {
                 let mut args = args.peekable();
+                let follow = args.next_if(|arg| arg.as_ref() == "-f").is_some();
                 let service = args
-                    .peek()
-                    .map(|s| s.as_ref())
-                    .and_then(LogService::from_type);
-                if service.is_some() {
-                    let _ = args.next();
-                }
+                    .next_if(|arg| LogService::from_type(arg.as_ref()).is_some())
+                    .and_then(|arg| LogService::from_type(arg.as_ref()));
                 Ok(HazeArgs::Logs {
                     filter,
+                    follow,
                     service,
                     count: args
                         .next()
@@ -310,6 +309,24 @@ fn test_arg_parse() {
         HazeArgs::Test {
             options: Default::default(),
             args: vec!["foo".into(), "bar".into()]
+        }
+    );
+    assert_eq!(
+        HazeArgs::parse(vec!["haze", "logs", "-f", "smb"].into_iter()).unwrap(),
+        HazeArgs::Logs {
+            filter: None,
+            follow: true,
+            service: Some(LogService::from_type("smb").unwrap()),
+            count: None,
+        }
+    );
+    assert_eq!(
+        HazeArgs::parse(vec!["haze", "asdasd", "logs", "smb", "123"].into_iter()).unwrap(),
+        HazeArgs::Logs {
+            filter: Some("asdasd".to_string()),
+            follow: false,
+            service: Some(LogService::from_type("smb").unwrap()),
+            count: Some(123),
         }
     );
 }

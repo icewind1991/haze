@@ -145,21 +145,28 @@ pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
         .into())
 }
 
-pub async fn container_logs(docker: &Docker, container: &str, count: usize) -> Result<Vec<String>> {
-    let mut logs = Vec::new();
+pub async fn container_logs(
+    docker: &Docker,
+    mut std_out: impl Write,
+    container: &str,
+    count: usize,
+    follow: bool,
+) -> Result<()> {
     let mut stream = docker.logs::<String>(
         container,
         Some(LogsOptions {
             stdout: true,
             stderr: true,
+            follow,
             tail: format!("{}", count),
             ..Default::default()
         }),
     );
     while let Some(line) = stream.next().await {
-        logs.push(line.into_diagnostic()?.to_string());
+        let line = line.into_diagnostic()?.to_string();
+        write!(&mut std_out, "{}", line).into_diagnostic()?;
     }
-    Ok(logs)
+    Ok(())
 }
 
 pub struct ExitCode(i64);
