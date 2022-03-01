@@ -141,6 +141,11 @@ pub fn default_mappings<'a>() -> impl IntoIterator<Item = Mapping<'a>> {
         ),
         Mapping::new(
             GlobalWorkDir,
+            "node_modules",
+            "/var/www/html/node_modules",
+        ),
+        Mapping::new(
+            GlobalWorkDir,
             "phpunit-cache",
             "/var/www/html/tests/.phpunit.result.cache",
         )
