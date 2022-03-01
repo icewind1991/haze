@@ -25,6 +25,10 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
     curl -L https://github.com/harness/drone-cli/releases/latest/download/drone_linux_amd64.tar.gz | tar zx  && \
     install -t /usr/bin drone
 
+RUN DEBIAN_FRONTEND=noninteractive ;\
+    apt-get install --assume-yes \
+        npm
+
 ADD configs/autoconfig_mariadb.php configs/autoconfig_mysql.php configs/autoconfig_pgsql.php configs/autoconfig_oci.php configs/s3.php configs/s3mb.php configs/swift.php configs/swiftv3.php configs/azure.php configs/config.php /root/
 ADD configs/nginx-app.conf /etc/nginx/
 
