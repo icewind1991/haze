@@ -84,6 +84,8 @@ impl PhpVersion {
                 network_mode: Some(network.to_string()),
                 binds: Some(volumes),
                 extra_hosts: Some(vec![format!("hazehost:{}", host)]),
+                memory: Some(512 * 1024 * 1024),
+                nano_cpus: Some(2_000_000_000),
                 ..Default::default()
             }),
             networking_config: Some(NetworkingConfig {
