@@ -9,7 +9,6 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
 		redis-server \
 		smbclient \
         npm \
-        chromium \
 		sudo \
 		wget \
 		attr \

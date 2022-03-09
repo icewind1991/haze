@@ -63,20 +63,21 @@ RUN pecl install apcu \
     && export VERSION=`php -r "echo PHP_MAJOR_VERSION.PHP_MINOR_VERSION;"` \
     && curl -A "Docker" -o /tmp/blackfire-probe.tar.gz -D - -L -s https://blackfire.io/api/v1/releases/probe/php/linux/amd64/${VERSION} \
     && tar zxpf /tmp/blackfire-probe.tar.gz -C /tmp \
-    && mv /tmp/blackfire-*.so `php -r "echo ini_get('extension_dir');"`/blackfire.so \
-    && echo "extension=imagick.so" > $PHP_INI_DIR/conf.d/imagick.ini \
-    && echo "extension=smbclient.so" > $PHP_INI_DIR/conf.d/smbclient.ini \
+    && mv /tmp/blackfire-*.so `php -r "echo ini_get('extension_dir');"`/blackfire.so
+
+ARG BASE_IMAGE
+RUN echo "extension=imagick.so" > $PHP_INI_DIR/conf.d/imagick.ini \
+    && sh -c 'if [ "$BASE_IMAGE" = "php" ]; then echo "extension=smbclient.so" > $PHP_INI_DIR/conf.d/smbclient.ini; fi' \
+    && sh -c 'if [ "$BASE_IMAGE" = "php" ]; then echo "extension=blackfire.so\nblackfire.agent_socket=\${BLACKFIRE_PORT}" > $PHP_INI_DIR/conf.d/blackfire.ini; fi' \
     && echo "extension=inotify.so" > $PHP_INI_DIR/conf.d/inotify.ini \
-#    && echo "extension=blackfire.so\nblackfire.agent_socket=\${BLACKFIRE_PORT}" > $PHP_INI_DIR/conf.d/blackfire.ini \
     && echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.mode=debug,trace,profile" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.start_with_request=trigger" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.discover_client_host=true" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.client_host=hazehost" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.log_level=0" >> $PHP_INI_DIR/conf.d/xdebug.ini \
-    && echo "memory_limit = 512M" > $PHP_INI_DIR/conf.d/memory_limit.ini
-
-RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
+    && echo "memory_limit = 512M" > $PHP_INI_DIR/conf.d/memory_limit.ini \
+    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
 
 ADD apcu.ini opcache.ini redis.ini $PHP_INI_DIR/conf.d/
 
