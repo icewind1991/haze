@@ -37,7 +37,7 @@ haze start [database] [php-version]
 ```
 
 Where `database` is one of `sqlite`, `mysql`, `mariadb` or `pgsql` with an optional version (e.g. `pgsql:12`), defaults to `sqlite`.
-And `php-version` is one of `7.2`, `7.3`, `7.4`, `8.0`, `7` or `8`, defaults to `8.0`
+And `php-version` is one of `7.3`, `7.4`, `8.0`, `7` or `8`, defaults to `8.0`
 
 Additionally, you can use the following options when starting an instance:
  - `s3`: setup an S3 server and configure to Nextcloud to use it as primary storage
@@ -94,6 +94,14 @@ haze [match] db
 
 ```bash
 haze [match] exec [cmd]
+```
+
+If no `cmd` is specified it will launch `bash`
+
+#### Create a new instance and run a command
+
+```bash
+haze [match] shell [cmd]
 ```
 
 If no `cmd` is specified it will launch `bash`

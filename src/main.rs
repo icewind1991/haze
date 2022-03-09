@@ -349,6 +349,39 @@ async fn main() -> Result<()> {
             }
             cloud.destroy(&mut docker).await?;
         }
+        HazeArgs::Shell { command, options } => {
+            let cloud = Cloud::create(&mut docker, options, &config).await?;
+            println!("Waiting for servers to start");
+            cloud.wait_for_start(&mut docker).await?;
+            println!("Installing");
+            if let Err(e) = cloud
+                .exec(
+                    &mut docker,
+                    vec![
+                        "install",
+                        &config.auto_setup.username,
+                        &config.auto_setup.password,
+                    ],
+                    false,
+                )
+                .await
+            {
+                cloud.destroy(&mut docker).await?;
+                return Err(e);
+            }
+            cloud
+                .exec(
+                    &mut docker,
+                    if command.is_empty() {
+                        vec!["bash".to_string()]
+                    } else {
+                        command
+                    },
+                    true,
+                )
+                .await?;
+            cloud.destroy(&mut docker).await?;
+        }
     };
 
     Ok(())
