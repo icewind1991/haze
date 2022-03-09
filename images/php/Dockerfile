@@ -67,7 +67,7 @@ RUN pecl install apcu \
     && echo "extension=imagick.so" > $PHP_INI_DIR/conf.d/imagick.ini \
     && echo "extension=smbclient.so" > $PHP_INI_DIR/conf.d/smbclient.ini \
     && echo "extension=inotify.so" > $PHP_INI_DIR/conf.d/inotify.ini \
-    && echo "extension=blackfire.so\nblackfire.agent_socket=\${BLACKFIRE_PORT}" > $PHP_INI_DIR/conf.d/blackfire.ini \
+#    && echo "extension=blackfire.so\nblackfire.agent_socket=\${BLACKFIRE_PORT}" > $PHP_INI_DIR/conf.d/blackfire.ini \
     && echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.mode=debug,trace,profile" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.start_with_request=trigger" >> $PHP_INI_DIR/conf.d/xdebug.ini \
