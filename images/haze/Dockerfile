@@ -8,6 +8,8 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
 		cron \
 		redis-server \
 		smbclient \
+        npm \
+        chromium \
 		sudo \
 		wget \
 		attr \
@@ -16,6 +18,7 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
         nano \
         sqlite3 \
         s3cmd \
+        gdb \
         python3-pip && \
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.1.35.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
@@ -23,16 +26,9 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
     pip3 install awscli-plugin-endpoint && \
     wget https://phar.phpunit.de/phpunit-8.phar -O /usr/local/bin/phpunit.phar && \
     curl -L https://github.com/harness/drone-cli/releases/latest/download/drone_linux_amd64.tar.gz | tar zx  && \
-    install -t /usr/bin drone
-
-RUN DEBIAN_FRONTEND=noninteractive ;\
-    apt-get update && \
-    apt-get install --assume-yes \
-        npm \
-        chromium
-RUN wget https://github.com/vimeo/psalm/releases/latest/download/psalm.phar -O /usr/local/bin/psalm && \
+    install -t /usr/bin drone && \
+    wget https://github.com/vimeo/psalm/releases/latest/download/psalm.phar -O /usr/local/bin/psalm && \
     chmod +x /usr/local/bin/psalm
-
 
 ADD configs/autoconfig_mariadb.php configs/autoconfig_mysql.php configs/autoconfig_pgsql.php configs/autoconfig_oci.php configs/s3.php configs/s3mb.php configs/swift.php configs/swiftv3.php configs/azure.php configs/config.php /root/
 ADD configs/nginx-app.conf /etc/nginx/
@@ -42,8 +38,7 @@ ADD configs/cron.conf /etc/oc-cron.conf
 
 ADD misc/bootstrap.sh misc/occ misc/tests misc/phpunit misc/install misc/occ misc/integration /usr/local/bin/
 ADD configs/sudoers /etc/sudoers.d/haze
-ADD configs/s3cfg /home/haze/.s3cfg
-ADD configs/aws /home/haze/.aws
+ADD configs/.s3cfg configs/.gdbinit configs/.aws /home/haze/
 
 ENV WEBROOT /var/www/html
 
