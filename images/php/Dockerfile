@@ -68,7 +68,7 @@ RUN pecl install apcu \
 ARG BASE_IMAGE
 RUN echo "extension=imagick.so" > $PHP_INI_DIR/conf.d/imagick.ini \
     && sh -c 'if [ "$BASE_IMAGE" = "php" ]; then echo "extension=smbclient.so" > $PHP_INI_DIR/conf.d/smbclient.ini; fi' \
-    && sh -c 'if [ "$BASE_IMAGE" = "php" ]; then echo "extension=blackfire.so\nblackfire.agent_socket=\${BLACKFIRE_PORT}" > $PHP_INI_DIR/conf.d/blackfire.ini; fi' \
+    && sh -c 'if [ "$BASE_IMAGE" = "php" ]; then echo "extension=blackfire.so" > $PHP_INI_DIR/conf.d/blackfire.ini; fi' \
     && echo "extension=inotify.so" > $PHP_INI_DIR/conf.d/inotify.ini \
     && echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.mode=debug,trace,profile" >> $PHP_INI_DIR/conf.d/xdebug.ini \

@@ -29,6 +29,12 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
     wget https://github.com/vimeo/psalm/releases/latest/download/psalm.phar -O /usr/local/bin/psalm && \
     chmod +x /usr/local/bin/psalm
 
+RUN DEBIAN_FRONTEND=noninteractive ;\
+    wget -q -O - https://packages.blackfire.io/gpg.key | apt-key add - && \
+    echo "deb http://packages.blackfire.io/debian any main" >> /etc/apt/sources.list.d/blackfire.list && \
+    apt-get update && \
+	apt-get install --assume-yes blackfire procps ncat
+
 ADD configs/autoconfig_mariadb.php configs/autoconfig_mysql.php configs/autoconfig_pgsql.php configs/autoconfig_oci.php configs/s3.php configs/s3mb.php configs/swift.php configs/swiftv3.php configs/azure.php configs/config.php /root/
 ADD configs/nginx-app.conf /etc/nginx/
 
