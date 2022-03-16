@@ -356,11 +356,15 @@ async fn setup(docker: &mut Docker, options: CloudOptions, config: &HazeConfig) 
         }
         for service in &cloud.services {
             for cmd in service.post_setup(&docker, &cloud.id).await? {
-                cloud.exec(docker, cmd.split(" ").collect(), false).await?;
+                cloud
+                    .exec(docker, shell_words::split(&cmd).into_diagnostic()?, false)
+                    .await?;
             }
         }
         for cmd in &config.auto_setup.post_setup {
-            cloud.exec(docker, cmd.split(" ").collect(), false).await?;
+            cloud
+                .exec(docker, shell_words::split(&cmd).into_diagnostic()?, false)
+                .await?;
         }
     }
     Ok(cloud)

@@ -26,6 +26,7 @@ flate2 = "1"
 async-trait = "0.1"
 enum_dispatch = "0.3"
 miette = { version = "3", features = ["fancy"] }
+shell-words = "1.0.0"
 
 [profile.release]
 lto = true
