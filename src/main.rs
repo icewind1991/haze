@@ -66,88 +66,7 @@ async fn main() -> Result<()> {
             }
         }
         HazeArgs::Start { options } => {
-            let cloud = Cloud::create(&mut docker, options, &config).await?;
-            println!("http://{}", cloud.ip.unwrap());
-            if config.auto_setup.enabled {
-                println!("Waiting for servers to start");
-                cloud.wait_for_start(&mut docker).await?;
-                println!(
-                    "Installing with username {} and password {}",
-                    config.auto_setup.username, config.auto_setup.password
-                );
-                let ip_str = format!("{}", cloud.ip.unwrap());
-                cloud
-                    .exec(
-                        &mut docker,
-                        vec![
-                            "install",
-                            &config.auto_setup.username,
-                            &config.auto_setup.password,
-                        ],
-                        false,
-                    )
-                    .await?;
-                cloud
-                    .occ(
-                        &mut docker,
-                        vec![
-                            "config:system:set",
-                            "overwrite.cli.url",
-                            "--value",
-                            &format!("http://{}", cloud.ip.unwrap()),
-                        ],
-                        None,
-                    )
-                    .await?;
-                cloud
-                    .occ(
-                        &mut docker,
-                        vec!["config:system:set", "overwritehost", "--value", &ip_str],
-                        None,
-                    )
-                    .await?;
-
-                let domains = [ip_str.as_str(), "cloud", &cloud.id];
-                for (i, domain) in domains.iter().enumerate() {
-                    cloud
-                        .occ(
-                            &mut docker,
-                            vec![
-                                "config:system:set",
-                                "trusted_domains",
-                                &format!("{}", i),
-                                "--value",
-                                domain,
-                            ],
-                            None,
-                        )
-                        .await?;
-                }
-
-                for service in &cloud.services {
-                    for app in service.apps() {
-                        cloud
-                            .exec(
-                                &mut docker,
-                                vec!["occ", "app:enable", *app, "--force"],
-                                false,
-                            )
-                            .await?;
-                    }
-                }
-                for service in &cloud.services {
-                    for cmd in service.post_setup(&docker, &cloud.id).await? {
-                        cloud
-                            .exec(&mut docker, cmd.split(" ").collect(), false)
-                            .await?;
-                    }
-                }
-                for cmd in &config.auto_setup.post_setup {
-                    cloud
-                        .exec(&mut docker, cmd.split(" ").collect(), false)
-                        .await?;
-                }
-            }
+            setup(&mut docker, options, &config).await?;
         }
         HazeArgs::Stop { filter } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
@@ -350,25 +269,7 @@ async fn main() -> Result<()> {
             cloud.destroy(&mut docker).await?;
         }
         HazeArgs::Shell { command, options } => {
-            let cloud = Cloud::create(&mut docker, options, &config).await?;
-            println!("Waiting for servers to start");
-            cloud.wait_for_start(&mut docker).await?;
-            println!("Installing");
-            if let Err(e) = cloud
-                .exec(
-                    &mut docker,
-                    vec![
-                        "install",
-                        &config.auto_setup.username,
-                        &config.auto_setup.password,
-                    ],
-                    false,
-                )
-                .await
-            {
-                cloud.destroy(&mut docker).await?;
-                return Err(e);
-            }
+            let cloud = setup(&mut docker, options, &config).await?;
             cloud
                 .exec(
                     &mut docker,
@@ -385,4 +286,82 @@ async fn main() -> Result<()> {
     };
 
     Ok(())
+}
+
+async fn setup(docker: &mut Docker, options: CloudOptions, config: &HazeConfig) -> Result<Cloud> {
+    let cloud = Cloud::create(docker, options, &config).await?;
+    println!("http://{}", cloud.ip.unwrap());
+    if config.auto_setup.enabled {
+        println!("Waiting for servers to start");
+        cloud.wait_for_start(docker).await?;
+        println!(
+            "Installing with username {} and password {}",
+            config.auto_setup.username, config.auto_setup.password
+        );
+        let ip_str = format!("{}", cloud.ip.unwrap());
+        cloud
+            .exec(
+                docker,
+                vec![
+                    "install",
+                    &config.auto_setup.username,
+                    &config.auto_setup.password,
+                ],
+                false,
+            )
+            .await?;
+        cloud
+            .occ(
+                docker,
+                vec![
+                    "config:system:set",
+                    "overwrite.cli.url",
+                    "--value",
+                    &format!("http://{}", cloud.ip.unwrap()),
+                ],
+                None,
+            )
+            .await?;
+        cloud
+            .occ(
+                docker,
+                vec!["config:system:set", "overwritehost", "--value", &ip_str],
+                None,
+            )
+            .await?;
+
+        let domains = [ip_str.as_str(), "cloud", &cloud.id];
+        for (i, domain) in domains.iter().enumerate() {
+            cloud
+                .occ(
+                    docker,
+                    vec![
+                        "config:system:set",
+                        "trusted_domains",
+                        &format!("{}", i),
+                        "--value",
+                        domain,
+                    ],
+                    None,
+                )
+                .await?;
+        }
+
+        for service in &cloud.services {
+            for app in service.apps() {
+                cloud
+                    .exec(docker, vec!["occ", "app:enable", *app, "--force"], false)
+                    .await?;
+            }
+        }
+        for service in &cloud.services {
+            for cmd in service.post_setup(&docker, &cloud.id).await? {
+                cloud.exec(docker, cmd.split(" ").collect(), false).await?;
+            }
+        }
+        for cmd in &config.auto_setup.post_setup {
+            cloud.exec(docker, cmd.split(" ").collect(), false).await?;
+        }
+    }
+    Ok(cloud)
 }
