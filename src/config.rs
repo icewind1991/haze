@@ -13,6 +13,8 @@ pub struct HazeConfig {
     pub auto_setup: HazeAutoSetupConfig,
     #[serde(default)]
     pub volume: Vec<HazeVolumeConfig>,
+    #[serde(default)]
+    pub blackfire: Option<HazeBlackfireConfig>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -57,6 +59,14 @@ pub struct HazeVolumeConfig {
     pub read_only: bool,
     #[serde(default)]
     pub create: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct HazeBlackfireConfig {
+    pub server_id: String,
+    pub server_token: String,
+    pub client_id: String,
+    pub client_token: String,
 }
 
 impl HazeConfig {

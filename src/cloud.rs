@@ -251,7 +251,7 @@ impl Cloud {
             format!("GID={}", gid),
             format!("SQL={}", options.db.name()),
         ];
-        let volumes = mappings
+        let mut volumes: Vec<String> = mappings
             .into_iter()
             .filter_map(|mapping| mapping.get_volume_arg(&id, config))
             .collect();
@@ -264,6 +264,15 @@ impl Cloud {
         {
             containers.push(db_name);
             env.push(format!("SQL={}", options.db.name()));
+        }
+
+        if let Some(blackfire) = config.blackfire.as_ref() {
+            env.push(format!("BLACKFIRE_SERVER_ID={}", blackfire.server_id));
+            env.push(format!("BLACKFIRE_SERVER_TOKEN={}", blackfire.server_token));
+            env.push(format!("BLACKFIRE_CLIENT_ID={}", blackfire.client_id));
+            env.push(format!("BLACKFIRE_CLIENT_TOKEN={}", blackfire.client_token));
+            env.push(format!("BLACKFIRE_SOCKET=/var/run/blackfire/agent.sock"));
+            volumes.push("/var/run/blackfire/agent.sock:/var/run/blackfire/agent.sock".into());
         }
 
         let service_containers = try_join_all(
