@@ -46,7 +46,8 @@ Additionally, you can use the following options when starting an instance:
  - `onlyoffice` setup an onlyoffice document server
  - `push` setup [client push](https://github.com/nextcloud/notify_push)
  - `smb`: setup a samba server for external storage use
- - `kaspersky`: setup a kaspersky scan engine server. (Requires [manually setting up the image](https://github.com/icewind1991/kaspersky-docker))
+ - `kaspersky`: setup a kaspersky scan engine server in http mode. (Requires [manually setting up the image](https://github.com/icewind1991/kaspersky-docker))
+ - `kaspersky-icap`: setup a kaspersky scan engine server in ICAP mode.
 
 #### Run tests in a new instance
 
