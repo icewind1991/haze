@@ -192,8 +192,7 @@ impl ServiceTrait for KasperskyIcap {
             "occ config:app:set files_antivirus av_host --value=kaspersky-icap".into(),
             "occ config:app:set files_antivirus av_port --value=1344".into(),
             "occ config:app:set files_antivirus av_icap_request_service --value=req".into(),
-            "occ config:app:set files_antivirus av_icap_response_header --value=X-Infection-Found"
-                .into(),
+            "occ config:app:set files_antivirus av_icap_response_header --value=X-Virus-ID".into(),
         ])
     }
 }

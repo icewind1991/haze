@@ -1,3 +1,4 @@
+mod clam;
 mod kaspersky;
 mod ldap;
 mod objectstore;
@@ -6,6 +7,7 @@ mod push;
 mod smb;
 
 use crate::config::HazeConfig;
+pub use crate::service::clam::ClamIcap;
 use crate::service::kaspersky::{Kaspersky, KasperskyIcap};
 pub use crate::service::ldap::{LDAPAdmin, LDAP};
 pub use crate::service::objectstore::ObjectStore;
@@ -76,6 +78,7 @@ pub enum Service {
     Smb(Smb),
     Kaspersky(Kaspersky),
     KasperskyIcap(KasperskyIcap),
+    ClamIcap(ClamIcap),
 }
 
 impl Service {
@@ -89,6 +92,7 @@ impl Service {
             "smb" => Some(&[Service::Smb(Smb)]),
             "kaspersky" => Some(&[Service::Kaspersky(Kaspersky)]),
             "kaspersky-icap" => Some(&[Service::KasperskyIcap(KasperskyIcap)]),
+            "clamav-icap" => Some(&[Service::ClamIcap(ClamIcap)]),
             _ => None,
         }
     }
