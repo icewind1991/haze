@@ -1,4 +1,5 @@
 <?php $CONFIG=[
+    'debug' => true,
     'appstoreenabled' => false,
     'memcache.local' => '\\OC\\Memcache\\APCu',
     'memcache.distributed' => '\\OC\\Memcache\\APCu',
