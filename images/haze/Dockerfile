@@ -33,7 +33,7 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
     wget -q -O - https://packages.blackfire.io/gpg.key | apt-key add - && \
     echo "deb http://packages.blackfire.io/debian any main" >> /etc/apt/sources.list.d/blackfire.list && \
     apt-get update && \
-	apt-get install --assume-yes blackfire procps ncat
+	apt-get install --assume-yes blackfire procps ncat chromium
 
 ADD configs/autoconfig_mariadb.php configs/autoconfig_mysql.php configs/autoconfig_pgsql.php configs/autoconfig_oci.php configs/s3.php configs/s3mb.php configs/swift.php configs/swiftv3.php configs/azure.php configs/config.php /root/
 ADD configs/nginx-app.conf /etc/nginx/
@@ -41,7 +41,7 @@ ADD configs/nginx-app.conf /etc/nginx/
 RUN mkdir --parent /var/log/cron
 ADD configs/cron.conf /etc/oc-cron.conf
 
-ADD misc/bootstrap.sh misc/occ misc/tests misc/phpunit misc/install misc/occ misc/integration /usr/local/bin/
+ADD misc/bootstrap.sh misc/occ misc/tests misc/phpunit misc/install misc/occ misc/integration misc/chromium-no-sandbox /usr/local/bin/
 ADD configs/sudoers /etc/sudoers.d/haze
 ADD configs/.s3cfg configs/.gdbinit configs/.aws /home/haze/
 

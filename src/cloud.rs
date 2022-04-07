@@ -247,6 +247,7 @@ impl Cloud {
 
         let mut env = vec![
             "PHP_IDE_CONFIG=serverName=haze".to_string(),
+            "CHROMIUM_BIN=/usr/local/bin/chromium-no-sandbox".to_string(),
             format!("UID={}", uid),
             format!("GID={}", gid),
             format!("SQL={}", options.db.name()),
