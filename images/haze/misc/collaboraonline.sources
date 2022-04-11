@@ -1,0 +1,4 @@
+Types: deb
+URIs: https://www.collaboraoffice.com/repos/CollaboraOnline/CODE-debian11
+Suites: ./
+Signed-By: /usr/share/keyrings/collaboraonline-release-keyring.gpg

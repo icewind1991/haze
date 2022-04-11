@@ -2,6 +2,7 @@ mod clam;
 mod kaspersky;
 mod ldap;
 mod objectstore;
+mod office;
 mod onlyoffice;
 mod push;
 mod smb;
@@ -11,6 +12,7 @@ pub use crate::service::clam::ClamIcap;
 use crate::service::kaspersky::{Kaspersky, KasperskyIcap};
 pub use crate::service::ldap::{LDAPAdmin, LDAP};
 pub use crate::service::objectstore::ObjectStore;
+pub use crate::service::office::Office;
 pub use crate::service::onlyoffice::OnlyOffice;
 pub use crate::service::push::NotifyPush;
 use crate::service::smb::Smb;
@@ -74,6 +76,7 @@ pub enum Service {
     LDAP(LDAP),
     LDAPAdmin(LDAPAdmin),
     OnlyOffice(OnlyOffice),
+    Office(Office),
     Push(NotifyPush),
     Smb(Smb),
     Kaspersky(Kaspersky),
@@ -88,6 +91,7 @@ impl Service {
             "s3mb" => Some(&[Service::ObjectStore(ObjectStore::S3mb)]),
             "ldap" => Some(&[Service::LDAP(LDAP), Service::LDAPAdmin(LDAPAdmin)]),
             "onlyoffice" => Some(&[Service::OnlyOffice(OnlyOffice)]),
+            "office" => Some(&[Service::Office(Office)]),
             "push" => Some(&[Service::Push(NotifyPush)]),
             "smb" => Some(&[Service::Smb(Smb)]),
             "kaspersky" => Some(&[Service::Kaspersky(Kaspersky)]),
