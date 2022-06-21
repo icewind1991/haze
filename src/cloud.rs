@@ -236,7 +236,8 @@ impl Cloud {
             .ok_or(Report::msg("Network has no ip info"))?
             .first()
             .ok_or(Report::msg("Network has no ip info"))?
-            .get("Gateway")
+            .gateway
+            .as_deref()
             .ok_or(Report::msg("Network has no ip info"))?;
 
         let mut containers = Vec::new();
@@ -294,15 +295,7 @@ impl Cloud {
 
         let container = options
             .php
-            .spawn(
-                docker,
-                &id,
-                env,
-                &options.db,
-                &network,
-                volumes,
-                gateway.as_str(),
-            )
+            .spawn(docker, &id, env, &options.db, &network, volumes, gateway)
             .await
             .wrap_err("Failed to start php container")?;
 
