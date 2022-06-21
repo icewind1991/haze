@@ -18,8 +18,8 @@ pub enum ObjectStore {
 impl ObjectStore {
     fn image(&self) -> &str {
         match self {
-            ObjectStore::S3 => "localstack/localstack:0.12.7",
-            ObjectStore::S3mb => "localstack/localstack:0.12.7",
+            ObjectStore::S3 => "localstack/localstack:0.14.3",
+            ObjectStore::S3mb => "localstack/localstack:0.14.3",
         }
     }
 
@@ -109,7 +109,7 @@ impl ServiceTrait for ObjectStore {
         )
         .await?;
         let output = String::from_utf8(output).into_diagnostic()?;
-        Ok(output.contains(r#""s3": "running""#))
+        Ok(output.contains(r#""s3": "running""#) || output.contains(r#""s3": "available""#))
     }
 
     fn container_name(&self, cloud_id: &str) -> String {
