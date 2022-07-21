@@ -11,11 +11,7 @@ pub async fn clear_networks(docker: &Docker) -> Result<()> {
     for network in networks {
         match network.name.as_deref() {
             Some(name) if name.starts_with("haze-") => {
-                docker
-                    .remove_network(name)
-                    .await
-                    .into_diagnostic()
-                    .wrap_err("Failed to remove docker network")?;
+                docker.remove_network(name).await.ok();
             }
             _ => {}
         }

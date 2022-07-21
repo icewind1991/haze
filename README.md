@@ -132,6 +132,20 @@ haze [match] logs
 haze [match] stop
 ```
 
+#### Pin an instance
+
+```bash
+haze [match] pin
+```
+
+Pinned instances will not be removed by `haze clean`.
+
+#### Unpin an instance
+
+```bash
+haze [match] unpin
+```
+
 ## Configuration
 
 Configuration is loaded from `~/.config/haze/haze.toml` and has the following options

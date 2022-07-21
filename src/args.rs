@@ -54,6 +54,12 @@ pub enum HazeArgs {
         options: CloudOptions,
         command: Vec<String>,
     },
+    Pin {
+        filter: Option<String>,
+    },
+    Unpin {
+        filter: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -202,6 +208,8 @@ impl HazeArgs {
                 let command = args.map(S::into).collect();
                 Ok(HazeArgs::Shell { options, command })
             }
+            HazeCommand::Pin => Ok(HazeArgs::Pin { filter }),
+            HazeCommand::Unpin => Ok(HazeArgs::Unpin { filter }),
         }
     }
 }
@@ -221,6 +229,8 @@ pub enum HazeCommand {
     Fmt,
     Integration,
     Shell,
+    Pin,
+    Unpin,
 }
 
 impl FromStr for HazeCommand {
@@ -242,6 +252,8 @@ impl FromStr for HazeCommand {
             "format" => Ok(HazeCommand::Fmt),
             "integration" => Ok(HazeCommand::Integration),
             "shell" => Ok(HazeCommand::Shell),
+            "pin" => Ok(HazeCommand::Pin),
+            "unpin" => Ok(HazeCommand::Unpin),
             _ => Err(Report::msg(format!("Unknown command: {}", s))),
         }
     }
@@ -263,6 +275,8 @@ impl HazeCommand {
             HazeCommand::Fmt => false,
             HazeCommand::Integration => false,
             HazeCommand::Shell => false,
+            HazeCommand::Pin => true,
+            HazeCommand::Unpin => true,
         }
     }
 }

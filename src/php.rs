@@ -26,6 +26,8 @@ pub enum PhpVersion {
     Php73Dbg,
 }
 
+pub const PHP_MEMORY_LIMIT: i64 = 2 * 1024 * 1024 * 1024;
+
 impl FromStr for PhpVersion {
     type Err = ();
 
@@ -98,7 +100,7 @@ impl PhpVersion {
                 network_mode: Some(network.to_string()),
                 binds: Some(volumes),
                 extra_hosts: Some(vec![format!("hazehost:{}", host)]),
-                memory: Some(2 * 1024 * 1024 * 1024),
+                memory: Some(PHP_MEMORY_LIMIT),
                 nano_cpus: Some(2_000_000_000),
                 ..Default::default()
             }),

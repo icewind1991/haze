@@ -2,10 +2,10 @@ use crate::config::{HazeConfig, HazeVolumeConfig};
 use crate::database::Database;
 use crate::exec::{exec, exec_tty, ExitCode};
 use crate::mapping::{default_mappings, Mapping};
-use crate::php::PhpVersion;
+use crate::php::{PhpVersion, PHP_MEMORY_LIMIT};
 use crate::service::Service;
 use crate::service::ServiceTrait;
-use bollard::container::{ListContainersOptions, RemoveContainerOptions};
+use bollard::container::{ListContainersOptions, RemoveContainerOptions, UpdateContainerOptions};
 use bollard::models::ContainerState;
 use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
@@ -157,6 +157,7 @@ pub struct Cloud {
     pub ip: Option<IpAddr>,
     pub workdir: Utf8PathBuf,
     pub services: Vec<Service>,
+    pub pinned: bool,
 }
 
 impl Cloud {
@@ -167,6 +168,7 @@ impl Cloud {
     ) -> Result<Self> {
         let id = options
             .name
+            .map(|name| format!("haze-{}", name))
             .unwrap_or_else(|| format!("haze-{}", petname(2, "-")));
 
         let workdir = config.work_dir.join(&id);
@@ -380,6 +382,7 @@ impl Cloud {
             ip: Some(ip),
             workdir,
             services: options.services,
+            pinned: false,
         })
     }
 
@@ -459,7 +462,7 @@ impl Cloud {
             }))
             .await
             .into_diagnostic()?;
-        let mut containers_by_id: HashMap<String, (Option<_>, Vec<_>)> = HashMap::new();
+        let mut containers_by_id: HashMap<String, (Option<_>, Option<_>, Vec<_>)> = HashMap::new();
         for container in containers {
             let labels = container.labels.clone().unwrap_or_default();
             if let Some(cloud_id) = labels.get("haze-cloud-id") {
@@ -469,9 +472,11 @@ impl Cloud {
                 } {
                     let mut entry = containers_by_id.entry(cloud_id.to_string()).or_default();
                     if labels.get("haze-type").map(String::as_str) == Some("cloud") {
+                        let info = docker.inspect_container(cloud_id, None).await.ok();
                         entry.0 = Some(container);
+                        entry.1 = info;
                     } else {
-                        entry.1.push(container)
+                        entry.2.push(container)
                     }
                 }
             }
@@ -479,7 +484,7 @@ impl Cloud {
 
         let mut sortable_containers: Vec<_> = containers_by_id
             .into_iter()
-            .filter_map(|(id, (cloud, services))| {
+            .filter_map(|(id, (cloud, info, services))| {
                 let cloud = cloud?;
                 let network = id.clone();
                 let networks = cloud.network_settings?.networks?;
@@ -501,6 +506,14 @@ impl Cloud {
                     .iter()
                     .filter_map(|service| service.names.as_ref()?.first().map(String::clone))
                     .collect();
+
+                let pinned = (info
+                    .and_then(|info| info.host_config)
+                    .and_then(|host| host.memory)
+                    .unwrap()
+                    % 2)
+                    == 1;
+
                 service_ids.push(id.clone());
                 Some((
                     cloud.created.unwrap_or_default(),
@@ -513,6 +526,7 @@ impl Cloud {
                         ip: network_info.ip_address.as_ref()?.parse().ok(),
                         workdir,
                         services: found_services,
+                        pinned,
                     },
                 ))
             })
@@ -570,5 +584,33 @@ impl Cloud {
         )
         .await?;
         Ok(())
+    }
+
+    pub async fn pin(&self, docker: &mut Docker) -> Result<()> {
+        // abuse memory limits as editable label
+        docker
+            .update_container(
+                &self.id,
+                UpdateContainerOptions::<String> {
+                    memory: Some(PHP_MEMORY_LIMIT + 1),
+                    ..UpdateContainerOptions::default()
+                },
+            )
+            .await
+            .into_diagnostic()
+    }
+
+    pub async fn unpin(&self, docker: &mut Docker) -> Result<()> {
+        // abuse memory limits as editable label
+        docker
+            .update_container(
+                &self.id,
+                UpdateContainerOptions::<String> {
+                    memory: Some(PHP_MEMORY_LIMIT),
+                    ..UpdateContainerOptions::default()
+                },
+            )
+            .await
+            .into_diagnostic()
     }
 }

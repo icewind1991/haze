@@ -35,7 +35,7 @@ async fn main() -> Result<()> {
     match args {
         HazeArgs::Clean => {
             let list = Cloud::list(&mut docker, None, &config).await?;
-            for cloud in list {
+            for cloud in list.into_iter().filter(|cloud| !cloud.pinned) {
                 if let Err(e) = cloud.destroy(&mut docker).await {
                     eprintln!("Error while removing cloud: {:#}", e);
                 }
@@ -48,17 +48,20 @@ async fn main() -> Result<()> {
                 let mut services: Vec<_> = cloud.services.iter().map(Service::name).collect();
                 services.push(cloud.db.name());
                 let services = services.join(", ");
+                let pin = if cloud.pinned { "*" } else { "" };
                 match cloud.ip {
                     Some(ip) => println!(
-                        "Cloud {}, {}, {}, running on http://{}",
+                        "Cloud {}{}, {}, {}, running on http://{}",
                         cloud.id,
+                        pin,
                         cloud.php.name(),
                         services,
                         ip
                     ),
                     None => println!(
-                        "Cloud {}, {}, {}, not running",
+                        "Cloud {}{}, {}, {}, not running",
                         cloud.id,
+                        pin,
                         cloud.php.name(),
                         services
                     ),
@@ -282,6 +285,14 @@ async fn main() -> Result<()> {
                 )
                 .await?;
             cloud.destroy(&mut docker).await?;
+        }
+        HazeArgs::Pin { filter } => {
+            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
+            cloud.pin(&mut docker).await?;
+        }
+        HazeArgs::Unpin { filter } => {
+            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
+            cloud.unpin(&mut docker).await?;
         }
     };
 
