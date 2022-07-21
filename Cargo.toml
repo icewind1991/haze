@@ -8,25 +8,25 @@ license = "MIT"
 description = "Easy setup and management of Nextcloud test instances using docker"
 
 [dependencies]
-bollard = { version = "0.13.0" }
+bollard = "0.13.0"
 maplit = "1.0.2"
-camino = { version = "1.0.7", features = ["serde1"] }
-tokio = { version = "1" , features = ["fs", "macros"] }
-parse-display = "0.5"
-futures-util = "0.3"
-termion = "1"
-opener = "0.5"
-toml = "0.5"
-directories-next = "2"
-serde = "1"
-petname = "1"
-reqwest = { version = "0.11", default-features = false }
-tar = "0.4"
-flate2 = "1"
-async-trait = "0.1"
-enum_dispatch = "0.3"
-miette = { version = "4.7.1", features = ["fancy"] }
-shell-words = "1.0.0"
+camino = { version = "1.0.9", features = ["serde1"] }
+tokio = { version = "1.20.0", features = ["fs", "macros"] }
+parse-display = "0.5.5"
+futures-util = "0.3.21"
+termion = "1.5.6"
+opener = "0.5.0"
+toml = "0.5.9"
+directories-next = "2.0.0"
+serde = "1.0.140"
+petname = "1.1.2"
+reqwest = { version = "0.11.11", default-features = false }
+tar = "0.4.38"
+flate2 = "1.0.24"
+async-trait = "0.1.56"
+enum_dispatch = "0.3.8"
+miette = { version = "5.1.1", features = ["fancy"] }
+shell-words = "1.1.0"
 
 [profile.release]
 lto = true

@@ -21,7 +21,7 @@
 
           # `nix develop`
           devShell = pkgs.mkShell {
-            nativeBuildInputs = with pkgs; [ rustc cargo bacon ];
+            nativeBuildInputs = with pkgs; [ rustc cargo bacon cargo-edit cargo-outdated ];
           };
         }
     );
