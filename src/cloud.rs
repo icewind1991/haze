@@ -30,6 +30,7 @@ use tokio::time::sleep;
 
 #[derive(Clone, Default, Debug, Eq, PartialEq)]
 pub struct CloudOptions {
+    name: Option<String>,
     db: Database,
     php: PhpVersion,
     services: Vec<Service>,
@@ -44,6 +45,7 @@ impl CloudOptions {
     {
         let mut db = None;
         let mut php = None;
+        let mut name = None;
         let mut services = Vec::new();
         let mut app_package = Vec::new();
 
@@ -60,12 +62,16 @@ impl CloudOptions {
             } else if option.as_ref().ends_with(".tar.gz") {
                 app_package.push(option.to_string().into());
                 let _ = args.next();
+            } else if option.as_ref() == "--name" {
+                let _ = args.next();
+                name = args.next().map(|s| s.into());
             } else {
                 break;
             }
         }
 
         Ok(CloudOptions {
+            name,
             db: db.unwrap_or_default(),
             php: php.unwrap_or_default(),
             services,
@@ -159,7 +165,9 @@ impl Cloud {
         options: CloudOptions,
         config: &HazeConfig,
     ) -> Result<Self> {
-        let id = format!("haze-{}", petname(2, "-"));
+        let id = options
+            .name
+            .unwrap_or_else(|| format!("haze-{}", petname(2, "-")));
 
         let workdir = config.work_dir.join(&id);
         let app_package_dir = workdir.join("app_package");
