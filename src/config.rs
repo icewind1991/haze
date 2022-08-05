@@ -3,10 +3,21 @@ use directories_next::ProjectDirs;
 use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use serde::Deserialize;
 use std::convert::TryFrom;
+use std::env::var;
 use std::fs::{read, read_to_string};
 
 #[derive(Debug, Deserialize)]
+#[serde(from = "RawHazeConfig")]
 pub struct HazeConfig {
+    pub sources_root: Utf8PathBuf,
+    pub work_dir: Utf8PathBuf,
+    pub auto_setup: HazeAutoSetupConfig,
+    pub volume: Vec<HazeVolumeConfig>,
+    pub blackfire: Option<HazeBlackfireConfig>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RawHazeConfig {
     pub sources_root: Utf8PathBuf,
     #[serde(default = "default_work_dir")]
     pub work_dir: Utf8PathBuf,
@@ -16,6 +27,27 @@ pub struct HazeConfig {
     pub volume: Vec<HazeVolumeConfig>,
     #[serde(default)]
     pub blackfire: Option<HazeBlackfireConfig>,
+}
+
+impl From<RawHazeConfig> for HazeConfig {
+    fn from(raw: RawHazeConfig) -> Self {
+        fn normalize_path(path: Utf8PathBuf) -> Utf8PathBuf {
+            if path.starts_with("~") {
+                let home = var("HOME").expect("HOME not set");
+                format!("{}{}", home, &path.as_str()[1..]).into()
+            } else {
+                path
+            }
+        }
+
+        HazeConfig {
+            sources_root: normalize_path(raw.sources_root),
+            work_dir: normalize_path(raw.work_dir),
+            auto_setup: raw.auto_setup,
+            volume: raw.volume,
+            blackfire: raw.blackfire,
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]
