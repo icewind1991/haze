@@ -2,7 +2,8 @@ use camino::Utf8PathBuf;
 use directories_next::ProjectDirs;
 use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use serde::Deserialize;
-use std::fs::read;
+use std::convert::TryFrom;
+use std::fs::{read, read_to_string};
 
 #[derive(Debug, Deserialize)]
 pub struct HazeConfig {
@@ -62,11 +63,56 @@ pub struct HazeVolumeConfig {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(try_from = "RawHazeBlackfireConfig")]
 pub struct HazeBlackfireConfig {
     pub server_id: String,
     pub server_token: String,
     pub client_id: String,
     pub client_token: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RawHazeBlackfireConfig {
+    #[serde(default)]
+    pub server_id: Option<String>,
+    #[serde(default)]
+    pub server_id_path: Option<String>,
+    #[serde(default)]
+    pub server_token: Option<String>,
+    #[serde(default)]
+    pub server_token_path: Option<String>,
+    #[serde(default)]
+    pub client_id: Option<String>,
+    #[serde(default)]
+    pub client_id_path: Option<String>,
+    #[serde(default)]
+    pub client_token: Option<String>,
+    #[serde(default)]
+    pub client_token_path: Option<String>,
+}
+
+impl TryFrom<RawHazeBlackfireConfig> for HazeBlackfireConfig {
+    type Error = String;
+
+    fn try_from(value: RawHazeBlackfireConfig) -> std::result::Result<Self, Self::Error> {
+        Ok(HazeBlackfireConfig {
+            server_id: load_secret("server_id", value.server_id_path, value.server_id)?,
+            server_token: load_secret("server_token", value.server_token_path, value.server_token)?,
+            client_id: load_secret("client_id", value.client_id_path, value.client_id)?,
+            client_token: load_secret("client_token", value.client_token_path, value.client_token)?,
+        })
+    }
+}
+
+fn load_secret(name: &str, path: Option<String>, raw: Option<String>) -> Result<String, String> {
+    match (path, raw) {
+        (None, Some(raw)) => Ok(raw),
+        (Some(path), None) => {
+            read_to_string(&path).map_err(|e| format!("failed to load {name} from {path}: {e}"))
+        }
+        (Some(_), Some(_)) => Err(format!("both {name} and {name}_path are specified")),
+        (None, None) => Err(format!("neither {name} nor {name}_path are specified")),
+    }
 }
 
 impl HazeConfig {
