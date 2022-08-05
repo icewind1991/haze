@@ -14,6 +14,7 @@ pub struct HazeConfig {
     pub auto_setup: HazeAutoSetupConfig,
     pub volume: Vec<HazeVolumeConfig>,
     pub blackfire: Option<HazeBlackfireConfig>,
+    pub proxy: ProxyConfig,
 }
 
 #[derive(Debug, Deserialize)]
@@ -27,6 +28,8 @@ pub struct RawHazeConfig {
     pub volume: Vec<HazeVolumeConfig>,
     #[serde(default)]
     pub blackfire: Option<HazeBlackfireConfig>,
+    #[serde(default)]
+    pub proxy: ProxyConfig,
 }
 
 impl From<RawHazeConfig> for HazeConfig {
@@ -46,6 +49,7 @@ impl From<RawHazeConfig> for HazeConfig {
             auto_setup: raw.auto_setup,
             volume: raw.volume,
             blackfire: raw.blackfire,
+            proxy: raw.proxy,
         }
     }
 }
@@ -145,6 +149,15 @@ fn load_secret(name: &str, path: Option<String>, raw: Option<String>) -> Result<
         (Some(_), Some(_)) => Err(format!("both {name} and {name}_path are specified")),
         (None, None) => Err(format!("neither {name} nor {name}_path are specified")),
     }
+}
+
+#[derive(Default, Deserialize, Debug)]
+pub struct ProxyConfig {
+    pub listen: String,
+    #[serde(default)]
+    pub address: String,
+    #[serde(default)]
+    pub https: bool,
 }
 
 impl HazeConfig {

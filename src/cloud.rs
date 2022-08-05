@@ -158,6 +158,7 @@ pub struct Cloud {
     pub workdir: Utf8PathBuf,
     pub services: Vec<Service>,
     pub pinned: bool,
+    pub address: String,
 }
 
 impl Cloud {
@@ -373,6 +374,14 @@ impl Cloud {
             }
         });
 
+        let clean_id = id.strip_prefix("haze-").unwrap_or(&id);
+
+        let address = match (&config.proxy.address, config.proxy.https) {
+            (public, true) if !public.is_empty() => format!("https://{clean_id}.{public}"),
+            (public, false) if !public.is_empty() => format!("http://{clean_id}.{public}"),
+            _ => format!("http://{ip}"),
+        };
+
         Ok(Cloud {
             id,
             network,
@@ -383,6 +392,7 @@ impl Cloud {
             workdir,
             services: options.services,
             pinned: false,
+            address,
         })
     }
 
@@ -451,7 +461,7 @@ impl Cloud {
     }
 
     pub async fn list(
-        docker: &mut Docker,
+        docker: &Docker,
         filter: Option<String>,
         config: &HazeConfig,
     ) -> Result<Vec<Cloud>> {
@@ -514,6 +524,21 @@ impl Cloud {
                     % 2)
                     == 1;
 
+                let ip = network_info.ip_address.as_ref()?.parse().ok();
+
+                let clean_id = id.strip_prefix("haze-").unwrap_or(&id);
+
+                let address = match (&config.proxy.address, config.proxy.https, ip) {
+                    (public, true, Some(_)) if !public.is_empty() => {
+                        format!("https://{clean_id}.{public}")
+                    }
+                    (public, false, Some(_)) if !public.is_empty() => {
+                        format!("http://{clean_id}.{public}")
+                    }
+                    (_, _, Some(ip)) => format!("http://{ip}"),
+                    _ => "Not running".into(),
+                };
+
                 service_ids.push(id.clone());
                 Some((
                     cloud.created.unwrap_or_default(),
@@ -523,10 +548,11 @@ impl Cloud {
                         db,
                         php,
                         containers: service_ids,
-                        ip: network_info.ip_address.as_ref()?.parse().ok(),
+                        ip,
                         workdir,
                         services: found_services,
                         pinned,
+                        address,
                     },
                 ))
             })
@@ -541,7 +567,7 @@ impl Cloud {
     }
 
     pub async fn get_by_filter(
-        docker: &mut Docker,
+        docker: &Docker,
         filter: Option<String>,
         config: &HazeConfig,
     ) -> Result<Cloud> {

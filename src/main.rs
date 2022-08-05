@@ -4,6 +4,7 @@ use crate::config::HazeConfig;
 use crate::exec::container_logs;
 use crate::network::clear_networks;
 use crate::php::PhpVersion;
+use crate::proxy::proxy;
 use crate::service::Service;
 use crate::service::ServiceTrait;
 use bollard::Docker;
@@ -19,6 +20,7 @@ mod image;
 mod mapping;
 mod network;
 mod php;
+mod proxy;
 mod service;
 
 #[tokio::main]
@@ -49,23 +51,14 @@ async fn main() -> Result<()> {
                 services.push(cloud.db.name());
                 let services = services.join(", ");
                 let pin = if cloud.pinned { "*" } else { "" };
-                match cloud.ip {
-                    Some(ip) => println!(
-                        "Cloud {}{}, {}, {}, running on http://{}",
-                        cloud.id,
-                        pin,
-                        cloud.php.name(),
-                        services,
-                        ip
-                    ),
-                    None => println!(
-                        "Cloud {}{}, {}, {}, not running",
-                        cloud.id,
-                        pin,
-                        cloud.php.name(),
-                        services
-                    ),
-                }
+                println!(
+                    "Cloud {}{}, {}, {}, running on {}",
+                    cloud.id,
+                    pin,
+                    cloud.php.name(),
+                    services,
+                    cloud.address
+                );
             }
         }
         HazeArgs::Start { options } => {
@@ -294,6 +287,9 @@ async fn main() -> Result<()> {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             cloud.unpin(&mut docker).await?;
         }
+        HazeArgs::Proxy => {
+            proxy(docker, config).await?;
+        }
     };
 
     Ok(())
@@ -301,7 +297,8 @@ async fn main() -> Result<()> {
 
 async fn setup(docker: &mut Docker, options: CloudOptions, config: &HazeConfig) -> Result<Cloud> {
     let cloud = Cloud::create(docker, options, &config).await?;
-    println!("http://{}", cloud.ip.unwrap());
+    println!("{}", cloud.address);
+    let host = cloud.address.split_once("://").expect("no address?").1;
     if config.auto_setup.enabled {
         println!("Waiting for servers to start");
         cloud.wait_for_start(docker).await?;
@@ -328,7 +325,7 @@ async fn setup(docker: &mut Docker, options: CloudOptions, config: &HazeConfig) 
                     "config:system:set",
                     "overwrite.cli.url",
                     "--value",
-                    &format!("http://{}", cloud.ip.unwrap()),
+                    &cloud.address,
                 ],
                 None,
             )
@@ -336,12 +333,12 @@ async fn setup(docker: &mut Docker, options: CloudOptions, config: &HazeConfig) 
         cloud
             .occ(
                 docker,
-                vec!["config:system:set", "overwritehost", "--value", &ip_str],
+                vec!["config:system:set", "overwritehost", "--value", host],
                 None,
             )
             .await?;
 
-        let domains = [ip_str.as_str(), "cloud", &cloud.id];
+        let domains = [ip_str.as_str(), "cloud", &cloud.id, host];
         for (i, domain) in domains.iter().enumerate() {
             cloud
                 .occ(

@@ -11,7 +11,7 @@ description = "Easy setup and management of Nextcloud test instances using docke
 bollard = "0.13.0"
 maplit = "1.0.2"
 camino = { version = "1.0.9", features = ["serde1"] }
-tokio = { version = "1.20.1", features = ["fs", "macros"] }
+tokio = { version = "1.20.1", features = ["fs", "macros", "signal"] }
 parse-display = "0.5.5"
 futures-util = "0.3.21"
 termion = "1.5.6"
@@ -27,6 +27,9 @@ async-trait = "0.1.57"
 enum_dispatch = "0.3.8"
 miette = { version = "5.2.0", features = ["fancy"] }
 shell-words = "1.1.0"
+warp = "0.3"
+warp-reverse-proxy = { version = "0.5.0", default_features = false, features = ["rustls-tls"] }
+tokio-stream = { version = "0.1.9", features = ["net"] }
 
 [profile.release]
 lto = true

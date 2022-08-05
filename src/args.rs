@@ -60,6 +60,7 @@ pub enum HazeArgs {
     Unpin {
         filter: Option<String>,
     },
+    Proxy,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -210,6 +211,7 @@ impl HazeArgs {
             }
             HazeCommand::Pin => Ok(HazeArgs::Pin { filter }),
             HazeCommand::Unpin => Ok(HazeArgs::Unpin { filter }),
+            HazeCommand::Proxy => Ok(HazeArgs::Proxy),
         }
     }
 }
@@ -231,6 +233,7 @@ pub enum HazeCommand {
     Shell,
     Pin,
     Unpin,
+    Proxy,
 }
 
 impl FromStr for HazeCommand {
@@ -254,6 +257,7 @@ impl FromStr for HazeCommand {
             "shell" => Ok(HazeCommand::Shell),
             "pin" => Ok(HazeCommand::Pin),
             "unpin" => Ok(HazeCommand::Unpin),
+            "proxy" => Ok(HazeCommand::Proxy),
             _ => Err(Report::msg(format!("Unknown command: {}", s))),
         }
     }
@@ -277,6 +281,7 @@ impl HazeCommand {
             HazeCommand::Shell => false,
             HazeCommand::Pin => true,
             HazeCommand::Unpin => true,
+            HazeCommand::Proxy => false,
         }
     }
 }

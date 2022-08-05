@@ -52,6 +52,10 @@
               server_id_path = cfg.blackfire.serverIdPath;
               server_token_path = cfg.blackfire.serverTokenPath;
             };
+          }) // (if (cfg.proxy == null) then {} else {
+            proxy = {
+              inherit (cfg.proxy) listen https address;
+            };
           }));
           pkg = self.defaultPackage.${pkgs.system};
         in {
@@ -131,11 +135,48 @@
                 };
               });
             };
+
+            proxy = mkOption {
+              default = null;
+              type = types.nullOr (types.submodule {
+                options = {
+                  listen = mkOption {
+                    type = types.str;
+                    description = "Listen address or socket path to listen to";
+                  };
+                  address = mkOption {
+                    default = "";
+                    type = types.str;
+                    description = "Base address served by a reverse proxy to the haze proxy, instaces will be servered on subdomain of this address";
+                  };
+                  https = mkOption {
+                    default = false;
+                    type = types.bool;
+                    description = "Whether the reverse proxy accepts https connections";
+                  };
+                };
+              });
+            };
           };
 
           config = mkIf cfg.enable {
             xdg.configFile."haze/haze.toml".source = configFile;
             home.packages = [pkg];
+
+            systemd.user.services.haze = {
+              Unit = {
+                Description = "Haze reverse proxy";
+              };
+
+              Service = {
+                ExecStart = "${pkg}/bin/haze proxy";
+                Restart = "on-failure";
+                RestartSec = 10;
+              };
+              Install = {
+                WantedBy = optional (cfg.proxy.listen != "") "default.target";
+              };
+            };
           };
         };
     };
