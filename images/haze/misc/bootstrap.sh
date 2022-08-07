@@ -67,9 +67,11 @@ fi
 
 if [ -n "$BLACKFIRE_SERVER_ID" ]
 then
-  yes | blackfire agent:config --server-id=$BLACKFIRE_SERVER_ID --server-token=$BLACKFIRE_SERVER_TOKEN
-  mkdir /var/run/blackfire/
-  BLACKFIRE_LOG_LEVEL=4 BLACKFIRE_LOG_FILE=/var/log/agent.log blackfire agent &
+  sh -c '
+    yes | blackfire agent:config --server-id=$BLACKFIRE_SERVER_ID --server-token=$BLACKFIRE_SERVER_TOKEN
+    mkdir /var/run/blackfire/
+    BLACKFIRE_LOG_LEVEL=4 BLACKFIRE_LOG_FILE=/var/log/agent.log blackfire agent &
+  '&
 fi
 
 crontab /etc/oc-cron.conf

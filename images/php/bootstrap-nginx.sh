@@ -8,12 +8,20 @@ tail --follow --retry /var/log/nginx/*.log &
 UID=${UID:-1000}
 GID=${GID:-1000}
 
-groupadd -g $GID haze
-useradd -m -u $UID -g $GID haze
-chown -R haze:haze /home/haze
+if [ $(getent group $GID) ]; then
+  groupadd haze
+  EXTRA_GROUP=" -G haze"
+else
+  groupadd -g $GID haze
+  EXTRA_GROUP=""
+fi
+useradd -u $UID -g $GID $EXTRA_GROUP haze
+chown -R haze:$GID /home/haze
 
-groupadd docker -g $(stat --format "%g" /var/run/docker.sock)
-usermod -a -G docker haze
+if [ -f "/var/run/docker.sock" ]; then
+  groupadd docker -g $(stat --format "%g" /var/run/docker.sock)
+  usermod -a -G docker haze
+fi
 
 /usr/local/sbin/php-fpm &
-/etc/init.d/nginx start
+nginx

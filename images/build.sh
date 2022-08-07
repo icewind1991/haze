@@ -1,6 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
+
+export DOCKER_BUILDKIT=1
 
 versions=("7.3" "7.4" "8.0" "8.1")
 

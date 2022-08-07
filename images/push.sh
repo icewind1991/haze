@@ -1,8 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
 versions=("7.3" "7.4" "8.0" "8.1" "7.3-dbg" "7.4-dbg" "8.0-dbg" "8.1-dbg")
+versions=("7.4")
 
 for version in "${versions[@]}"; do
   docker push "icewind1991/haze-php:$version"
