@@ -126,10 +126,15 @@ impl PhpVersion {
             .await
             .into_diagnostic()?
             .id;
-        docker
+
+        if let Err(e) = docker
             .start_container::<String>(&id, None)
             .await
-            .into_diagnostic()?;
+            .into_diagnostic()
+        {
+            docker.remove_container(&id, None).await.ok();
+            return Err(e);
+        }
 
         docker
             .connect_network(
