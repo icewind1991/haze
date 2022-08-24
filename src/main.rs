@@ -2,6 +2,7 @@ use crate::args::{ExecService, HazeArgs};
 use crate::cloud::{Cloud, CloudOptions};
 use crate::config::HazeConfig;
 use crate::exec::container_logs;
+use crate::git::checkout_all;
 use crate::network::clear_networks;
 use crate::php::PhpVersion;
 use crate::proxy::proxy;
@@ -16,6 +17,7 @@ mod cloud;
 mod config;
 mod database;
 mod exec;
+mod git;
 mod image;
 mod mapping;
 mod network;
@@ -26,6 +28,7 @@ mod service;
 #[tokio::main]
 async fn main() -> Result<()> {
     miette::set_panic_hook();
+    tracing_subscriber::fmt::init();
 
     let mut docker = Docker::connect_with_local_defaults()
         .into_diagnostic()
@@ -289,6 +292,9 @@ async fn main() -> Result<()> {
         }
         HazeArgs::Proxy => {
             proxy(docker, config).await?;
+        }
+        HazeArgs::Checkout { branch } => {
+            checkout_all(&config.sources_root, &branch)?;
         }
     };
 
