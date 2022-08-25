@@ -136,7 +136,7 @@ impl PhpVersion {
             return Err(e);
         }
 
-        docker
+        if let Err(e) = docker
             .connect_network(
                 "haze",
                 ConnectNetworkOptions {
@@ -148,7 +148,11 @@ impl PhpVersion {
                 },
             )
             .await
-            .into_diagnostic()?;
+            .into_diagnostic()
+        {
+            docker.remove_container(&id, None).await.ok();
+            return Err(e);
+        }
 
         Ok(id)
     }
