@@ -304,11 +304,29 @@ impl Cloud {
                 .map(String::from),
         );
 
-        let container = options
+        let container = match options
             .php
             .spawn(docker, &id, env, &options.db, &network, volumes, gateway)
             .await
-            .wrap_err("Failed to start php container")?;
+            .wrap_err("Failed to start php container")
+        {
+            Ok(container) => container,
+            Err(e) => {
+                for container in service_containers {
+                    docker
+                        .remove_container(
+                            &container,
+                            Some(RemoveContainerOptions {
+                                force: true,
+                                ..RemoveContainerOptions::default()
+                            }),
+                        )
+                        .await
+                        .ok();
+                }
+                return Err(e);
+            }
+        };
 
         let mut tries = 0;
         let ip = loop {
