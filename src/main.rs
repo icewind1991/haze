@@ -137,7 +137,7 @@ async fn main() -> Result<()> {
         HazeArgs::Open { filter } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             match cloud.ip {
-                Some(ip) => opener::open(format!("http://{}", ip)).into_diagnostic()?,
+                Some(_) => opener::open(cloud.address).into_diagnostic()?,
                 None => eprintln!("{} is not running", cloud.id),
             }
         }
