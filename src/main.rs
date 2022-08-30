@@ -343,6 +343,15 @@ async fn setup(docker: &mut Docker, options: CloudOptions, config: &HazeConfig) 
                 None,
             )
             .await?;
+        if cloud.address.contains("https://") {
+            cloud
+                .occ(
+                    docker,
+                    vec!["config:system:set", "overwriteprotocol", "--value", "https"],
+                    None,
+                )
+                .await?;
+        }
 
         let domains = [ip_str.as_str(), "cloud", &cloud.id, host];
         for (i, domain) in domains.iter().enumerate() {
