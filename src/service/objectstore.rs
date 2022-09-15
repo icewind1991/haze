@@ -4,7 +4,7 @@ use crate::image::pull_image;
 use crate::service::ServiceTrait;
 use crate::Result;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
-use bollard::models::{EndpointSettings, HostConfig};
+use bollard::models::{ContainerState, EndpointSettings, HostConfig};
 use bollard::Docker;
 use maplit::hashmap;
 use miette::IntoDiagnostic;
@@ -13,6 +13,7 @@ use miette::IntoDiagnostic;
 pub enum ObjectStore {
     S3,
     S3mb,
+    Azure,
 }
 
 impl ObjectStore {
@@ -20,6 +21,7 @@ impl ObjectStore {
         match self {
             ObjectStore::S3 => "localstack/localstack:0.14.3",
             ObjectStore::S3mb => "localstack/localstack:0.14.3",
+            ObjectStore::Azure => "arafato/azurite:2.6.5",
         }
     }
 
@@ -27,12 +29,14 @@ impl ObjectStore {
         match self {
             ObjectStore::S3 => vec!["DEBUG=1", "SERVICES=s3"],
             ObjectStore::S3mb => vec!["DEBUG=1", "SERVICES=s3"],
+            ObjectStore::Azure => vec![],
         }
     }
     fn host_name(&self) -> &str {
         match self {
             ObjectStore::S3 => "s3",
             ObjectStore::S3mb => "s3",
+            ObjectStore::Azure => "azure",
         }
     }
 }
@@ -43,6 +47,7 @@ impl ServiceTrait for ObjectStore {
         match self {
             ObjectStore::S3 => "s3",
             ObjectStore::S3mb => "s3mb",
+            ObjectStore::Azure => "azure",
         }
     }
 
@@ -50,6 +55,7 @@ impl ServiceTrait for ObjectStore {
         match self {
             ObjectStore::S3 => &["S3=1"],
             ObjectStore::S3mb => &["S3MB=1"],
+            ObjectStore::Azure => &["AZURE=1"],
         }
     }
 
@@ -98,18 +104,38 @@ impl ServiceTrait for ObjectStore {
     }
 
     async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
-        let mut output = Vec::new();
-        exec(
-            docker,
-            format!("{}-object", cloud_id),
-            "root",
-            vec!["curl", "localhost:4566/health"],
-            vec![],
-            Some(&mut output),
-        )
-        .await?;
-        let output = String::from_utf8(output).into_diagnostic()?;
-        Ok(output.contains(r#""s3": "running""#) || output.contains(r#""s3": "available""#))
+        match self {
+            ObjectStore::S3 | ObjectStore::S3mb => {
+                let mut output = Vec::new();
+                exec(
+                    docker,
+                    format!("{}-object", cloud_id),
+                    "root",
+                    vec!["curl", "localhost:4566/health"],
+                    vec![],
+                    Some(&mut output),
+                )
+                .await?;
+                let output = String::from_utf8(output).into_diagnostic()?;
+                Ok(
+                    output.contains(r#""s3": "running""#)
+                        || output.contains(r#""s3": "available""#),
+                )
+            }
+            _ => {
+                let info = docker
+                    .inspect_container(&self.container_name(cloud_id), None)
+                    .await
+                    .into_diagnostic()?;
+                Ok(matches!(
+                    info.state,
+                    Some(ContainerState {
+                        running: Some(true),
+                        ..
+                    })
+                ))
+            }
+        }
     }
 
     fn container_name(&self, cloud_id: &str) -> String {
