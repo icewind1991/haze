@@ -174,7 +174,7 @@
                 RestartSec = 10;
               };
               Install = {
-                WantedBy = optional (cfg.proxy.listen != "") "default.target";
+                WantedBy = optional (cfg.proxy != null && cfg.proxy.listen != "") "default.target";
               };
             };
           };
