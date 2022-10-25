@@ -1,3 +1,5 @@
+extern crate core;
+
 use crate::args::{ExecService, HazeArgs};
 use crate::cloud::{Cloud, CloudOptions};
 use crate::config::HazeConfig;

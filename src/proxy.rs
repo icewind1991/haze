@@ -1,12 +1,12 @@
-use crate::Result;
 use crate::{Cloud, HazeConfig};
+use crate::{Result, Service};
 use bollard::Docker;
 use futures_util::future::Either;
 use futures_util::FutureExt;
 use miette::{miette, Context, IntoDiagnostic};
 use std::collections::HashMap;
 use std::fs::{create_dir_all, remove_file, set_permissions};
-use std::net::{IpAddr, SocketAddr};
+use std::net::SocketAddr;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -24,7 +24,7 @@ use warp_reverse_proxy::{
 };
 
 struct ActiveInstances {
-    known: Mutex<HashMap<String, IpAddr>>,
+    known: Mutex<HashMap<String, SocketAddr>>,
     docker: Docker,
     config: HazeConfig,
 }
@@ -38,23 +38,39 @@ impl ActiveInstances {
         }
     }
 
-    pub async fn get(&self, name: &str) -> Option<IpAddr> {
+    pub async fn get(&self, name: &str) -> Option<SocketAddr> {
         if let Some(ip) = self.known.lock().unwrap().get(name).cloned() {
             return Some(ip);
         }
 
-        let cloud = Cloud::get_by_filter(&self.docker, Some(name.into()), &self.config)
-            .await
-            .ok()?;
+        let addr = if let Some(name) = name.strip_suffix("-push") {
+            let cloud = Cloud::get_by_filter(&self.docker, Some(name.into()), &self.config)
+                .await
+                .ok()?;
+            let push = cloud
+                .services
+                .iter()
+                .filter_map(|service| match service {
+                    Service::Push(push) => Some(push),
+                    _ => None,
+                })
+                .next()?;
+            let ip = push.get_ip(&self.docker, &cloud.id).await.ok()?;
+            SocketAddr::new(ip, 7867)
+        } else {
+            SocketAddr::new(
+                Cloud::get_by_filter(&self.docker, Some(name.into()), &self.config)
+                    .await
+                    .ok()?
+                    .ip?,
+                80,
+            )
+        };
 
-        if let Some(ip) = cloud.ip {
-            println!("{name} => {ip}");
+        println!("{name} => {addr}");
 
-            self.known.lock().unwrap().insert(name.into(), ip);
-            return Some(ip);
-        }
-
-        None
+        self.known.lock().unwrap().insert(name.into(), addr);
+        Some(addr)
     }
 }
 
