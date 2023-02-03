@@ -12,6 +12,7 @@ use miette::IntoDiagnostic;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ObjectStore {
     S3,
+    S3m,
     S3mb,
     Azure,
 }
@@ -20,6 +21,7 @@ impl ObjectStore {
     fn image(&self) -> &str {
         match self {
             ObjectStore::S3 => "localstack/localstack:0.14.3",
+            ObjectStore::S3m => "localstack/localstack:0.14.3",
             ObjectStore::S3mb => "localstack/localstack:0.14.3",
             ObjectStore::Azure => "arafato/azurite:2.6.5",
         }
@@ -28,6 +30,7 @@ impl ObjectStore {
     fn self_env(&self) -> Vec<&str> {
         match self {
             ObjectStore::S3 => vec!["DEBUG=1", "SERVICES=s3"],
+            ObjectStore::S3m => vec!["DEBUG=1", "SERVICES=s3"],
             ObjectStore::S3mb => vec!["DEBUG=1", "SERVICES=s3"],
             ObjectStore::Azure => vec![],
         }
@@ -35,6 +38,7 @@ impl ObjectStore {
     fn host_name(&self) -> &str {
         match self {
             ObjectStore::S3 => "s3",
+            ObjectStore::S3m => "s3",
             ObjectStore::S3mb => "s3",
             ObjectStore::Azure => "azure",
         }
@@ -46,6 +50,7 @@ impl ServiceTrait for ObjectStore {
     fn name(&self) -> &str {
         match self {
             ObjectStore::S3 => "s3",
+            ObjectStore::S3m => "s3m",
             ObjectStore::S3mb => "s3mb",
             ObjectStore::Azure => "azure",
         }
@@ -54,6 +59,7 @@ impl ServiceTrait for ObjectStore {
     fn env(&self) -> &[&str] {
         match self {
             ObjectStore::S3 => &["S3=1"],
+            ObjectStore::S3m => &["S3M=1"],
             ObjectStore::S3mb => &["S3MB=1"],
             ObjectStore::Azure => &["AZURE=1"],
         }

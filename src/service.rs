@@ -88,6 +88,7 @@ impl Service {
     pub fn from_type(ty: &str) -> Option<&'static [Self]> {
         match ty {
             "s3" => Some(&[Service::ObjectStore(ObjectStore::S3)]),
+            "s3m" => Some(&[Service::ObjectStore(ObjectStore::S3m)]),
             "s3mb" => Some(&[Service::ObjectStore(ObjectStore::S3mb)]),
             "azure" => Some(&[Service::ObjectStore(ObjectStore::Azure)]),
             "ldap" => Some(&[Service::LDAP(LDAP), Service::LDAPAdmin(LDAPAdmin)]),

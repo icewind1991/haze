@@ -50,6 +50,11 @@ then
 	sed -i '/\/\/PLACEHOLDER/ r /root/s3mb.php' /var/www/html/config/config.php
 fi
 
+if [ -n "$S3M" ]
+then
+	sed -i '/\/\/PLACEHOLDER/ r /root/s3m.php' /var/www/html/config/config.php
+fi
+
 if [ -n "$SWIFT" ]
 then
     sed -i '/\/\/PLACEHOLDER/ r /root/swift.php' /var/www/html/config/config.php
