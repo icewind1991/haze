@@ -177,6 +177,6 @@ impl PhpVersion {
 
 impl Default for PhpVersion {
     fn default() -> Self {
-        PhpVersion::Php74
+        PhpVersion::Php81
     }
 }
