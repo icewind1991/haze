@@ -11,9 +11,13 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use tokio::net::UnixListener;
 use tokio::signal::ctrl_c;
+use tokio::spawn;
+use tokio::time::sleep;
 use tokio_stream::wrappers::UnixListenerStream;
+use tracing::info;
 use warp::host::Authority;
 use warp::http::{HeaderMap, HeaderValue, Method};
 use warp::hyper::body::Bytes;
@@ -25,6 +29,7 @@ use warp_reverse_proxy::{
 
 struct ActiveInstances {
     known: Mutex<HashMap<String, SocketAddr>>,
+    last: Mutex<Option<SocketAddr>>,
     docker: Docker,
     config: HazeConfig,
 }
@@ -33,6 +38,7 @@ impl ActiveInstances {
     pub fn new(docker: Docker, config: HazeConfig) -> Self {
         ActiveInstances {
             known: Mutex::default(),
+            last: Mutex::default(),
             docker,
             config,
         }
@@ -72,6 +78,22 @@ impl ActiveInstances {
         self.known.lock().unwrap().insert(name.into(), addr);
         Some(addr)
     }
+
+    pub fn last(&self) -> Option<SocketAddr> {
+        self.last.lock().unwrap().clone()
+    }
+
+    async fn update_last(&self) {
+        let last = Cloud::get_by_filter(&self.docker, None, &self.config)
+            .await
+            .ok()
+            .and_then(|cloud| Some(SocketAddr::new(cloud.ip?, 80)));
+        let mut old = self.last.lock().unwrap();
+        if old.as_ref() != last.as_ref() {
+            info!(instance = ?last, "Found new instance");
+            *old = last;
+        }
+    }
 }
 
 pub async fn proxy(docker: Docker, config: HazeConfig) -> Result<()> {
@@ -80,29 +102,54 @@ pub async fn proxy(docker: Docker, config: HazeConfig) -> Result<()> {
     }
     let listen = config.proxy.listen.clone();
 
+    let base_address = config.proxy.address.clone();
     let instances = ActiveInstances::new(docker, config);
-    serve(instances, listen).await
+    serve(instances, listen, base_address).await
 }
 
-async fn serve(instances: ActiveInstances, listen: String) -> Result<()> {
+async fn serve(instances: ActiveInstances, listen: String, base_address: String) -> Result<()> {
     let instances = Arc::new(instances);
+    let base_address = Arc::new(base_address);
+    let last_instances = instances.clone();
     let instances = warp::any().map(move || instances.clone());
+    let base_address = warp::any().map(move || base_address.clone());
+
+    spawn(async move {
+        loop {
+            sleep(Duration::from_secs(1)).await;
+            last_instances.update_last().await;
+        }
+    });
 
     let proxy = warp::any()
         .and(warp::filters::host::optional())
         .and(instances)
+        .and(base_address)
         .and_then(
-            move |host: Option<Authority>, instances: Arc<ActiveInstances>| async move {
+            move |host: Option<Authority>,
+                  instances: Arc<ActiveInstances>,
+                  base_address: Arc<String>| async move {
                 let host = match host {
                     Some(host) => host,
                     None => return Err(warp::reject::not_found()),
                 };
-                let requested_instance = host.as_str().split('.').next().unwrap();
-                if let Some(ip) = instances.get(requested_instance).await {
-                    Ok((format!("http://{}", ip), host.to_string()))
+                let ip = if host.as_str() == base_address.as_str() {
+                    instances
+                        .last()
+                        .ok_or_else(|| String::from("No running instance known"))
                 } else {
-                    eprintln!("Error {} has no known ip", requested_instance);
-                    Err(warp::reject::not_found())
+                    let requested_instance = host.as_str().split('.').next().unwrap();
+                    instances
+                        .get(requested_instance)
+                        .await
+                        .ok_or_else(|| format!("Error {} has no known ip", requested_instance))
+                };
+                match ip {
+                    Ok(ip) => Ok((format!("http://{}", ip), host.to_string())),
+                    Err(e) => {
+                        eprintln!("{}", e);
+                        Err(warp::reject::not_found())
+                    }
                 }
             },
         )

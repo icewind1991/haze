@@ -6,7 +6,6 @@ use crate::config::HazeConfig;
 use crate::exec::container_logs;
 use crate::git::checkout_all;
 use crate::network::clear_networks;
-use crate::php::PhpVersion;
 use crate::proxy::proxy;
 use crate::service::Service;
 use crate::service::ServiceTrait;
