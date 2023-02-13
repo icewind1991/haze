@@ -78,7 +78,12 @@ impl ServiceTrait for ClamIcap {
         &["files_antivirus"]
     }
 
-    async fn post_setup(&self, _docker: &Docker, _cloud_id: &str) -> Result<Vec<String>> {
+    async fn post_setup(
+        &self,
+        _docker: &Docker,
+        _cloud_id: &str,
+        _config: &HazeConfig,
+    ) -> Result<Vec<String>> {
         Ok(vec![
             "occ config:app:set files_antivirus av_mode --value=icap".into(),
             "occ config:app:set files_antivirus av_host --value=clamav-icap".into(),

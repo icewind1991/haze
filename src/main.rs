@@ -374,7 +374,7 @@ async fn setup(docker: &mut Docker, options: CloudOptions, config: &HazeConfig) 
             }
         }
         for service in &cloud.services {
-            for cmd in service.post_setup(&docker, &cloud.id).await? {
+            for cmd in service.post_setup(&docker, &cloud.id, config).await? {
                 cloud
                     .exec(docker, shell_words::split(&cmd).into_diagnostic()?, false)
                     .await?;

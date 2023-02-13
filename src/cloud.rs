@@ -78,10 +78,6 @@ impl CloudOptions {
             app_packages: app_package,
         })
     }
-
-    pub fn with_php(self, php: PhpVersion) -> Self {
-        CloudOptions { php, ..self }
-    }
 }
 
 #[test]
@@ -392,13 +388,7 @@ impl Cloud {
             }
         });
 
-        let clean_id = id.strip_prefix("haze-").unwrap_or(&id);
-
-        let address = match (&config.proxy.address, config.proxy.https) {
-            (public, true) if !public.is_empty() => format!("https://{clean_id}.{public}"),
-            (public, false) if !public.is_empty() => format!("http://{clean_id}.{public}"),
-            _ => format!("http://{ip}"),
-        };
+        let address = config.proxy.addr(&id, ip);
 
         Ok(Cloud {
             id,
@@ -543,18 +533,10 @@ impl Cloud {
                     == 1;
 
                 let ip = network_info.ip_address.as_ref()?.parse().ok();
-
-                let clean_id = id.strip_prefix("haze-").unwrap_or(&id);
-
-                let address = match (&config.proxy.address, config.proxy.https, ip) {
-                    (public, true, Some(_)) if !public.is_empty() => {
-                        format!("https://{clean_id}.{public}")
-                    }
-                    (public, false, Some(_)) if !public.is_empty() => {
-                        format!("http://{clean_id}.{public}")
-                    }
-                    (_, _, Some(ip)) => format!("http://{ip}"),
-                    _ => "Not running".into(),
+                let address = if let Some(ip) = ip {
+                    config.proxy.addr(&id, ip)
+                } else {
+                    "Not running".into()
                 };
 
                 service_ids.push(id.clone());

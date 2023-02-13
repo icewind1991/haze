@@ -26,16 +26,34 @@ impl ServiceTrait for Office {
         docker: &Docker,
         cloud_id: &str,
         network: &str,
-        _config: &HazeConfig,
+        config: &HazeConfig,
     ) -> Result<String> {
         let image = "collabora/code";
         pull_image(docker, image).await?;
+        let container_id = self.container_name(cloud_id);
         let options = Some(CreateContainerOptions {
-            name: self.container_name(cloud_id),
+            name: container_id.clone(),
         });
+        let mut env = vec!["extra_params=--o:ssl.enable=false --o:ssl.termination=true"];
+
+        let clean_id = container_id.strip_prefix("haze-").unwrap_or(&container_id);
+        let server_name_opt = match (&config.proxy.address, config.proxy.https) {
+            (public, true) if !public.is_empty() => {
+                format!("server_name={clean_id}.{public}")
+            }
+            (public, false) if !public.is_empty() => {
+                format!("server_name={clean_id}.{public}")
+            }
+            _ => "".to_string(),
+        };
+
+        if !server_name_opt.is_empty() {
+            env.push(&server_name_opt);
+        }
+
         let config = Config {
             image: Some(image),
-            env: Some(vec!["extra_params=--o:ssl.enable=false"]),
+            env: Some(env),
             host_config: Some(HostConfig {
                 network_mode: Some(network.to_string()),
                 ..Default::default()
@@ -74,9 +92,15 @@ impl ServiceTrait for Office {
         &["richdocuments"]
     }
 
-    async fn post_setup(&self, docker: &Docker, cloud_id: &str) -> Result<Vec<String>> {
+    async fn post_setup(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        config: &HazeConfig,
+    ) -> Result<Vec<String>> {
+        let container = &self.container_name(cloud_id);
         let info = docker
-            .inspect_container(&self.container_name(cloud_id), None)
+            .inspect_container(container, None)
             .await
             .into_diagnostic()?;
         let ip = if matches!(
@@ -96,6 +120,8 @@ impl ServiceTrait for Office {
                 .ip_address
                 .clone()
                 .unwrap()
+                .parse()
+                .into_diagnostic()?
         } else {
             return Err(Report::msg("office not started"));
         };
@@ -105,8 +131,8 @@ impl ServiceTrait for Office {
                 ip
             ),
             format!(
-                r#"occ config:app:set richdocuments public_wopi_url --value="http://{}:9980""#,
-                ip
+                r#"occ config:app:set richdocuments public_wopi_url --value="{}""#,
+                config.proxy.addr_with_port(container, ip, 9980)
             ),
             format!(
                 r#"occ config:app:set richdocuments wopi_root --value="http://{}""#,

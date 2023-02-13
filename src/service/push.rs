@@ -2,13 +2,10 @@ use crate::config::HazeConfig;
 use crate::image::pull_image;
 use crate::service::ServiceTrait;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
-use bollard::models::{ContainerState, EndpointSettings, HostConfig};
+use bollard::models::{EndpointSettings, HostConfig};
 use bollard::Docker;
 use maplit::hashmap;
-use miette::{IntoDiagnostic, Report, Result, WrapErr};
-use std::net::IpAddr;
-use std::time::Duration;
-use tokio::time::{sleep, timeout};
+use miette::{IntoDiagnostic, Result};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct NotifyPush;
@@ -85,77 +82,16 @@ impl ServiceTrait for NotifyPush {
         Ok(true)
     }
 
-    async fn post_setup(&self, docker: &Docker, cloud_id: &str) -> Result<Vec<String>> {
+    async fn post_setup(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        _config: &HazeConfig,
+    ) -> Result<Vec<String>> {
         let ip = self.get_ip(docker, cloud_id).await?;
         Ok(vec![
             format!("occ config:system:set trusted_proxies 1 --value {}", ip),
             format!("occ notify_push:setup http://{}:7867", ip),
         ])
-    }
-}
-
-impl NotifyPush {
-    async fn is_push_running(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
-        let info = docker
-            .inspect_container(&self.container_name(cloud_id), None)
-            .await
-            .into_diagnostic()?;
-        Ok(matches!(
-            info.state,
-            Some(ContainerState {
-                running: Some(true),
-                ..
-            })
-        ))
-    }
-
-    async fn wait_for_push(&self, docker: &Docker, cloud_id: &str) -> Result<()> {
-        timeout(Duration::from_secs(30), async {
-            while !self.is_push_running(docker, cloud_id).await? {
-                sleep(Duration::from_millis(100)).await
-            }
-            Ok(())
-        })
-        .await
-        .into_diagnostic()
-        .wrap_err("Timeout after 30 seconds")?
-    }
-
-    pub async fn get_ip(&self, docker: &Docker, cloud_id: &str) -> Result<IpAddr> {
-        docker
-            .start_container::<String>(&self.container_name(cloud_id), None)
-            .await
-            .into_diagnostic()?;
-        self.wait_for_push(docker, cloud_id).await?;
-
-        sleep(Duration::from_millis(100)).await;
-
-        let info = docker
-            .inspect_container(&self.container_name(cloud_id), None)
-            .await
-            .into_diagnostic()?;
-        if matches!(
-            info.state,
-            Some(ContainerState {
-                running: Some(true),
-                ..
-            })
-        ) {
-            info.network_settings
-                .unwrap()
-                .networks
-                .unwrap()
-                .values()
-                .next()
-                .unwrap()
-                .ip_address
-                .clone()
-                .unwrap()
-                .parse()
-                .into_diagnostic()
-                .wrap_err("Invalid ip address")
-        } else {
-            Err(Report::msg("notify_push not started"))
-        }
     }
 }

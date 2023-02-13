@@ -73,7 +73,12 @@ impl ServiceTrait for OnlyOffice {
         &["onlyoffice"]
     }
 
-    async fn post_setup(&self, docker: &Docker, cloud_id: &str) -> Result<Vec<String>> {
+    async fn post_setup(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        _config: &HazeConfig,
+    ) -> Result<Vec<String>> {
         let info = docker
             .inspect_container(&self.container_name(cloud_id), None)
             .await

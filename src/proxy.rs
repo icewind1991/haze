@@ -1,3 +1,4 @@
+use crate::service::ServiceTrait;
 use crate::{Cloud, HazeConfig};
 use crate::{Result, Service};
 use bollard::Docker;
@@ -63,6 +64,20 @@ impl ActiveInstances {
                 .next()?;
             let ip = push.get_ip(&self.docker, &cloud.id).await.ok()?;
             SocketAddr::new(ip, 7867)
+        } else if let Some(name) = name.strip_suffix("-office") {
+            let cloud = Cloud::get_by_filter(&self.docker, Some(name.into()), &self.config)
+                .await
+                .ok()?;
+            let office = cloud
+                .services
+                .iter()
+                .filter_map(|service| match service {
+                    Service::Office(office) => Some(office),
+                    _ => None,
+                })
+                .next()?;
+            let ip = office.get_ip(&self.docker, &cloud.id).await.ok()?;
+            SocketAddr::new(ip, 9980)
         } else {
             SocketAddr::new(
                 Cloud::get_by_filter(&self.docker, Some(name.into()), &self.config)

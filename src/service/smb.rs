@@ -79,7 +79,12 @@ impl ServiceTrait for Smb {
         Ok(true)
     }
 
-    async fn post_setup(&self, _docker: &Docker, _cloud_id: &str) -> Result<Vec<String>> {
+    async fn post_setup(
+        &self,
+        _docker: &Docker,
+        _cloud_id: &str,
+        _config: &HazeConfig,
+    ) -> Result<Vec<String>> {
         Ok(vec![
             "occ files_external:create smb smb password::password".into(),
             "occ files_external:config 1 host smb".into(),
