@@ -37,12 +37,13 @@ haze start [database] [php-version]
 ```
 
 Where `database` is one of `sqlite`, `mysql`, `mariadb` or `pgsql` with an optional version (e.g. `pgsql:12`), defaults to `sqlite`.
-And `php-version` is one of `7.3`, `7.4`, `8.0`, `7` or `8`, defaults to `8.0`
+And `php-version` is one of `7.3`, `7.4`, `8.0`, `8.1`, `7` or `8`, defaults to `8.1`
 
 Additionally, you can use the following options when starting an instance:
  - `s3`: setup an S3 server and configure to Nextcloud to use it as primary storage
  - `<path to app.tar.gz>`: by specifying the path to an app package this package will be extracted into the apps directory of the new instance (overwriting any existing app code). This can be used to quickly test a packaged app. 
  - `ldap`: setup an LDAP server
+ - `office`: setup a Nextcloud Office server
  - `onlyoffice` setup an onlyoffice document server
  - `push` setup [client push](https://github.com/nextcloud/notify_push)
  - `smb`: setup a samba server for external storage use

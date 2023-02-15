@@ -28,10 +28,11 @@ enum_dispatch = "0.3.8"
 miette = { version = "5.2.0", features = ["fancy"] }
 shell-words = "1.1.0"
 warp = "0.3"
-warp-reverse-proxy = { version = "0.5.0", default_features = false, features = ["rustls-tls"] }
 tokio-stream = { version = "0.1.9", features = ["net"] }
 tracing = "0.1.35"
 tracing-subscriber = "0.3.14"
+hyper-reverse-proxy = { version = "0.5.2-dev", git = "https://github.com/felipenoris/hyper-reverse-proxy" }
+hyper = "0.14.24"
 
 [profile.release]
 lto = true
