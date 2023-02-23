@@ -4,7 +4,7 @@ use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use serde::Deserialize;
 use std::convert::TryFrom;
 use std::env::var;
-use std::fs::{read, read_to_string};
+use std::fs::read_to_string;
 use std::net::IpAddr;
 
 #[derive(Debug, Deserialize)]
@@ -192,10 +192,10 @@ impl HazeConfig {
                 file.to_string_lossy()
             )));
         }
-        let content = read(&file)
+        let content = read_to_string(&file)
             .into_diagnostic()
             .wrap_err("Failed to read config file")?;
-        toml::from_slice(&content)
+        toml::from_str(&content)
             .into_diagnostic()
             .wrap_err("Failed to parse config file")
     }
