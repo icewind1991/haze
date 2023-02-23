@@ -86,12 +86,15 @@ impl ServiceTrait for NotifyPush {
         &self,
         docker: &Docker,
         cloud_id: &str,
-        _config: &HazeConfig,
+        config: &HazeConfig,
     ) -> Result<Vec<String>> {
         let ip = self.get_ip(docker, cloud_id).await?;
+        let addr = config
+            .proxy
+            .addr_with_port(&self.container_name(cloud_id), ip, 7867);
         Ok(vec![
             format!("occ config:system:set trusted_proxies 1 --value {}", ip),
-            format!("occ notify_push:setup http://{}:7867", ip),
+            format!("occ notify_push:setup {}", addr),
         ])
     }
 }
