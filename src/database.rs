@@ -6,6 +6,7 @@ use bollard::Docker;
 use maplit::hashmap;
 use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use std::io::{stdout, Stdout};
+use std::net::IpAddr;
 use std::str::FromStr;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
@@ -292,6 +293,24 @@ impl Database {
         .await
         .into_diagnostic()
         .wrap_err("Timeout after 15 seconds")?
+    }
+
+    pub async fn ip(&self, docker: &mut Docker, cloud_id: &str) -> Option<IpAddr> {
+        match self.family() {
+            DatabaseFamily::Sqlite => return None,
+            _ => docker
+                .inspect_container(&format!("{}-db", cloud_id), None)
+                .await
+                .ok()?
+                .network_settings?
+                .networks?
+                .values()
+                .next()?
+                .ip_address
+                .clone()?
+                .parse()
+                .ok(),
+        }
     }
 
     async fn is_healthy(&self, docker: &mut Docker, cloud_id: &str) -> Result<bool> {

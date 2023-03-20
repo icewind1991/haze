@@ -147,6 +147,16 @@ Pinned instances will not be removed by `haze clean`.
 haze [match] unpin
 ```
 
+#### Run a command with instance environment variables set
+
+```bash
+haze [match] env <cmd> [args]
+```
+
+Runs the provided command with `NEXTCLOUD_URL`, `DATABASE_URL` and `REDIS_URL` environment variables set for the matched instance.
+
+This is indented to run a local [push daemon](https://github.com/nextcloud/notify_push) against an instance. 
+
 ## Configuration
 
 Configuration is loaded from `~/.config/haze/haze.toml` and has the following options

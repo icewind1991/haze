@@ -3,6 +3,7 @@ extern crate core;
 use crate::args::{ExecService, HazeArgs};
 use crate::cloud::{Cloud, CloudOptions};
 use crate::config::HazeConfig;
+use crate::database::DatabaseFamily;
 use crate::exec::container_logs;
 use crate::git::checkout_all;
 use crate::network::clear_networks;
@@ -10,8 +11,10 @@ use crate::proxy::proxy;
 use crate::service::Service;
 use crate::service::ServiceTrait;
 use bollard::Docker;
-use miette::{IntoDiagnostic, Result, WrapErr};
+use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use std::io::stdout;
+use std::os::unix::process::CommandExt;
+use std::process::Command;
 
 mod args;
 mod cloud;
@@ -291,6 +294,39 @@ async fn main() -> Result<()> {
         }
         HazeArgs::Checkout { branch } => {
             checkout_all(&config.sources_root, &branch)?;
+        }
+        HazeArgs::Env {
+            filter,
+            command,
+            args,
+        } => {
+            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
+            let ip = cloud
+                .ip
+                .ok_or_else(|| Report::msg(format!("{} is not running", cloud.id)))?;
+            let db_type = match cloud.db.family() {
+                DatabaseFamily::Sqlite => {
+                    return Err(Report::msg("sqlite is not supported with `haze env`"))
+                }
+                DatabaseFamily::Mysql | DatabaseFamily::MariaDB => "mysql",
+                DatabaseFamily::Postgres => "postgresql",
+            };
+            let db_ip = cloud
+                .db
+                .ip(&mut docker, &cloud.id)
+                .await
+                .ok_or_else(|| Report::msg(format!("{}-db is not running", cloud.id)))?;
+
+            let err = Command::new(command)
+                .args(args)
+                .env("REDIS_URL", format!("redis://{}", ip))
+                .env("NEXTCLOUD_URL", &cloud.address)
+                .env(
+                    "DATABASE_URL",
+                    format!("{}://haze:haze@{}/haze", db_type, db_ip),
+                )
+                .exec();
+            return Err(err).into_diagnostic();
         }
     };
 

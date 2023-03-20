@@ -64,6 +64,11 @@ pub enum HazeArgs {
     Checkout {
         branch: String,
     },
+    Env {
+        filter: Option<String>,
+        command: String,
+        args: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -222,6 +227,17 @@ impl HazeArgs {
                     .ok_or_else(|| Report::msg("No branch provided"))?;
                 Ok(HazeArgs::Checkout { branch })
             }
+            HazeCommand::Env => {
+                let mut args = args.map(S::into);
+                let command = args
+                    .next()
+                    .ok_or_else(|| Report::msg("No command provided"))?;
+                Ok(HazeArgs::Env {
+                    filter,
+                    command,
+                    args: args.collect(),
+                })
+            }
         }
     }
 }
@@ -245,6 +261,7 @@ pub enum HazeCommand {
     Unpin,
     Proxy,
     Checkout,
+    Env,
 }
 
 impl FromStr for HazeCommand {
@@ -270,6 +287,7 @@ impl FromStr for HazeCommand {
             "unpin" => Ok(HazeCommand::Unpin),
             "proxy" => Ok(HazeCommand::Proxy),
             "checkout" => Ok(HazeCommand::Checkout),
+            "env" => Ok(HazeCommand::Env),
             _ => Err(Report::msg(format!("Unknown command: {}", s))),
         }
     }
@@ -295,6 +313,7 @@ impl HazeCommand {
             HazeCommand::Unpin => true,
             HazeCommand::Proxy => false,
             HazeCommand::Checkout => false,
+            HazeCommand::Env => true,
         }
     }
 }
