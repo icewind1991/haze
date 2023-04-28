@@ -113,7 +113,7 @@ pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
         attach_stdout: Some(true),
         attach_stderr: Some(true),
         env: Some(env),
-        tty: Some(true),
+        tty: Some(false),
         ..Default::default()
     };
     let message = docker

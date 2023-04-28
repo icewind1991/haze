@@ -105,7 +105,7 @@ async fn main() -> Result<()> {
                             } else {
                                 command
                             },
-                            true,
+                            atty::is(atty::Stream::Stdout),
                         )
                         .await?;
                 }
@@ -120,7 +120,7 @@ async fn main() -> Result<()> {
                             } else {
                                 command
                             },
-                            true,
+                            atty::is(atty::Stream::Stdout),
                         )
                         .await?;
                 }
@@ -132,7 +132,9 @@ async fn main() -> Result<()> {
         } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
             command.insert(0, "occ".to_string());
-            cloud.exec(&mut docker, command, true).await?;
+            cloud
+                .exec(&mut docker, command, atty::is(atty::Stream::Stdout))
+                .await?;
         }
         HazeArgs::Db { filter, root } => {
             let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;

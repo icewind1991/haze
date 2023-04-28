@@ -544,6 +544,7 @@ name = "haze"
 version = "1.2.1"
 dependencies = [
  "async-trait",
+ "atty",
  "bollard",
  "camino",
  "directories-next",
