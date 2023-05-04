@@ -10,7 +10,7 @@ mod smb;
 use crate::config::HazeConfig;
 pub use crate::service::clam::ClamIcap;
 use crate::service::kaspersky::{Kaspersky, KasperskyIcap};
-pub use crate::service::ldap::{LDAPAdmin, LDAP};
+pub use crate::service::ldap::{Ldap, LdapAdmin};
 pub use crate::service::objectstore::ObjectStore;
 pub use crate::service::office::Office;
 pub use crate::service::onlyoffice::OnlyOffice;
@@ -143,8 +143,8 @@ pub trait ServiceTrait {
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Service {
     ObjectStore(ObjectStore),
-    LDAP(LDAP),
-    LDAPAdmin(LDAPAdmin),
+    Ldap(Ldap),
+    LdapAdmin(LdapAdmin),
     OnlyOffice(OnlyOffice),
     Office(Office),
     Push(NotifyPush),
@@ -161,7 +161,7 @@ impl Service {
             "s3m" => Some(&[Service::ObjectStore(ObjectStore::S3m)]),
             "s3mb" => Some(&[Service::ObjectStore(ObjectStore::S3mb)]),
             "azure" => Some(&[Service::ObjectStore(ObjectStore::Azure)]),
-            "ldap" => Some(&[Service::LDAP(LDAP), Service::LDAPAdmin(LDAPAdmin)]),
+            "ldap" => Some(&[Service::Ldap(Ldap), Service::LdapAdmin(LdapAdmin)]),
             "onlyoffice" => Some(&[Service::OnlyOffice(OnlyOffice)]),
             "office" => Some(&[Service::Office(Office)]),
             "push" => Some(&[Service::Push(NotifyPush)]),

@@ -34,7 +34,7 @@ async fn main() -> Result<()> {
     miette::set_panic_hook();
     tracing_subscriber::fmt::init();
 
-    let mut docker = Docker::connect_with_local_defaults()
+    let docker = Docker::connect_with_local_defaults()
         .into_diagnostic()
         .wrap_err("Failed to connect to docker")?;
     let config = HazeConfig::load().wrap_err("Failed to load config")?;
@@ -43,16 +43,16 @@ async fn main() -> Result<()> {
 
     match args {
         HazeArgs::Clean => {
-            let list = Cloud::list(&mut docker, None, &config).await?;
+            let list = Cloud::list(&docker, None, &config).await?;
             for cloud in list.into_iter().filter(|cloud| !cloud.pinned) {
-                if let Err(e) = cloud.destroy(&mut docker).await {
+                if let Err(e) = cloud.destroy(&docker).await {
                     eprintln!("Error while removing cloud: {:#}", e);
                 }
             }
             clear_networks(&docker).await?;
         }
         HazeArgs::List { filter } => {
-            let list = Cloud::list(&mut docker, filter, &config).await?;
+            let list = Cloud::list(&docker, filter, &config).await?;
             for cloud in list {
                 let mut services: Vec<_> = cloud.services.iter().map(Service::name).collect();
                 services.push(cloud.db.name());
@@ -69,11 +69,11 @@ async fn main() -> Result<()> {
             }
         }
         HazeArgs::Start { options } => {
-            setup(&mut docker, options, &config).await?;
+            setup(&docker, options, &config).await?;
         }
         HazeArgs::Stop { filter } => {
-            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
-            cloud.destroy(&mut docker).await?;
+            let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
+            cloud.destroy(&docker).await?;
         }
         HazeArgs::Logs {
             filter,
@@ -81,7 +81,7 @@ async fn main() -> Result<()> {
             count,
             service,
         } => {
-            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
+            let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
             let container = if let Some(service) = service {
                 service.container_name(&cloud.id)
             } else {
@@ -94,12 +94,12 @@ async fn main() -> Result<()> {
             service,
             command,
         } => {
-            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
+            let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
             match service {
                 None => {
                     cloud
                         .exec(
-                            &mut docker,
+                            &docker,
                             if command.is_empty() {
                                 vec!["bash".to_string()]
                             } else {
@@ -113,7 +113,7 @@ async fn main() -> Result<()> {
                     cloud
                         .db
                         .exec_sh(
-                            &mut docker,
+                            &docker,
                             &cloud.id,
                             if command.is_empty() {
                                 vec!["bash".to_string()]
@@ -130,31 +130,31 @@ async fn main() -> Result<()> {
             filter,
             mut command,
         } => {
-            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
+            let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
             command.insert(0, "occ".to_string());
             cloud
-                .exec(&mut docker, command, atty::is(atty::Stream::Stdout))
+                .exec(&docker, command, atty::is(atty::Stream::Stdout))
                 .await?;
         }
         HazeArgs::Db { filter, root } => {
-            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
-            cloud.db.exec(&mut docker, &cloud.id, root).await?;
+            let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
+            cloud.db.exec(&docker, &cloud.id, root).await?;
         }
         HazeArgs::Open { filter } => {
-            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
+            let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
             match cloud.ip {
                 Some(_) => opener::open(cloud.address).into_diagnostic()?,
                 None => eprintln!("{} is not running", cloud.id),
             }
         }
         HazeArgs::Test { options, mut args } => {
-            let cloud = Cloud::create(&mut docker, options, &config).await?;
+            let cloud = Cloud::create(&docker, options, &config).await?;
             println!("Waiting for servers to start");
-            cloud.wait_for_start(&mut docker).await?;
+            cloud.wait_for_start(&docker).await?;
             println!("Installing");
             if let Err(e) = cloud
                 .exec(
-                    &mut docker,
+                    &docker,
                     vec![
                         "install",
                         &config.auto_setup.username,
@@ -164,7 +164,7 @@ async fn main() -> Result<()> {
                 )
                 .await
             {
-                cloud.destroy(&mut docker).await?;
+                cloud.destroy(&docker).await?;
                 return Err(e);
             }
             if let Some(app) = args
@@ -174,23 +174,23 @@ async fn main() -> Result<()> {
                 .map(|path| &path[0..path.find('/').unwrap_or(path.len())])
             {
                 if app.starts_with("files_") {
-                    cloud.enable_app(&mut docker, "files_external").await?;
+                    cloud.enable_app(&docker, "files_external").await?;
                 }
                 println!("Enabling {}", app);
-                cloud.enable_app(&mut docker, app).await?;
+                cloud.enable_app(&docker, app).await?;
             }
             args.insert(0, "tests".to_string());
-            cloud.exec(&mut docker, args, false).await?;
-            cloud.destroy(&mut docker).await?;
+            cloud.exec(&docker, args, false).await?;
+            cloud.destroy(&docker).await?;
         }
         HazeArgs::Integration { options, mut args } => {
-            let cloud = Cloud::create(&mut docker, options, &config).await?;
+            let cloud = Cloud::create(&docker, options, &config).await?;
             println!("Waiting for servers to start");
-            cloud.wait_for_start(&mut docker).await?;
+            cloud.wait_for_start(&docker).await?;
             println!("Installing");
             if let Err(e) = cloud
                 .exec(
-                    &mut docker,
+                    &docker,
                     vec![
                         "install",
                         &config.auto_setup.username,
@@ -200,49 +200,45 @@ async fn main() -> Result<()> {
                 )
                 .await
             {
-                cloud.destroy(&mut docker).await?;
+                cloud.destroy(&docker).await?;
                 return Err(e);
             }
             args.insert(0, "integration".to_string());
-            cloud.exec(&mut docker, args, false).await?;
-            cloud.destroy(&mut docker).await?;
+            cloud.exec(&docker, args, false).await?;
+            cloud.destroy(&docker).await?;
         }
         HazeArgs::Fmt { path } => {
-            let cloud = Cloud::create(&mut docker, CloudOptions::default(), &config).await?;
+            let cloud = Cloud::create(&docker, CloudOptions::default(), &config).await?;
             let mut out_buffer = Vec::<u8>::with_capacity(1024);
             println!("Waiting for servers to start");
-            cloud.wait_for_start(&mut docker).await?;
+            cloud.wait_for_start(&docker).await?;
             println!("Installing composer");
             if let Err(e) = cloud
-                .exec_with_output(
-                    &mut docker,
-                    vec!["composer", "install"],
-                    Some(&mut out_buffer),
-                )
+                .exec_with_output(&docker, vec!["composer", "install"], Some(&mut out_buffer))
                 .await
                 .and_then(|c| c.to_result())
             {
                 eprintln!("{}", String::from_utf8_lossy(&out_buffer));
-                cloud.destroy(&mut docker).await?;
+                cloud.destroy(&docker).await?;
                 return Err(e);
             }
             out_buffer.clear();
             println!("Formatting");
             if let Err(e) = cloud
                 .exec(
-                    &mut docker,
+                    &docker,
                     vec!["composer", "run", "cs:fix", path.as_str()],
                     false,
                 )
                 .await
             {
-                cloud.destroy(&mut docker).await?;
+                cloud.destroy(&docker).await?;
                 return Err(e);
             }
             println!("Cleanup");
             if let Err(e) = cloud
                 .exec_with_output(
-                    &mut docker,
+                    &docker,
                     vec!["git", "clean", "-fd", "lib/composer"],
                     Some(&mut out_buffer),
                 )
@@ -250,12 +246,12 @@ async fn main() -> Result<()> {
                 .and_then(|c| c.to_result())
             {
                 eprintln!("{}", String::from_utf8_lossy(&out_buffer));
-                cloud.destroy(&mut docker).await?;
+                cloud.destroy(&docker).await?;
                 return Err(e);
             }
             if let Err(e) = cloud
                 .exec_with_output(
-                    &mut docker,
+                    &docker,
                     vec!["git", "checkout", "lib/composer"],
                     Some(&mut out_buffer),
                 )
@@ -263,16 +259,16 @@ async fn main() -> Result<()> {
                 .and_then(|c| c.to_result())
             {
                 eprintln!("{}", String::from_utf8_lossy(&out_buffer));
-                cloud.destroy(&mut docker).await?;
+                cloud.destroy(&docker).await?;
                 return Err(e);
             }
-            cloud.destroy(&mut docker).await?;
+            cloud.destroy(&docker).await?;
         }
         HazeArgs::Shell { command, options } => {
-            let cloud = setup(&mut docker, options, &config).await?;
+            let cloud = setup(&docker, options, &config).await?;
             cloud
                 .exec(
-                    &mut docker,
+                    &docker,
                     if command.is_empty() {
                         vec!["bash".to_string()]
                     } else {
@@ -281,15 +277,15 @@ async fn main() -> Result<()> {
                     true,
                 )
                 .await?;
-            cloud.destroy(&mut docker).await?;
+            cloud.destroy(&docker).await?;
         }
         HazeArgs::Pin { filter } => {
-            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
-            cloud.pin(&mut docker).await?;
+            let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
+            cloud.pin(&docker).await?;
         }
         HazeArgs::Unpin { filter } => {
-            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
-            cloud.unpin(&mut docker).await?;
+            let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
+            cloud.unpin(&docker).await?;
         }
         HazeArgs::Proxy => {
             proxy(docker, config).await?;
@@ -302,7 +298,7 @@ async fn main() -> Result<()> {
             command,
             args,
         } => {
-            let cloud = Cloud::get_by_filter(&mut docker, filter, &config).await?;
+            let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
             let ip = cloud
                 .ip
                 .ok_or_else(|| Report::msg(format!("{} is not running", cloud.id)))?;
@@ -318,7 +314,7 @@ async fn main() -> Result<()> {
             };
             let db_ip = cloud
                 .db
-                .ip(&mut docker, &cloud.id)
+                .ip(&docker, &cloud.id)
                 .await
                 .ok_or_else(|| Report::msg(format!("{}-db is not running", cloud.id)))?;
 
@@ -338,8 +334,8 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn setup(docker: &mut Docker, options: CloudOptions, config: &HazeConfig) -> Result<Cloud> {
-    let cloud = Cloud::create(docker, options, &config).await?;
+async fn setup(docker: &Docker, options: CloudOptions, config: &HazeConfig) -> Result<Cloud> {
+    let cloud = Cloud::create(docker, options, config).await?;
     println!("{}", cloud.address);
     let host = cloud.address.split_once("://").expect("no address?").1;
     if config.auto_setup.enabled {
@@ -415,7 +411,7 @@ async fn setup(docker: &mut Docker, options: CloudOptions, config: &HazeConfig) 
             }
         }
         for service in &cloud.services {
-            for cmd in service.post_setup(&docker, &cloud.id, config).await? {
+            for cmd in service.post_setup(docker, &cloud.id, config).await? {
                 cloud
                     .exec(docker, shell_words::split(&cmd).into_diagnostic()?, false)
                     .await?;
@@ -423,7 +419,7 @@ async fn setup(docker: &mut Docker, options: CloudOptions, config: &HazeConfig) 
         }
         for cmd in &config.auto_setup.post_setup {
             cloud
-                .exec(docker, shell_words::split(&cmd).into_diagnostic()?, false)
+                .exec(docker, shell_words::split(cmd).into_diagnostic()?, false)
                 .await?;
         }
     }

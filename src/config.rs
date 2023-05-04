@@ -164,7 +164,7 @@ pub struct ProxyConfig {
 impl ProxyConfig {
     /// Get a public address for a service, either with direct ip or through the proxy
     pub fn addr(&self, id: &str, ip: IpAddr) -> String {
-        let clean_id = id.strip_prefix("haze-").unwrap_or(&id);
+        let clean_id = id.strip_prefix("haze-").unwrap_or(id);
         match (&self.address, self.https) {
             (public, true) if !public.is_empty() => format!("https://{clean_id}.{public}"),
             (public, false) if !public.is_empty() => format!("http://{clean_id}.{public}"),
@@ -173,7 +173,7 @@ impl ProxyConfig {
     }
 
     pub fn addr_with_port(&self, id: &str, ip: IpAddr, port: u16) -> String {
-        let clean_id = id.strip_prefix("haze-").unwrap_or(&id);
+        let clean_id = id.strip_prefix("haze-").unwrap_or(id);
         match (&self.address, self.https) {
             (public, true) if !public.is_empty() => format!("https://{clean_id}.{public}"),
             (public, false) if !public.is_empty() => format!("http://{clean_id}.{public}"),

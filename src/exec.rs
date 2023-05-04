@@ -12,7 +12,7 @@ use tokio::task::spawn;
 use tokio::time::sleep;
 
 pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
-    docker: &mut Docker,
+    docker: &Docker,
     container: S1,
     user: &str,
     cmd: Vec<S2>,

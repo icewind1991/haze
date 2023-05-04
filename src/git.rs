@@ -11,11 +11,11 @@ pub fn checkout_all<P: AsRef<Path>>(sources_root: P, branch: &str) -> Result<()>
         let app = app.into_diagnostic()?;
         if app.metadata().into_diagnostic()?.is_dir() {
             let app_dir = app.path();
-            if has_branch(&app_dir, &branch).unwrap_or_default()
+            if has_branch(&app_dir, branch).unwrap_or_default()
                 && get_branch(&app_dir).unwrap_or_default().trim() != branch
             {
                 print!("{}", app.file_name().to_string_lossy());
-                if let Err(e) = checkout(&app_dir, &branch) {
+                if let Err(e) = checkout(&app_dir, branch) {
                     println!(": {} ❌", e);
                 } else {
                     println!(" ✓");
@@ -39,7 +39,7 @@ fn has_branch<P: AsRef<Path>>(repo: P, branch: &str) -> Result<bool> {
         error!(stdout = stdout, stderr = stderr, "git command failed");
     }
 
-    for line in stdout.split("\n") {
+    for line in stdout.split('\n') {
         let line = line.trim();
         if line == branch {
             return Ok(true);

@@ -9,10 +9,10 @@ use maplit::hashmap;
 use miette::{IntoDiagnostic, Report};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct LDAP;
+pub struct Ldap;
 
 #[async_trait::async_trait]
-impl ServiceTrait for LDAP {
+impl ServiceTrait for Ldap {
     fn name(&self) -> &str {
         "ldap"
     }
@@ -78,10 +78,10 @@ impl ServiceTrait for LDAP {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct LDAPAdmin;
+pub struct LdapAdmin;
 
 #[async_trait::async_trait]
-impl ServiceTrait for LDAPAdmin {
+impl ServiceTrait for LdapAdmin {
     fn name(&self) -> &str {
         "ldap-admin"
     }

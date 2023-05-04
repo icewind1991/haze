@@ -82,7 +82,7 @@ impl CloudOptions {
 
 #[test]
 fn test_option_parse() {
-    use crate::service::{LDAPAdmin, LDAP};
+    use crate::service::{Ldap, LdapAdmin};
 
     let mut args = vec![].into_iter().peekable();
     assert_eq!(
@@ -127,7 +127,7 @@ fn test_option_parse() {
         CloudOptions {
             php: PhpVersion::Php74,
             db: Database::Postgres,
-            services: vec![Service::LDAP(LDAP), Service::LDAPAdmin(LDAPAdmin)],
+            services: vec![Service::Ldap(Ldap), Service::LdapAdmin(LdapAdmin)],
             ..Default::default()
         }
     );
@@ -137,7 +137,7 @@ fn test_option_parse() {
         CloudOptions {
             php: PhpVersion::Php74,
             db: Database::Postgres,
-            services: vec![Service::LDAP(LDAP), Service::LDAPAdmin(LDAPAdmin)],
+            services: vec![Service::Ldap(Ldap), Service::LdapAdmin(LdapAdmin)],
             ..Default::default()
         }
     );
@@ -159,7 +159,7 @@ pub struct Cloud {
 
 impl Cloud {
     pub async fn create(
-        docker: &mut Docker,
+        docker: &Docker,
         options: CloudOptions,
         config: &HazeConfig,
     ) -> Result<Self> {
@@ -227,7 +227,7 @@ impl Cloud {
             .await
             .into_diagnostic()?
             .id
-            .ok_or(Report::msg("No network id in response"))
+            .ok_or_else(|| Report::msg("No network id in response"))
             .wrap_err("Failed to create network")?;
 
         let network_info = docker
@@ -237,15 +237,15 @@ impl Cloud {
         let gateway = network_info
             .ipam
             .as_ref()
-            .ok_or(Report::msg("Network has no ip info"))?
+            .ok_or_else(|| Report::msg("Network has no ip info"))?
             .config
             .as_deref()
-            .ok_or(Report::msg("Network has no ip info"))?
+            .ok_or_else(|| Report::msg("Network has no ip info"))?
             .first()
-            .ok_or(Report::msg("Network has no ip info"))?
+            .ok_or_else(|| Report::msg("Network has no ip info"))?
             .gateway
             .as_deref()
-            .ok_or(Report::msg("Network has no ip info"))?;
+            .ok_or_else(|| Report::msg("Network has no ip info"))?;
 
         let mut containers = Vec::new();
 
@@ -343,7 +343,7 @@ impl Cloud {
                     .networks
                     .unwrap()
                     .iter()
-                    .filter_map(|(name, network)| name.eq("haze").then(|| network))
+                    .filter_map(|(name, network)| name.eq("haze").then_some(network))
                     .next()
                     .unwrap()
                     .ip_address
@@ -404,7 +404,7 @@ impl Cloud {
         })
     }
 
-    pub async fn destroy(self, docker: &mut Docker) -> Result<()> {
+    pub async fn destroy(self, docker: &Docker) -> Result<()> {
         for container in self.containers {
             docker
                 .remove_container(
@@ -438,7 +438,7 @@ impl Cloud {
 
     pub async fn exec<S: Into<String>>(
         &self,
-        docker: &mut Docker,
+        docker: &Docker,
         cmd: Vec<S>,
         tty: bool,
     ) -> Result<ExitCode> {
@@ -575,10 +575,10 @@ impl Cloud {
             .await?
             .into_iter()
             .next()
-            .ok_or(Report::msg("No clouds running matching filter"))
+            .ok_or_else(|| Report::msg("No clouds running matching filter"))
     }
 
-    pub async fn wait_for_start(&self, docker: &mut Docker) -> Result<()> {
+    pub async fn wait_for_start(&self, docker: &Docker) -> Result<()> {
         self.php
             .wait_for_start(self.ip)
             .await
@@ -597,7 +597,7 @@ impl Cloud {
         Ok(())
     }
 
-    pub async fn enable_app<S: Into<String>>(&self, docker: &mut Docker, app: S) -> Result<()> {
+    pub async fn enable_app<S: Into<String>>(&self, docker: &Docker, app: S) -> Result<()> {
         self.exec(
             docker,
             vec![
@@ -612,7 +612,7 @@ impl Cloud {
         Ok(())
     }
 
-    pub async fn pin(&self, docker: &mut Docker) -> Result<()> {
+    pub async fn pin(&self, docker: &Docker) -> Result<()> {
         // abuse memory limits as editable label
         docker
             .update_container(
@@ -626,7 +626,7 @@ impl Cloud {
             .into_diagnostic()
     }
 
-    pub async fn unpin(&self, docker: &mut Docker) -> Result<()> {
+    pub async fn unpin(&self, docker: &Docker) -> Result<()> {
         // abuse memory limits as editable label
         docker
             .update_container(

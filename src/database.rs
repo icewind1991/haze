@@ -179,7 +179,7 @@ impl Database {
 
     pub async fn spawn(
         &self,
-        docker: &mut Docker,
+        docker: &Docker,
         cloud_id: &str,
         network: &str,
     ) -> Result<Option<String>> {
@@ -242,14 +242,14 @@ impl Database {
 
     pub async fn exec_sh<S: Into<String>>(
         &self,
-        docker: &mut Docker,
+        docker: &Docker,
         cloud_id: &str,
         cmd: Vec<S>,
         tty: bool,
     ) -> Result<ExitCode> {
         let container = match self.family() {
             DatabaseFamily::Sqlite => cloud_id.to_string(),
-            _ => format!("{}-db", cloud_id.to_string()),
+            _ => format!("{}-db", cloud_id),
         };
         if tty {
             exec_tty(docker, &container, "root", cmd, vec![]).await
@@ -258,7 +258,7 @@ impl Database {
         }
     }
 
-    pub async fn exec(&self, docker: &mut Docker, cloud_id: &str, root: bool) -> Result<ExitCode> {
+    pub async fn exec(&self, docker: &Docker, cloud_id: &str, root: bool) -> Result<ExitCode> {
         match self.family() {
             DatabaseFamily::Sqlite => {
                 exec_tty(
@@ -309,7 +309,7 @@ impl Database {
         }
     }
 
-    pub async fn wait_for_start(&self, docker: &mut Docker, cloud_id: &str) -> Result<()> {
+    pub async fn wait_for_start(&self, docker: &Docker, cloud_id: &str) -> Result<()> {
         let time = if self.family() == DatabaseFamily::Oracle {
             45
         } else {
@@ -327,9 +327,9 @@ impl Database {
         .wrap_err(format!("Timeout after {time} seconds"))?
     }
 
-    pub async fn ip(&self, docker: &mut Docker, cloud_id: &str) -> Option<IpAddr> {
+    pub async fn ip(&self, docker: &Docker, cloud_id: &str) -> Option<IpAddr> {
         match self.family() {
-            DatabaseFamily::Sqlite => return None,
+            DatabaseFamily::Sqlite => None,
             _ => docker
                 .inspect_container(&format!("{}-db", cloud_id), None)
                 .await
@@ -345,7 +345,7 @@ impl Database {
         }
     }
 
-    async fn is_healthy(&self, docker: &mut Docker, cloud_id: &str) -> Result<bool> {
+    async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
         match self.family() {
             DatabaseFamily::Sqlite => Ok(true),
             DatabaseFamily::Mysql | DatabaseFamily::MariaDB => {

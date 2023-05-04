@@ -13,12 +13,12 @@ pub async fn image_exists(docker: &Docker, image: &str) -> bool {
 }
 
 pub async fn pull_image(docker: &Docker, image: &str) -> Result<()> {
-    if let Err(_) = docker.inspect_image(image).await {
+    if docker.inspect_image(image).await.is_err() {
         println!("Pulling image {}", image);
 
         let mut info_stream = docker.create_image(
             Some(CreateImageOptions {
-                from_image: if image.contains(":") {
+                from_image: if image.contains(':') {
                     image.to_string()
                 } else {
                     format!("{}:latest", image)

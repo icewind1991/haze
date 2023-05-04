@@ -91,7 +91,7 @@ impl ActiveInstances {
     }
 
     pub fn last(&self) -> Option<SocketAddr> {
-        self.last.lock().unwrap().clone()
+        *self.last.lock().unwrap()
     }
 
     async fn update_last(&self) {

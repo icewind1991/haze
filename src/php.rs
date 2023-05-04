@@ -86,9 +86,10 @@ impl PhpVersion {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub async fn spawn(
         &self,
-        docker: &mut Docker,
+        docker: &Docker,
         id: &str,
         env: Vec<String>,
         db: &Database,
@@ -170,11 +171,11 @@ impl PhpVersion {
         let client = Client::new();
         let url = Url::parse(&format!(
             "http://{}/status.php",
-            ip.ok_or(Report::msg("Container not running"))?
+            ip.ok_or_else(|| Report::msg("Container not running"))?
         ))
         .into_diagnostic()?;
         timeout(Duration::from_secs(15), async {
-            while !client.get(url.clone()).send().await.is_ok() {
+            while client.get(url.clone()).send().await.is_err() {
                 sleep(Duration::from_millis(100)).await
             }
         })
