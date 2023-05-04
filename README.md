@@ -39,6 +39,8 @@ haze start [database] [php-version]
 Where `database` is one of `sqlite`, `mysql`, `mariadb`, `pgsql` or `oracle` with an optional version (e.g. `pgsql:12`), defaults to `sqlite`.
 And `php-version` is one of `8.0`, `8.1`, `8.2`, defaults to `8.1`. `7.3` and `7.4` are still supported but the docker images for those versions aren't being updated anymore so they might be missing some newer features.
 
+Additionally each php version comes with a `-dbg` variant that has php compiled in debug mode and can be used for debugging php itself with gdb.
+
 Additionally, you can use the following options when starting an instance:
  - `s3`: setup an S3 server and configure to Nextcloud to use it as primary storage
  - `<path to app.tar.gz>`: by specifying the path to an app package this package will be extracted into the apps directory of the new instance (overwriting any existing app code). This can be used to quickly test a packaged app. 
