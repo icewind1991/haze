@@ -2,8 +2,8 @@
 
 $AUTOCONFIG = [
   'dbname' => 'xe',
-  'dbhost' => 'oci',
+  'dbhost' => 'oracle',
   'dbuser' => 'system',
-  'dbpass' => 'oracle',
+  'dbpass' => 'haze',
   'dbtype' => 'oci'
 ]; 

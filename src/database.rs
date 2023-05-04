@@ -11,11 +11,13 @@ use std::str::FromStr;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
 
+#[derive(Eq, PartialEq)]
 pub enum DatabaseFamily {
     Sqlite,
     Mysql,
     MariaDB,
     Postgres,
+    Oracle,
 }
 
 impl DatabaseFamily {
@@ -25,6 +27,7 @@ impl DatabaseFamily {
             DatabaseFamily::Mysql => "mysql",
             DatabaseFamily::MariaDB => "mariadb",
             DatabaseFamily::Postgres => "pgsql",
+            DatabaseFamily::Oracle => "oci",
         }
     }
 }
@@ -50,6 +53,7 @@ pub enum Database {
     Postgres12,
     Postgres13,
     Postgres14,
+    Oracle,
 }
 
 impl Default for Database {
@@ -96,6 +100,8 @@ impl FromStr for Database {
             "postgresql:12" => Ok(Database::Postgres12),
             "postgresql:13" => Ok(Database::Postgres13),
             "postgresql:14" => Ok(Database::Postgres14),
+            "oracle" => Ok(Database::Oracle),
+            "oci" => Ok(Database::Oracle),
             _ => Err(Report::msg("Unknown db type")),
         }
     }
@@ -122,6 +128,7 @@ impl Database {
             Database::Postgres12 => "postgres:12",
             Database::Postgres13 => "postgres:13",
             Database::Postgres14 => "postgres:14",
+            Database::Oracle => "gvenzl/oracle-xe:21-faststart",
         }
     }
 
@@ -148,6 +155,7 @@ impl Database {
             | Database::Postgres12
             | Database::Postgres13
             | Database::Postgres14 => DatabaseFamily::Postgres,
+            Database::Oracle => DatabaseFamily::Oracle,
         }
     }
 
@@ -165,6 +173,7 @@ impl Database {
                 "POSTGRES_USER=haze",
                 "POSTGRES_DATABASE=haze",
             ],
+            DatabaseFamily::Oracle => vec!["ORACLE_PASSWORD=haze"],
         }
     }
 
@@ -177,9 +186,15 @@ impl Database {
         if matches!(self, Database::Sqlite) {
             return Ok(None);
         }
-        pull_image(docker, &format!("library/{}", self.image()))
-            .await
-            .wrap_err("Failed to pull database image")?;
+        if self.image().contains('/') {
+            pull_image(docker, self.image())
+                .await
+                .wrap_err("Failed to pull database image")?;
+        } else {
+            pull_image(docker, &format!("library/{}", self.image()))
+                .await
+                .wrap_err("Failed to pull database image")?;
+        }
         let options = Some(CreateContainerOptions {
             name: format!("{}-db", cloud_id),
         });
@@ -280,19 +295,35 @@ impl Database {
                 )
                 .await
             }
+            DatabaseFamily::Oracle => {
+                exec_tty(
+                    docker,
+                    format!("{}-db", cloud_id),
+                    "root",
+                    vec!["sqlplus", "system/haze"],
+                    vec![],
+                )
+                .await
+            }
         }
     }
 
     pub async fn wait_for_start(&self, docker: &mut Docker, cloud_id: &str) -> Result<()> {
-        timeout(Duration::from_secs(15), async {
+        let time = if self.family() == DatabaseFamily::Oracle {
+            45
+        } else {
+            15
+        };
+
+        timeout(Duration::from_secs(time), async {
             while !self.is_healthy(docker, cloud_id).await? {
-                sleep(Duration::from_millis(100)).await
+                sleep(Duration::from_millis(250)).await
             }
-            Ok(())
+            Result::<(), Report>::Ok(())
         })
         .await
         .into_diagnostic()
-        .wrap_err("Timeout after 15 seconds")?
+        .wrap_err(format!("Timeout after {time} seconds"))?
     }
 
     pub async fn ip(&self, docker: &mut Docker, cloud_id: &str) -> Option<IpAddr> {
@@ -354,6 +385,20 @@ impl Database {
                 } else {
                     Ok(false)
                 }
+            }
+            DatabaseFamily::Oracle => {
+                let mut output = Vec::new();
+                exec(
+                    docker,
+                    format!("{}-db", cloud_id),
+                    "root",
+                    vec!["sh", "-c", r#"echo "show user" | sqlplus -S system/haze"#],
+                    vec![],
+                    Some(&mut output),
+                )
+                .await?;
+                let output = String::from_utf8(output).into_diagnostic()?;
+                Ok(output.contains(r#"USER is "SYSTEM""#))
             }
         }
     }

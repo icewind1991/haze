@@ -36,8 +36,8 @@ See the [configuration section](#configuration) for more options.
 haze start [database] [php-version]
 ```
 
-Where `database` is one of `sqlite`, `mysql`, `mariadb` or `pgsql` with an optional version (e.g. `pgsql:12`), defaults to `sqlite`.
-And `php-version` is one of `7.3`, `7.4`, `8.0`, `8.1`, `7` or `8`, defaults to `8.1`
+Where `database` is one of `sqlite`, `mysql`, `mariadb`, `pgsql` or `oracle` with an optional version (e.g. `pgsql:12`), defaults to `sqlite`.
+And `php-version` is one of `8.0`, `8.1`, `8.2`, defaults to `8.1`. `7.3` and `7.4` are still supported but the docker images for those versions aren't being updated anymore so they might be missing some newer features.
 
 Additionally, you can use the following options when starting an instance:
  - `s3`: setup an S3 server and configure to Nextcloud to use it as primary storage

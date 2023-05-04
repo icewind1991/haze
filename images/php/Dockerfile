@@ -79,6 +79,11 @@ RUN echo "extension=imagick.so" > $PHP_INI_DIR/conf.d/imagick.ini \
     && echo "memory_limit = 512M" > $PHP_INI_DIR/conf.d/memory_limit.ini \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
 
+ADD install-oci.sh /
+RUN /install-oci.sh \
+    &&  echo "extension=oci8.so" > $PHP_INI_DIR/conf.d/oci8.ini
+
+
 ADD apcu.ini opcache.ini redis.ini $PHP_INI_DIR/conf.d/
 
 ADD nginx.conf nginx-app.conf /etc/nginx/

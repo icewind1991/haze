@@ -12,7 +12,7 @@ cd $WEBROOT
 
 if [ "$SQL" = "oci" ]; then
 	# oracle is a special snowflake
-	occ maintenance:install --admin-user=$USER --admin-pass=$PASSWORD --database=$SQL --database-name=xe --database-host=$SQL --database-user=system --database-pass=oracle
+	occ maintenance:install --admin-user=$USER --admin-pass=$PASSWORD --database=$SQL --database-name=xe --database-host=$SQL --database-user=system --database-pass=haze
 elif [ "$SQL" = "mariadb" ]; then
   occ maintenance:install --admin-user=$USER --admin-pass=$PASSWORD --database=mysql --database-name=haze --database-host=$SQL --database-user=haze --database-pass=haze
 else

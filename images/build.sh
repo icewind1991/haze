@@ -4,7 +4,7 @@ set -e
 
 export DOCKER_BUILDKIT=1
 
-versions=("7.3" "7.4" "8.0" "8.1")
+versions=("8.0" "8.1" "8.2")
 
 for version in "${versions[@]}"; do
   echo "building haze-php-$version"
