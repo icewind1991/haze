@@ -75,6 +75,7 @@ impl ServiceTrait for ObjectStore {
         pull_image(docker, self.image()).await?;
         let options = Some(CreateContainerOptions {
             name: format!("{}-object", cloud_id),
+            ..CreateContainerOptions::default()
         });
         let config = Config {
             image: Some(self.image()),

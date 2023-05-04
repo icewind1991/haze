@@ -31,6 +31,7 @@ impl ServiceTrait for NotifyPush {
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
             name: self.container_name(cloud_id),
+            ..CreateContainerOptions::default()
         });
         let config = Config {
             image: Some(image),

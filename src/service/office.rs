@@ -33,6 +33,7 @@ impl ServiceTrait for Office {
         let container_id = self.container_name(cloud_id);
         let options = Some(CreateContainerOptions {
             name: container_id.clone(),
+            ..CreateContainerOptions::default()
         });
         let mut env = vec!["extra_params=--o:ssl.enable=false --o:ssl.termination=true"];
 

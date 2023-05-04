@@ -139,11 +139,7 @@ pub fn default_mappings<'a>() -> impl IntoIterator<Item = Mapping<'a>> {
             "composer/cache",
             "/home/haze/.composer/cache",
         ),
-        Mapping::new(
-            GlobalWorkDir,
-            "node_modules",
-            "/var/www/html/node_modules",
-        ),
+        Mapping::new(GlobalWorkDir, "node_modules", "/var/www/html/node_modules"),
         Mapping::new(
             GlobalWorkDir,
             "phpunit-cache",

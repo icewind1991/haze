@@ -100,6 +100,7 @@ impl PhpVersion {
         pull_image(docker, self.image()).await?;
         let options = Some(CreateContainerOptions {
             name: id.to_string(),
+            ..CreateContainerOptions::default()
         });
         let config = Config {
             image: Some(self.image().to_string()),

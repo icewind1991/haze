@@ -197,6 +197,7 @@ impl Database {
         }
         let options = Some(CreateContainerOptions {
             name: format!("{}-db", cloud_id),
+            ..CreateContainerOptions::default()
         });
         let config = Config {
             image: Some(self.image()),
