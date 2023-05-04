@@ -16,10 +16,12 @@ use tokio::time::{sleep, timeout};
 #[derive(Clone, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum PhpVersion {
+    Php82,
     Php81,
     Php80,
     Php74,
     Php73,
+    Php82Dbg,
     Php81Dbg,
     Php80Dbg,
     Php74Dbg,
@@ -39,12 +41,14 @@ impl FromStr for PhpVersion {
             "8" => Ok(PhpVersion::Php81),
             "8.0" => Ok(PhpVersion::Php80),
             "8.1" => Ok(PhpVersion::Php81),
+            "8.2" => Ok(PhpVersion::Php82),
             "7-dbg" => Ok(PhpVersion::Php74Dbg),
             "7.3-dbg" => Ok(PhpVersion::Php73Dbg),
             "7.4-dbg" => Ok(PhpVersion::Php74Dbg),
             "8-dbg" => Ok(PhpVersion::Php80Dbg),
             "8.0-dbg" => Ok(PhpVersion::Php80Dbg),
             "8.1-dbg" => Ok(PhpVersion::Php81Dbg),
+            "8.2-dbg" => Ok(PhpVersion::Php82Dbg),
             _ => Err(()),
         }
     }
@@ -58,10 +62,12 @@ impl PhpVersion {
             PhpVersion::Php74 => "icewind1991/haze:7.4",
             PhpVersion::Php80 => "icewind1991/haze:8.0",
             PhpVersion::Php81 => "icewind1991/haze:8.1",
+            PhpVersion::Php82 => "icewind1991/haze:8.2",
             PhpVersion::Php73Dbg => "icewind1991/haze:7.3-dbg",
             PhpVersion::Php74Dbg => "icewind1991/haze:7.4-dbg",
             PhpVersion::Php80Dbg => "icewind1991/haze:8.0-dbg",
             PhpVersion::Php81Dbg => "icewind1991/haze:8.1-dbg",
+            PhpVersion::Php82Dbg => "icewind1991/haze:8.2-dbg",
         }
     }
 
@@ -71,10 +77,12 @@ impl PhpVersion {
             PhpVersion::Php74 => "7.4",
             PhpVersion::Php80 => "8.0",
             PhpVersion::Php81 => "8.1",
+            PhpVersion::Php82 => "8.2",
             PhpVersion::Php73Dbg => "7.3-dbg",
             PhpVersion::Php74Dbg => "7.4-dbg",
             PhpVersion::Php80Dbg => "8.0-dbg",
             PhpVersion::Php81Dbg => "8.1-dbg",
+            PhpVersion::Php82Dbg => "8.2-dbg",
         }
     }
 
