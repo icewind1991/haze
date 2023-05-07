@@ -174,7 +174,36 @@ haze [match] env <cmd> [args]
 
 Runs the provided command with `NEXTCLOUD_URL`, `DATABASE_URL` and `REDIS_URL` environment variables set for the matched instance.
 
-This is indented to run a local [push daemon](https://github.com/nextcloud/notify_push) against an instance. 
+This is indented to run a local [push daemon](https://github.com/nextcloud/notify_push) against an instance.
+
+## Federation
+
+Multiple instances can reach each other by using their instance name as domain name to allow for testing federation between instances.
+Alternatively, you can setup the haze proxy and the proxied domains to get https support between instances.
+
+## Proxy
+
+By default, instances can be accessed by their IP. In order to get more memorable urls and allow supporting https,
+haze comes with a builtin reverse proxy to allow using a wildcard domain.
+
+### Requirements
+
+- A domain name you can set wildcard DNS records for
+- A reverse proxy like nginx or apache
+- (optionally) a wildcard ssl certificate (can be acquiring using letsencrypt and dns verification)
+
+### Setup
+
+- Set a DNS record for `*.haze.exmaple.com` and `haze.example.com` pointing to your development machine. (127.0.0.1 will not work)
+- Set the `proxy` configuration with your domain and desired listen endpoint
+- Setup a service to run `haze proxy` in the background as your own user. A systemd user service is recommended.
+- Configure your reverse proxy of choice to proxy `*.haze.example.com` and `haze.example.com` to the proxy's listen endpoint
+- (optional) acquire a wildcard ssl certificate for your domain and set your reverse proxy to use it.
+  This will be highly dependant on your DNS provider, [this](https://community.letsencrypt.org/t/dns-providers-who-easily-integrate-with-lets-encrypt-dns-validation/86438) lists some DNS providers and supported ACME clients.
+
+### Usage
+
+When the proxy is configured, generated urls for the instances will use a subdomain of the configured domain, e.g. the `rolling-bees` instance will be available at `rolling-bees.haze.example.com`. Additionally, `haze.example.com` will automatically point to the last created instance.
 
 ## Configuration
 
@@ -192,7 +221,7 @@ post_setup = [ # commands to execute after setup, defaults to []
     "occ app:enable deck",
 ]
 
-[[volume]]
+[[volume]] # optional
 source = "/tmp/haze-shared"
 target = "/shared"
 create = true
@@ -201,4 +230,10 @@ create = true
 source = "/home/me/Downloads"
 target = "/Downloads"
 read_only = true
+
+[proxy] # optional
+address = "haze.example.com" # base domain
+https = true # Is the proxy behind an https terminating proxy
+listen = "/run/haze/haze.sock" # either a unix socket path
+#listen = "127.0.0.1:8080"     # or a socket address
 ```
