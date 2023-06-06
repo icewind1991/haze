@@ -26,7 +26,7 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
   unzip awscliv2.zip && \
   ./aws/install && \
   pip3 install awscli-plugin-endpoint && \
-  wget https://phar.phpunit.de/phpunit-8.phar -O /usr/local/bin/phpunit.phar && \
+  wget https://phar.phpunit.de/phpunit-9.phar -O /usr/local/bin/phpunit.phar && \
   curl -L https://github.com/harness/drone-cli/releases/latest/download/drone_linux_amd64.tar.gz | tar zx  && \
   install -t /usr/bin drone && \
   wget https://github.com/vimeo/psalm/releases/latest/download/psalm.phar -O /usr/local/bin/psalm && \
