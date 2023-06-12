@@ -20,9 +20,9 @@ pub enum ObjectStore {
 impl ObjectStore {
     fn image(&self) -> &str {
         match self {
-            ObjectStore::S3 => "localstack/localstack:0.14.3",
-            ObjectStore::S3m => "localstack/localstack:0.14.3",
-            ObjectStore::S3mb => "localstack/localstack:0.14.3",
+            ObjectStore::S3 => "localstack/localstack:2.1.0",
+            ObjectStore::S3m => "localstack/localstack:2.1.0",
+            ObjectStore::S3mb => "localstack/localstack:2.1.0",
             ObjectStore::Azure => "arafato/azurite:2.6.5",
         }
     }
