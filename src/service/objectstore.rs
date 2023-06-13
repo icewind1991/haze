@@ -20,27 +20,33 @@ pub enum ObjectStore {
 impl ObjectStore {
     fn image(&self) -> &str {
         match self {
-            ObjectStore::S3 => "localstack/localstack:2.1.0",
-            ObjectStore::S3m => "localstack/localstack:2.1.0",
-            ObjectStore::S3mb => "localstack/localstack:2.1.0",
+            ObjectStore::S3 | ObjectStore::S3m | ObjectStore::S3mb => {
+                "minio/minio:RELEASE.2023-01-20T02-05-44Z.hotfix.b9b60d73d"
+            }
             ObjectStore::Azure => "arafato/azurite:2.6.5",
         }
     }
 
     fn self_env(&self) -> Vec<&str> {
         match self {
-            ObjectStore::S3 => vec!["DEBUG=1", "SERVICES=s3"],
-            ObjectStore::S3m => vec!["DEBUG=1", "SERVICES=s3"],
-            ObjectStore::S3mb => vec!["DEBUG=1", "SERVICES=s3"],
+            ObjectStore::S3 | ObjectStore::S3m | ObjectStore::S3mb => {
+                vec!["MINIO_ACCESS_KEY=minio", "MINIO_SECRET_KEY=minio123"]
+            }
             ObjectStore::Azure => vec![],
         }
     }
+
     fn host_name(&self) -> &str {
         match self {
-            ObjectStore::S3 => "s3",
-            ObjectStore::S3m => "s3",
-            ObjectStore::S3mb => "s3",
+            ObjectStore::S3 | ObjectStore::S3m | ObjectStore::S3mb => "s3",
             ObjectStore::Azure => "azure",
+        }
+    }
+
+    fn args(&self) -> &[&str] {
+        match self {
+            ObjectStore::S3 | ObjectStore::S3m | ObjectStore::S3mb => &["server", "/data"],
+            _ => &[],
         }
     }
 }
@@ -88,6 +94,7 @@ impl ServiceTrait for ObjectStore {
                 "haze-type" => self.name(),
                 "haze-cloud-id" => cloud_id
             }),
+            cmd: Some(self.args().into()),
             networking_config: Some(NetworkingConfig {
                 endpoints_config: hashmap! {
                     network => EndpointSettings {
@@ -114,20 +121,16 @@ impl ServiceTrait for ObjectStore {
         match self {
             ObjectStore::S3 | ObjectStore::S3mb => {
                 let mut output = Vec::new();
-                exec(
+                let exit = exec(
                     docker,
                     format!("{}-object", cloud_id),
                     "root",
-                    vec!["curl", "localhost:4566/health"],
+                    vec!["curl", "localhost:9000/minio/health/ready"],
                     vec![],
                     Some(&mut output),
                 )
                 .await?;
-                let output = String::from_utf8(output).into_diagnostic()?;
-                Ok(
-                    output.contains(r#""s3": "running""#)
-                        || output.contains(r#""s3": "available""#),
-                )
+                Ok(exit.is_ok())
             }
             _ => {
                 let info = docker

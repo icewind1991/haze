@@ -13,10 +13,11 @@ use std::str::FromStr;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 #[allow(dead_code)]
 pub enum PhpVersion {
     Php82,
+    #[default]
     Php81,
     Php80,
     Php74,
@@ -182,11 +183,5 @@ impl PhpVersion {
         .await
         .into_diagnostic()
         .wrap_err("Timeout after 15 seconds")
-    }
-}
-
-impl Default for PhpVersion {
-    fn default() -> Self {
-        PhpVersion::Php81
     }
 }

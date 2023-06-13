@@ -172,6 +172,10 @@ pub async fn container_logs(
 pub struct ExitCode(i64);
 
 impl ExitCode {
+    pub fn is_ok(&self) -> bool {
+        self.0 == 0
+    }
+
     pub fn to_result(&self) -> Result<()> {
         match self.0 {
             0 => Ok(()),

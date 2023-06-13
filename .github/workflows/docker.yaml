@@ -37,7 +37,6 @@ jobs:
           context: "images/php"
           push: true
           tags: icewind1991/haze-php:${{ matrix.php-version }}${{ matrix.variant }}
-          dockerfile: "images/php/Dockerfile"
           build-args: |
             PHP_VERSION=${{ matrix.php-version }}
             BASE_IMAGE=${{ matrix.variant == '-dbg' && 'icewind1991/php-dbg' || 'php' }}
@@ -50,7 +49,6 @@ jobs:
           context: "images/haze"
           push: true
           tags: icewind1991/haze:${{ matrix.php-version }}${{ matrix.variant }}
-          dockerfile: "images/haze/Dockerfile"
           build-args: |
             PHP_VERSION=${{ matrix.php-version }}${{ matrix.variant }}
           cache-from: type=gha

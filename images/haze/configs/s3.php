@@ -3,10 +3,10 @@
 		'arguments' => [
 			'bucket' => 'nextcloud',
 			'autocreate' => true,
-			'key'    => 'dummy',
-			'secret' => 'dummyj',
+			'key'    => 'minio',
+			'secret' => 'minio123',
 			'hostname' => 's3',
-			'port' => 4566,
+			'port' => 9000,
 			'use_ssl' => false,
 			'use_path_style' => true,
 			'uploadPartSize' => 52428800,
