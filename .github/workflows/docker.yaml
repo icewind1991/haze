@@ -1,0 +1,57 @@
+name: Build haze images
+
+on:
+  push:
+    branches: ['main']
+
+permissions:
+  contents: read
+
+jobs:
+  build-images:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: [ '8.0', '8.1', '8.2' ]
+        variant: [ '', '-dbg' ]
+
+    name: haze-${{ matrix.php-version }}${{ matrix.variant }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build php image
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: "images/php"
+          push: true
+          tags: icewind1991/haze-php:${{ matrix.php-version }}${{ matrix.variant }}
+          dockerfile: "images/php/Dockerfile"
+          build-args: |
+            PHP_VERSION=${{ matrix.php-version }}
+            BASE_IMAGE=${{ matrix.variant == '-dbg' && 'icewind1991/php-dbg' || 'php' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build haze image
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: "images/haze"
+          push: true
+          tags: icewind1991/haze:${{ matrix.php-version }}${{ matrix.variant }}
+          dockerfile: "images/haze/Dockerfile"
+          build-args: |
+            PHP_VERSION=${{ matrix.php-version }}${{ matrix.variant }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
