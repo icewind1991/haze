@@ -32,9 +32,10 @@ impl DatabaseFamily {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
 #[allow(dead_code)]
 pub enum Database {
+    #[default]
     Sqlite,
     Mysql,
     Mysql80,
@@ -54,12 +55,6 @@ pub enum Database {
     Postgres13,
     Postgres14,
     Oracle,
-}
-
-impl Default for Database {
-    fn default() -> Self {
-        Database::Sqlite
-    }
 }
 
 impl FromStr for Database {

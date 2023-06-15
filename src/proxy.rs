@@ -158,8 +158,8 @@ async fn serve(instances: ActiveInstances, listen: String, base_address: String)
         let listen: PathBuf = listen.into();
         if let Some(parent) = listen.parent() {
             if !parent.exists() {
-                create_dir_all(&parent).into_diagnostic()?;
-                set_permissions(&parent, PermissionsExt::from_mode(0o755)).into_diagnostic()?;
+                create_dir_all(parent).into_diagnostic()?;
+                set_permissions(parent, PermissionsExt::from_mode(0o755)).into_diagnostic()?;
             }
         }
         remove_file(&listen).ok();
