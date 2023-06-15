@@ -436,36 +436,39 @@ impl Cloud {
         Ok(())
     }
 
-    pub async fn exec<S: Into<String>>(
+    pub async fn exec<S: Into<String>, Env: Into<String>>(
         &self,
         docker: &Docker,
         cmd: Vec<S>,
         tty: bool,
+        env: Vec<Env>,
     ) -> Result<ExitCode> {
         if tty {
-            exec_tty(docker, &self.id, "haze", cmd, vec![]).await
+            exec_tty(docker, &self.id, "haze", cmd, env).await
         } else {
-            exec(docker, &self.id, "haze", cmd, vec![], Some(stdout())).await
+            exec(docker, &self.id, "haze", cmd, env, Some(stdout())).await
         }
     }
 
-    pub async fn occ<'a, S: Into<String> + From<&'a str>>(
+    pub async fn occ<'a, S: Into<String> + From<&'a str>, Env: Into<String>>(
         &self,
         docker: &Docker,
         mut cmd: Vec<S>,
         output: Option<&mut Vec<u8>>,
+        env: Vec<Env>,
     ) -> Result<ExitCode> {
         cmd.insert(0, "occ".into());
-        self.exec_with_output(docker, cmd, output).await
+        self.exec_with_output(docker, cmd, output, env).await
     }
 
-    pub async fn exec_with_output<S: Into<String>>(
+    pub async fn exec_with_output<S: Into<String>, Env: Into<String>>(
         &self,
         docker: &Docker,
         cmd: Vec<S>,
         output: Option<impl Write>,
+        env: Vec<Env>,
     ) -> Result<ExitCode> {
-        exec(docker, &self.id, "haze", cmd, vec![], output).await
+        exec(docker, &self.id, "haze", cmd, env, output).await
     }
 
     pub async fn list(
@@ -607,6 +610,7 @@ impl Cloud {
                 "--force".to_string(),
             ],
             false,
+            Vec::<String>::default(),
         )
         .await?;
         Ok(())

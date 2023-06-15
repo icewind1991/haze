@@ -252,9 +252,17 @@ impl Database {
             _ => format!("{}-db", cloud_id),
         };
         if tty {
-            exec_tty(docker, &container, "root", cmd, vec![]).await
+            exec_tty(docker, &container, "root", cmd, Vec::<String>::default()).await
         } else {
-            exec(docker, &container, "root", cmd, vec![], Some(stdout())).await
+            exec(
+                docker,
+                &container,
+                "root",
+                cmd,
+                Vec::<String>::default(),
+                Some(stdout()),
+            )
+            .await
         }
     }
 
@@ -266,7 +274,7 @@ impl Database {
                     cloud_id,
                     "haze",
                     vec!["sqlite3", "/var/www/html/data/haze.db"],
-                    vec![],
+                    Vec::<String>::default(),
                 )
                 .await
             }
@@ -282,7 +290,7 @@ impl Database {
                         "-phaze",
                         "haze",
                     ],
-                    vec![],
+                    Vec::<String>::default(),
                 )
                 .await
             }
@@ -302,7 +310,7 @@ impl Database {
                     format!("{}-db", cloud_id),
                     "root",
                     vec!["sqlplus", "system/haze"],
-                    vec![],
+                    Vec::<String>::default(),
                 )
                 .await
             }
@@ -355,7 +363,7 @@ impl Database {
                     format!("{}-db", cloud_id),
                     "root",
                     vec!["mysql", "-u", "haze", "-phaze", "-e", "SELECT 1"],
-                    vec![],
+                    Vec::<String>::default(),
                     Some(&mut output),
                 )
                 .await?;
@@ -368,7 +376,7 @@ impl Database {
                     format!("{}-db", cloud_id),
                     "root",
                     vec!["pg_isready", "-U", "haze", "-q"],
-                    vec![],
+                    Vec::<String>::default(),
                     Option::<Stdout>::None,
                 )
                 .await?;
@@ -378,7 +386,7 @@ impl Database {
                         format!("{}-db", cloud_id),
                         "root",
                         vec!["psql", "-U", "haze", "-qtA", "-c", ""],
-                        vec![],
+                        Vec::<String>::default(),
                         Option::<Stdout>::None,
                     )
                     .await?;
@@ -394,7 +402,7 @@ impl Database {
                     format!("{}-db", cloud_id),
                     "root",
                     vec!["sh", "-c", r#"echo "show user" | sqlplus -S system/haze"#],
-                    vec![],
+                    Vec::<String>::default(),
                     Some(&mut output),
                 )
                 .await?;

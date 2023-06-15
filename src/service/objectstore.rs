@@ -126,7 +126,7 @@ impl ServiceTrait for ObjectStore {
                     format!("{}-object", cloud_id),
                     "root",
                     vec!["curl", "localhost:9000/minio/health/ready"],
-                    vec![],
+                    Vec::<String>::default(),
                     Some(&mut output),
                 )
                 .await?;

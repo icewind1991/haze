@@ -12,6 +12,7 @@ use crate::service::Service;
 use crate::service::ServiceTrait;
 use bollard::Docker;
 use miette::{IntoDiagnostic, Report, Result, WrapErr};
+use std::env::vars;
 use std::io::stdout;
 use std::os::unix::process::CommandExt;
 use std::process::Command;
@@ -28,6 +29,15 @@ mod network;
 mod php;
 mod proxy;
 mod service;
+
+static FORWARD_ENV: &[&str] = &["OCC_LOG"];
+
+fn get_forward_env() -> Vec<String> {
+    vars()
+        .filter(|(var, _)| FORWARD_ENV.contains(&var.as_str()))
+        .map(|(var, value)| format!("{var}={value}"))
+        .collect()
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -106,6 +116,7 @@ async fn main() -> Result<()> {
                                 command
                             },
                             atty::is(atty::Stream::Stdout),
+                            get_forward_env(),
                         )
                         .await?;
                 }
@@ -133,7 +144,12 @@ async fn main() -> Result<()> {
             let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
             command.insert(0, "occ".to_string());
             cloud
-                .exec(&docker, command, atty::is(atty::Stream::Stdout))
+                .exec(
+                    &docker,
+                    command,
+                    atty::is(atty::Stream::Stdout),
+                    get_forward_env(),
+                )
                 .await?;
         }
         HazeArgs::Db { filter, root } => {
@@ -161,6 +177,7 @@ async fn main() -> Result<()> {
                         &config.auto_setup.password,
                     ],
                     false,
+                    Vec::<String>::default(),
                 )
                 .await
             {
@@ -180,7 +197,7 @@ async fn main() -> Result<()> {
                 cloud.enable_app(&docker, app).await?;
             }
             args.insert(0, "tests".to_string());
-            cloud.exec(&docker, args, false).await?;
+            cloud.exec(&docker, args, false, get_forward_env()).await?;
             cloud.destroy(&docker).await?;
         }
         HazeArgs::Integration { options, mut args } => {
@@ -197,6 +214,7 @@ async fn main() -> Result<()> {
                         &config.auto_setup.password,
                     ],
                     false,
+                    Vec::<String>::default(),
                 )
                 .await
             {
@@ -204,7 +222,7 @@ async fn main() -> Result<()> {
                 return Err(e);
             }
             args.insert(0, "integration".to_string());
-            cloud.exec(&docker, args, false).await?;
+            cloud.exec(&docker, args, false, get_forward_env()).await?;
             cloud.destroy(&docker).await?;
         }
         HazeArgs::Fmt { path } => {
@@ -214,7 +232,12 @@ async fn main() -> Result<()> {
             cloud.wait_for_start(&docker).await?;
             println!("Installing composer");
             if let Err(e) = cloud
-                .exec_with_output(&docker, vec!["composer", "install"], Some(&mut out_buffer))
+                .exec_with_output(
+                    &docker,
+                    vec!["composer", "install"],
+                    Some(&mut out_buffer),
+                    Vec::<String>::default(),
+                )
                 .await
                 .and_then(|c| c.to_result())
             {
@@ -229,6 +252,7 @@ async fn main() -> Result<()> {
                     &docker,
                     vec!["composer", "run", "cs:fix", path.as_str()],
                     false,
+                    Vec::<String>::default(),
                 )
                 .await
             {
@@ -241,6 +265,7 @@ async fn main() -> Result<()> {
                     &docker,
                     vec!["git", "clean", "-fd", "lib/composer"],
                     Some(&mut out_buffer),
+                    Vec::<String>::default(),
                 )
                 .await
                 .and_then(|c| c.to_result())
@@ -254,6 +279,7 @@ async fn main() -> Result<()> {
                     &docker,
                     vec!["git", "checkout", "lib/composer"],
                     Some(&mut out_buffer),
+                    Vec::<String>::default(),
                 )
                 .await
                 .and_then(|c| c.to_result())
@@ -275,6 +301,7 @@ async fn main() -> Result<()> {
                         command
                     },
                     true,
+                    get_forward_env(),
                 )
                 .await?;
             cloud.destroy(&docker).await?;
@@ -355,6 +382,7 @@ async fn setup(docker: &Docker, options: CloudOptions, config: &HazeConfig) -> R
                     &config.auto_setup.password,
                 ],
                 false,
+                Vec::<String>::default(),
             )
             .await?;
         cloud
@@ -367,6 +395,7 @@ async fn setup(docker: &Docker, options: CloudOptions, config: &HazeConfig) -> R
                     &cloud.address,
                 ],
                 None,
+                Vec::<String>::default(),
             )
             .await?;
         cloud
@@ -374,6 +403,7 @@ async fn setup(docker: &Docker, options: CloudOptions, config: &HazeConfig) -> R
                 docker,
                 vec!["config:system:set", "overwritehost", "--value", host],
                 None,
+                Vec::<String>::default(),
             )
             .await?;
         if cloud.address.contains("https://") {
@@ -382,6 +412,7 @@ async fn setup(docker: &Docker, options: CloudOptions, config: &HazeConfig) -> R
                     docker,
                     vec!["config:system:set", "overwriteprotocol", "--value", "https"],
                     None,
+                    Vec::<String>::default(),
                 )
                 .await?;
         }
@@ -399,6 +430,7 @@ async fn setup(docker: &Docker, options: CloudOptions, config: &HazeConfig) -> R
                         domain,
                     ],
                     None,
+                    Vec::<String>::default(),
                 )
                 .await?;
         }
@@ -406,20 +438,35 @@ async fn setup(docker: &Docker, options: CloudOptions, config: &HazeConfig) -> R
         for service in &cloud.services {
             for app in service.apps() {
                 cloud
-                    .exec(docker, vec!["occ", "app:enable", *app, "--force"], false)
+                    .exec(
+                        docker,
+                        vec!["occ", "app:enable", *app, "--force"],
+                        false,
+                        Vec::<String>::default(),
+                    )
                     .await?;
             }
         }
         for service in &cloud.services {
             for cmd in service.post_setup(docker, &cloud.id, config).await? {
                 cloud
-                    .exec(docker, shell_words::split(&cmd).into_diagnostic()?, false)
+                    .exec(
+                        docker,
+                        shell_words::split(&cmd).into_diagnostic()?,
+                        false,
+                        Vec::<String>::default(),
+                    )
                     .await?;
             }
         }
         for cmd in &config.auto_setup.post_setup {
             cloud
-                .exec(docker, shell_words::split(cmd).into_diagnostic()?, false)
+                .exec(
+                    docker,
+                    shell_words::split(cmd).into_diagnostic()?,
+                    false,
+                    Vec::<String>::default(),
+                )
                 .await?;
         }
     }

@@ -77,7 +77,7 @@ impl ServiceTrait for Kaspersky {
             self.container_name(cloud_id),
             "root",
             vec!["curl", "localhost/licenseinfo"],
-            vec![],
+            Vec::<String>::default(),
             Option::<Stdout>::None,
         )
         .await?;

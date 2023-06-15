@@ -11,12 +11,12 @@ use tokio::io::AsyncWriteExt;
 use tokio::task::spawn;
 use tokio::time::sleep;
 
-pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
+pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>, Env: Into<String>>(
     docker: &Docker,
     container: S1,
     user: &str,
     cmd: Vec<S2>,
-    env: Vec<&str>,
+    env: Vec<Env>,
 ) -> Result<ExitCode> {
     let stdout = stdout();
 
@@ -26,7 +26,7 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
 
     let tty_size = terminal_size().into_diagnostic()?;
     let cmd = cmd.into_iter().map(S2::into).collect();
-    let env = env.into_iter().map(String::from).collect();
+    let env = env.into_iter().map(Env::into).collect();
     let config = CreateExecOptions {
         cmd: Some(cmd),
         user: Some(user.to_string()),
@@ -97,16 +97,16 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>>(
         .into())
 }
 
-pub async fn exec<S1: AsRef<str>, S2: Into<String>>(
+pub async fn exec<S1: AsRef<str>, S2: Into<String>, Env: Into<String>>(
     docker: &Docker,
     container: S1,
     user: &str,
     cmd: Vec<S2>,
-    env: Vec<&str>,
+    env: Vec<Env>,
     mut std_out: Option<impl Write>,
 ) -> Result<ExitCode> {
     let cmd = cmd.into_iter().map(S2::into).collect();
-    let env = env.into_iter().map(String::from).collect();
+    let env = env.into_iter().map(Env::into).collect();
     let config = CreateExecOptions {
         cmd: Some(cmd),
         user: Some(user.to_string()),
