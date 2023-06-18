@@ -109,7 +109,7 @@
               inherit (cfg.proxy) listen https address;
             };
           }));
-          pkg = self.defaultPackage.${pkgs.system};
+          pkg = self.packages.${pkgs.system}.default;
         in {
           options.programs.haze = {
             enable = mkEnableOption "haze";
