@@ -50,13 +50,13 @@ See the [configuration section](#configuration) for more options.
 #### Start an instance
 
 ```bash
-haze start [database] [php-version]
+haze start [database] [php-version] [services]
 ```
 
 Where `database` is one of `sqlite`, `mysql`, `mariadb`, `pgsql` or `oracle` with an optional version (e.g. `pgsql:12`), defaults to `sqlite`.
 And `php-version` is one of `8.0`, `8.1`, `8.2`, defaults to `8.1`. `7.3` and `7.4` are still supported but the docker images for those versions aren't being updated anymore so they might be missing some newer features.
 
-Additionally each php version comes with a `-dbg` variant that has php compiled in debug mode and can be used for debugging php itself with gdb.
+Each php version also comes with a `-dbg` variant that has php compiled in debug mode and can be used for debugging php itself with gdb.
 
 Additionally, you can use the following options when starting an instance:
  - `s3`: setup an S3 server and configure to Nextcloud to use it as primary storage
