@@ -6,6 +6,7 @@ mod objectstore;
 mod office;
 mod onlyoffice;
 mod push;
+mod sftp;
 mod smb;
 
 use crate::config::HazeConfig;
@@ -17,6 +18,7 @@ pub use crate::service::objectstore::ObjectStore;
 pub use crate::service::office::Office;
 pub use crate::service::onlyoffice::OnlyOffice;
 pub use crate::service::push::NotifyPush;
+use crate::service::sftp::Sftp;
 use crate::service::smb::Smb;
 use bollard::models::ContainerState;
 use bollard::Docker;
@@ -152,6 +154,7 @@ pub enum Service {
     Push(NotifyPush),
     Smb(Smb),
     Dav(Dav),
+    Sftp(Sftp),
     Kaspersky(Kaspersky),
     KasperskyIcap(KasperskyIcap),
     ClamIcap(ClamIcap),
@@ -170,6 +173,7 @@ impl Service {
             "push" => Some(&[Service::Push(NotifyPush)]),
             "smb" => Some(&[Service::Smb(Smb)]),
             "dav" => Some(&[Service::Dav(Dav)]),
+            "sftp" => Some(&[Service::Sftp(Sftp)]),
             "kaspersky" => Some(&[Service::Kaspersky(Kaspersky)]),
             "kaspersky-icap" => Some(&[Service::KasperskyIcap(KasperskyIcap)]),
             "clamav-icap" => Some(&[Service::ClamIcap(ClamIcap)]),

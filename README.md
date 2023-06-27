@@ -67,6 +67,7 @@ Additionally, you can use the following options when starting an instance:
  - `push` setup [client push](https://github.com/nextcloud/notify_push)
  - `smb`: setup a samba server for external storage use
  - `dav`: setup a WebDAV server for external storage use
+ - `sftp`: setup a SFTP server for external storage use
  - `kaspersky`: setup a kaspersky scan engine server in http mode. (Requires [manually setting up the image](https://github.com/icewind1991/kaspersky-docker))
  - `kaspersky-icap`: setup a kaspersky scan engine server in ICAP mode.
  - `clamav-icap`: setup a clam av scanner in ICAP mode.
