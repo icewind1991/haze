@@ -42,8 +42,8 @@
           pname = "haze";
           root = src;
         };
-        buildTarget = target: (cross-naersk' target).buildPackage nearskOpt;
-        hostNaersk = (cross-naersk' hostTarget);
+        buildTarget = target: (cross-naersk'.buildPackage target) nearskOpt;
+        hostNaersk = cross-naersk'.hostNaersk;
       in
         rec {
           # `nix build`
