@@ -1,91 +1,58 @@
 use crate::Result;
-use miette::{miette, IntoDiagnostic};
+use git2::build::CheckoutBuilder;
+use git2::{Branch, BranchType, ObjectType, Repository};
+use miette::{Context, IntoDiagnostic};
 use std::fs::read_dir;
 use std::path::Path;
-use std::process::Command;
-use tracing::error;
 
-pub fn checkout_all<P: AsRef<Path>>(sources_root: P, branch: &str) -> Result<()> {
+pub fn checkout_all<P: AsRef<Path>>(sources_root: P, name: &str) -> Result<()> {
     let apps_dir = sources_root.as_ref().join("apps");
     for app in read_dir(apps_dir).into_diagnostic()? {
         let app = app.into_diagnostic()?;
-        if app.metadata().into_diagnostic()?.is_dir() {
+        if app.metadata().into_diagnostic()?.is_dir() && app.path().join(".git").is_dir() {
             let app_dir = app.path();
-            if has_branch(&app_dir, branch).unwrap_or_default()
-                && get_branch(&app_dir).unwrap_or_default().trim() != branch
-            {
-                print!("{}", app.file_name().to_string_lossy());
-                if let Err(e) = checkout(&app_dir, branch) {
-                    println!(": {} ❌", e);
-                } else {
-                    println!(" ✓");
+            let repo = Repository::init(&app_dir)
+                .into_diagnostic()
+                .wrap_err_with(|| format!("Failed to open repository {}", app_dir.display()))?;
+            if let Some(branch) = get_branch(&repo, name)? {
+                if !branch.is_head() {
+                    print!("{}", app.file_name().to_string_lossy());
+                    if let Err(e) = checkout(&repo, branch) {
+                        println!(": {:#} ❌", e);
+                    } else {
+                        println!(" ✓");
+                    }
                 }
-            }
+            };
         }
     }
     Ok(())
 }
 
-fn has_branch<P: AsRef<Path>>(repo: P, branch: &str) -> Result<bool> {
-    let output = Command::new("git")
-        .current_dir(repo)
-        .arg("branch")
-        .arg("-a")
-        .output()
-        .into_diagnostic()?;
-    let stdout = String::from_utf8(output.stdout).into_diagnostic()?;
-    let stderr = String::from_utf8(output.stderr).into_diagnostic()?;
-    if output.status.code().unwrap_or_default() != 0 {
-        error!(stdout = stdout, stderr = stderr, "git command failed");
-    }
-
-    for line in stdout.split('\n') {
-        let line = line.trim();
-        if line == branch {
-            return Ok(true);
+fn get_branch<'repo>(repo: &'repo Repository, name: &str) -> Result<Option<Branch<'repo>>> {
+    let branches = repo.branches(Some(BranchType::Local)).into_diagnostic()?;
+    Ok(branches.flatten().find_map(|(branch, _)| {
+        match (branch.name_bytes(), name) {
+            (Ok(b"main"), "master") => Some(branch), // make "main" synonymous with "master"
+            (branch_name, _) if branch_name == Ok(name.as_bytes()) => Some(branch),
+            _ => None,
         }
-        if let Some((_, part)) = line.rsplit_once('/') {
-            if part == branch {
-                return Ok(true);
-            }
-        }
-    }
-    Ok(false)
+    }))
 }
 
-fn checkout<P: AsRef<Path>>(repo: P, branch: &str) -> Result<()> {
-    let output = Command::new("git")
-        .current_dir(repo)
-        .arg("checkout")
-        .arg(branch)
-        .output()
-        .into_diagnostic()?;
+fn checkout(repo: &Repository, branch: Branch) -> Result<()> {
+    let commit = branch.get().peel(ObjectType::Commit).into_diagnostic()?;
+    let name = branch
+        .name()
+        .into_diagnostic()?
+        .expect("we already know the name if utf8");
+    let mut checkout = CheckoutBuilder::default();
+    checkout.update_index(true);
 
-    let stdout = String::from_utf8(output.stdout).into_diagnostic()?;
-    let stderr = String::from_utf8(output.stderr).into_diagnostic()?;
-    let code = output.status.code().unwrap_or_default();
-    if code != 0 {
-        if stderr.contains("would be overwritten") {
-            return Err(miette!("uncommited changes"));
-        }
-        error!(
-            stdout = stdout,
-            stderr = stderr,
-            code = code,
-            "git command failed"
-        );
-    }
-
-    Ok(())
-}
-
-fn get_branch<P: AsRef<Path>>(repo: P) -> Result<String> {
-    let output = Command::new("git")
-        .current_dir(repo)
-        .arg("rev-parse")
-        .arg("--abbrev-ref")
-        .arg("HEAD")
-        .output()
-        .into_diagnostic()?;
-    String::from_utf8(output.stdout).into_diagnostic()
+    repo.checkout_tree(&commit, Some(&mut checkout))
+        .into_diagnostic()
+        .wrap_err("Failed to checkout tree")?;
+    repo.set_head(&format!("refs/heads/{name}"))
+        .into_diagnostic()
+        .wrap_err("Failed to set HEAD")
 }
