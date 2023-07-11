@@ -27,26 +27,21 @@
           inherit system overlays;
           config.allowUnfree = true;
         };
-        lib = pkgs.lib;
+        inherit (pkgs) lib callPackage;
+        inherit (lib.sources) sourceByRegex;
+        inherit (lib.attrsets) genAttrs;
+        inherit (lib.lists) remove;
 
         hostTarget = pkgs.hostPlatform.config;
         targets = [
           hostTarget
           "x86_64-unknown-linux-musl"
+          "aarch64-unknown-linux-musl"
         ];
-        releaseTargets = lib.lists.remove hostTarget targets;
+        releaseTargets = remove hostTarget targets;
+        cross-naersk' = callPackage cross-naersk {inherit naersk;};
 
-        execSufficForTarget = target:
-          if lib.strings.hasInfix "windows" target
-          then ".exe"
-          else "";
-        artifactForTarget = target: "palantir${execSufficForTarget target}";
-        assetNameForTarget = target: "palantir-${builtins.replaceStrings ["-unknown" "-gnu" "-musl" "abihf" "-pc"] ["" "" "" "" ""] target}${execSufficForTarget target}";
-
-        toolchain = pkgs.rust-bin.stable.latest.default.override {inherit targets;};
-        cross-naersk' = pkgs.callPackage cross-naersk {inherit naersk;};
-
-        src = lib.sources.sourceByRegex (lib.cleanSource ./.) ["Cargo.*" "(src)(/.*)?"];
+        src = sourceByRegex ./. ["Cargo.*" "(src)(/.*)?"];
 
         nearskOpt = {
           pname = "haze";
@@ -57,7 +52,7 @@
       in rec {
         # `nix build`
         packages =
-          lib.attrsets.genAttrs targets buildTarget
+          genAttrs targets buildTarget
           // rec {
             haze = packages.${hostTarget};
             check = hostNaersk.buildPackage (nearskOpt
@@ -80,15 +75,15 @@
           include =
             builtins.map (target: {
               inherit target;
-              artifact_name = artifactForTarget target;
-              asset_name = assetNameForTarget target;
+              artifact_name = "haze-${target}";
+              asset_name = "haze";
             })
             releaseTargets;
         };
 
         devShells = {
-          default = pkgs.mkShell {
-            nativeBuildInputs = with pkgs; [rustc cargo bacon cargo-edit cargo-outdated clippy];
+          default = cross-naersk'.mkShell targets {
+            nativeBuildInputs = with pkgs; [bacon cargo-edit cargo-outdated clippy];
           };
         };
       }
