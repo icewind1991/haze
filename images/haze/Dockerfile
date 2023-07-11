@@ -25,7 +25,7 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.1.35.zip" -o "awscliv2.zip" && \
   unzip awscliv2.zip && \
   ./aws/install && \
-  pip3 install awscli-plugin-endpoint && \
+  pip3 install --break-system-packages awscli-plugin-endpoint && \
   wget https://phar.phpunit.de/phpunit-9.phar -O /usr/local/bin/phpunit.phar && \
   curl -L https://github.com/harness/drone-cli/releases/latest/download/drone_linux_amd64.tar.gz | tar zx  && \
   install -t /usr/bin drone && \
