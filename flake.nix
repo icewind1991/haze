@@ -19,7 +19,17 @@
     naersk,
     rust-overlay,
     cross-naersk,
-  }:
+  }: let
+    inherit (builtins) filter;
+    inherit (nixpkgs.lib.strings) hasInfix;
+    targets = [
+      "x86_64-unknown-linux-gnu"
+      "x86_64-unknown-linux-musl"
+      "aarch64-unknown-linux-gnu"
+      "aarch64-unknown-linux-musl"
+    ];
+    releaseTargets = filter (hasInfix "-musl") targets;
+  in
     flake-utils.lib.eachDefaultSystem (
       system: let
         overlays = [(import rust-overlay)];
@@ -30,15 +40,8 @@
         inherit (pkgs) lib callPackage;
         inherit (lib.sources) sourceByRegex;
         inherit (lib.attrsets) genAttrs;
-        inherit (lib.lists) remove;
 
         hostTarget = pkgs.hostPlatform.config;
-        targets = [
-          hostTarget
-          "x86_64-unknown-linux-musl"
-          "aarch64-unknown-linux-musl"
-        ];
-        releaseTargets = remove hostTarget targets;
         cross-naersk' = callPackage cross-naersk {inherit naersk;};
 
         src = sourceByRegex ./. ["Cargo.*" "(src)(/.*)?"];
@@ -70,17 +73,6 @@
             default = haze;
           };
 
-        inherit targets;
-        releaseMatrix = {
-          include =
-            builtins.map (target: {
-              inherit target;
-              artifact_name = "haze-${target}";
-              asset_name = "haze";
-            })
-            releaseTargets;
-        };
-
         devShells = {
           default = cross-naersk'.mkShell targets {
             nativeBuildInputs = with pkgs; [bacon cargo-edit cargo-outdated clippy];
@@ -89,6 +81,7 @@
       }
     )
     // {
+      inherit targets releaseTargets;
       homeManagerModule = import ./hm-module.nix;
     };
 }

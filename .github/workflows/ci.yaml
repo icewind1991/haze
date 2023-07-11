@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: cachix/install-nix-action@v20
       - id: set-matrix
-        run: echo "matrix={\"target\":$(nix eval --json ".#targets.x86_64-linux")}" | tee $GITHUB_OUTPUT
+        run: echo "matrix={\"target\":$(nix eval --json ".#targets")}" | tee $GITHUB_OUTPUT
 
   build:
     runs-on: ubuntu-latest
