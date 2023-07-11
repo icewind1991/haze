@@ -491,7 +491,7 @@ impl Cloud {
                     Some(filter) => cloud_id.contains(filter),
                     None => true,
                 } {
-                    let mut entry = containers_by_id.entry(cloud_id.to_string()).or_default();
+                    let entry = containers_by_id.entry(cloud_id.to_string()).or_default();
                     if labels.get("haze-type").map(String::as_str) == Some("cloud") {
                         let info = docker.inspect_container(cloud_id, None).await.ok();
                         entry.0 = Some(container);
