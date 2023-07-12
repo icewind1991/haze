@@ -1,4 +1,4 @@
-{
+packages: {
   config,
   lib,
   pkgs,
@@ -42,7 +42,7 @@ with lib; let
         };
       }
     ));
-  pkg = self.packages.${pkgs.system}.default;
+  pkg = packages.${pkgs.system}.default;
 in {
   options.programs.haze = {
     enable = mkEnableOption "haze";

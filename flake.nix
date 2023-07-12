@@ -82,6 +82,6 @@
     )
     // {
       inherit targets releaseTargets;
-      homeManagerModule = import ./hm-module.nix;
+      homeManagerModule = import ./hm-module.nix self.packages;
     };
 }
