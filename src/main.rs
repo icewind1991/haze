@@ -95,7 +95,7 @@ async fn main() -> Result<()> {
             let container = if let Some(service) = service {
                 service
                     .container_name(&cloud.id)
-                    .ok_or_else(|| Report::msg(format!("service has no logs")))?
+                    .ok_or_else(|| Report::msg("service has no logs".to_string()))?
             } else {
                 cloud.id
             };
