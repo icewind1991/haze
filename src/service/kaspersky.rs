@@ -29,14 +29,14 @@ impl ServiceTrait for Kaspersky {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<String> {
+    ) -> Result<Option<String>> {
         let image = "kaspersky";
         if !image_exists(docker, image).await {
             bail!("You need to manually create the 'kaspersky' image");
         }
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
-            name: self.container_name(cloud_id),
+            name: self.container_name(cloud_id).unwrap(),
             ..CreateContainerOptions::default()
         });
         let config = Config {
@@ -68,13 +68,13 @@ impl ServiceTrait for Kaspersky {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(id)
+        Ok(Some(id))
     }
 
     async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
         let exit = exec(
             docker,
-            self.container_name(cloud_id),
+            self.container_name(cloud_id).unwrap(),
             "root",
             vec!["curl", "localhost/licenseinfo"],
             Vec::<String>::default(),
@@ -84,8 +84,8 @@ impl ServiceTrait for Kaspersky {
         Ok(exit.to_result().is_ok())
     }
 
-    fn container_name(&self, cloud_id: &str) -> String {
-        format!("{}-kaspersky", cloud_id)
+    fn container_name(&self, cloud_id: &str) -> Option<String> {
+        Some(format!("{}-kaspersky", cloud_id))
     }
 
     fn apps(&self) -> &'static [&'static str] {
@@ -130,14 +130,14 @@ impl ServiceTrait for KasperskyIcap {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<String> {
+    ) -> Result<Option<String>> {
         let image = "kaspersky-icap";
         if !image_exists(docker, image).await {
             bail!("You need to manually create the 'kaspersky-icap' image");
         }
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
-            name: self.container_name(cloud_id),
+            name: self.container_name(cloud_id).unwrap(),
             ..CreateContainerOptions::default()
         });
         let config = Config {
@@ -169,7 +169,7 @@ impl ServiceTrait for KasperskyIcap {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(id)
+        Ok(Some(id))
     }
 
     // async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
@@ -185,8 +185,8 @@ impl ServiceTrait for KasperskyIcap {
     //     Ok(exit.to_result().is_ok())
     // }
 
-    fn container_name(&self, cloud_id: &str) -> String {
-        format!("{}-kaspersky-icap", cloud_id)
+    fn container_name(&self, cloud_id: &str) -> Option<String> {
+        Some(format!("{}-kaspersky-icap", cloud_id))
     }
 
     fn apps(&self) -> &'static [&'static str] {

@@ -20,6 +20,7 @@ with lib; let
           read_only = volume.readOnly;
         })
         cfg.volumes;
+      preset = cfg.presets;
     }
     // (
       if (cfg.blackfire == null)
@@ -116,6 +117,23 @@ in {
             type = types.bool;
             default = false;
             description = "Whether to mount the volume readonly";
+          };
+        };
+      });
+    };
+
+    presets = mkOption {
+      default = [];
+      type = types.listOf (types.submodule {
+        options = {
+          name = mkOption {
+            type = types.str;
+            description = "Name of the preset";
+          };
+          commands = mkOption {
+            type = types.listOf types.str;
+            description = "Commands to run post setup when the preset is enabled";
+            default = [];
           };
         };
       });

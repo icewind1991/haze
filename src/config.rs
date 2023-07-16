@@ -16,6 +16,7 @@ pub struct HazeConfig {
     pub volume: Vec<HazeVolumeConfig>,
     pub blackfire: Option<HazeBlackfireConfig>,
     pub proxy: ProxyConfig,
+    pub preset: Vec<Preset>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -31,6 +32,8 @@ pub struct RawHazeConfig {
     pub blackfire: Option<HazeBlackfireConfig>,
     #[serde(default)]
     pub proxy: ProxyConfig,
+    #[serde(default)]
+    pub preset: Vec<Preset>,
 }
 
 impl From<RawHazeConfig> for HazeConfig {
@@ -51,6 +54,7 @@ impl From<RawHazeConfig> for HazeConfig {
             volume: raw.volume,
             blackfire: raw.blackfire,
             proxy: raw.proxy,
+            preset: raw.preset,
         }
     }
 }
@@ -199,4 +203,10 @@ impl HazeConfig {
             .into_diagnostic()
             .wrap_err("Failed to parse config file")
     }
+}
+
+#[derive(Default, Deserialize, Debug)]
+pub struct Preset {
+    pub name: String,
+    pub commands: Vec<String>,
 }

@@ -58,7 +58,7 @@ impl ActiveInstances {
                     _ => None,
                 })
                 .next()?;
-            let ip = push.get_ip(&self.docker, &cloud.id).await.ok()?;
+            let ip = push.get_ip(&self.docker, &cloud.id).await.ok()??;
             SocketAddr::new(ip, 7867)
         } else if let Some(name) = name.strip_suffix("-office") {
             let cloud = Cloud::get_by_filter(&self.docker, Some(name.into()), &self.config)
@@ -72,7 +72,7 @@ impl ActiveInstances {
                     _ => None,
                 })
                 .next()?;
-            let ip = office.get_ip(&self.docker, &cloud.id).await.ok()?;
+            let ip = office.get_ip(&self.docker, &cloud.id).await.ok()??;
             SocketAddr::new(ip, 9980)
         } else {
             SocketAddr::new(

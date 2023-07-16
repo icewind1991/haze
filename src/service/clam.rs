@@ -32,11 +32,11 @@ impl ServiceTrait for ClamIcap {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<String> {
+    ) -> Result<Option<String>> {
         let image = "deepdiver/icap-clamav-service";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
-            name: self.container_name(cloud_id),
+            name: self.container_name(cloud_id).unwrap(),
             ..CreateContainerOptions::default()
         });
         let config = Config {
@@ -68,11 +68,11 @@ impl ServiceTrait for ClamIcap {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(id)
+        Ok(Some(id))
     }
 
-    fn container_name(&self, cloud_id: &str) -> String {
-        format!("{}-clamav-icap", cloud_id)
+    fn container_name(&self, cloud_id: &str) -> Option<String> {
+        Some(format!("{}-clamav-icap", cloud_id))
     }
 
     fn apps(&self) -> &'static [&'static str] {

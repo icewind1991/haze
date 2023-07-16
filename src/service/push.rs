@@ -26,11 +26,11 @@ impl ServiceTrait for NotifyPush {
         cloud_id: &str,
         network: &str,
         config: &HazeConfig,
-    ) -> Result<String> {
+    ) -> Result<Option<String>> {
         let image = "icewind1991/notify_push";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
-            name: self.container_name(cloud_id),
+            name: self.container_name(cloud_id).unwrap(),
             ..CreateContainerOptions::default()
         });
         let config = Config {
@@ -68,11 +68,11 @@ impl ServiceTrait for NotifyPush {
             .await
             .into_diagnostic()?
             .id;
-        Ok(id)
+        Ok(Some(id))
     }
 
-    fn container_name(&self, cloud_id: &str) -> String {
-        format!("{}-push", cloud_id)
+    fn container_name(&self, cloud_id: &str) -> Option<String> {
+        Some(format!("{}-push", cloud_id))
     }
 
     fn apps(&self) -> &'static [&'static str] {
@@ -89,10 +89,10 @@ impl ServiceTrait for NotifyPush {
         cloud_id: &str,
         config: &HazeConfig,
     ) -> Result<Vec<String>> {
-        let ip = self.get_ip(docker, cloud_id).await?;
+        let ip = self.get_ip(docker, cloud_id).await?.unwrap();
         let addr = config
             .proxy
-            .addr_with_port(&self.container_name(cloud_id), ip, 7867);
+            .addr_with_port(&self.container_name(cloud_id).unwrap(), ip, 7867);
         Ok(vec![
             format!("occ config:system:set trusted_proxies 1 --value {}", ip),
             format!("occ notify_push:setup {}", addr),

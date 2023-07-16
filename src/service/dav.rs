@@ -23,11 +23,11 @@ impl ServiceTrait for Dav {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<String> {
+    ) -> Result<Option<String>> {
         let image = "ugeek/webdav:amd64";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
-            name: self.container_name(cloud_id),
+            name: self.container_name(cloud_id).unwrap(),
             ..CreateContainerOptions::default()
         });
         let config = Config {
@@ -60,11 +60,11 @@ impl ServiceTrait for Dav {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(id)
+        Ok(Some(id))
     }
 
-    fn container_name(&self, cloud_id: &str) -> String {
-        format!("{}-dav", cloud_id)
+    fn container_name(&self, cloud_id: &str) -> Option<String> {
+        Some(format!("{}-dav", cloud_id))
     }
 
     fn apps(&self) -> &'static [&'static str] {

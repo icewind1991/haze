@@ -9,7 +9,7 @@ mod push;
 mod sftp;
 mod smb;
 
-use crate::config::HazeConfig;
+use crate::config::{HazeConfig, Preset};
 pub use crate::service::clam::ClamIcap;
 use crate::service::dav::Dav;
 use crate::service::kaspersky::{Kaspersky, KasperskyIcap};
@@ -39,15 +39,20 @@ pub trait ServiceTrait {
 
     async fn spawn(
         &self,
-        docker: &Docker,
-        cloud_id: &str,
-        network: &str,
+        _docker: &Docker,
+        _cloud_id: &str,
+        _network: &str,
         _config: &HazeConfig,
-    ) -> Result<String>;
+    ) -> Result<Option<String>> {
+        Ok(None)
+    }
 
     async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
+        let Some(container) = self.container_name(cloud_id) else {
+            return Ok(true)
+        };
         let info = docker
-            .inspect_container(&self.container_name(cloud_id), None)
+            .inspect_container(&container, None)
             .await
             .into_diagnostic()?;
         Ok(matches!(
@@ -59,7 +64,9 @@ pub trait ServiceTrait {
         ))
     }
 
-    fn container_name(&self, cloud_id: &str) -> String;
+    fn container_name(&self, _cloud_id: &str) -> Option<String> {
+        None
+    }
 
     async fn start_message(&self, _docker: &Docker, _cloud_id: &str) -> Result<Option<String>> {
         Ok(None)
@@ -79,8 +86,11 @@ pub trait ServiceTrait {
     }
 
     async fn is_running(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
+        let Some(container) = self.container_name(cloud_id) else {
+            return Ok(true)
+        };
         let info = docker
-            .inspect_container(&self.container_name(cloud_id), None)
+            .inspect_container(&container, None)
             .await
             .into_diagnostic()?;
         Ok(matches!(
@@ -104,9 +114,12 @@ pub trait ServiceTrait {
         .wrap_err("Timeout after 30 seconds")?
     }
 
-    async fn get_ip(&self, docker: &Docker, cloud_id: &str) -> Result<IpAddr> {
+    async fn get_ip(&self, docker: &Docker, cloud_id: &str) -> Result<Option<IpAddr>> {
+        let Some(container) = self.container_name(cloud_id) else {
+            return Ok(None);
+        };
         docker
-            .start_container::<String>(&self.container_name(cloud_id), None)
+            .start_container::<String>(&container, None)
             .await
             .into_diagnostic()?;
         self.wait_for_running(docker, cloud_id).await?;
@@ -114,7 +127,7 @@ pub trait ServiceTrait {
         sleep(Duration::from_millis(100)).await;
 
         let info = docker
-            .inspect_container(&self.container_name(cloud_id), None)
+            .inspect_container(&container, None)
             .await
             .into_diagnostic()?;
         if matches!(
@@ -136,6 +149,7 @@ pub trait ServiceTrait {
                 .unwrap()
                 .parse()
                 .into_diagnostic()
+                .map(Some)
                 .wrap_err("Invalid ip address")
         } else {
             Err(Report::msg("service not started"))
@@ -158,26 +172,31 @@ pub enum Service {
     Kaspersky(Kaspersky),
     KasperskyIcap(KasperskyIcap),
     ClamIcap(ClamIcap),
+    Preset(PresetService),
 }
 
 impl Service {
-    pub fn from_type(ty: &str) -> Option<&'static [Self]> {
+    pub fn from_type(presets: &[Preset], ty: &str) -> Option<Vec<Self>> {
         match ty {
-            "s3" => Some(&[Service::ObjectStore(ObjectStore::S3)]),
-            "s3m" => Some(&[Service::ObjectStore(ObjectStore::S3m)]),
-            "s3mb" => Some(&[Service::ObjectStore(ObjectStore::S3mb)]),
-            "azure" => Some(&[Service::ObjectStore(ObjectStore::Azure)]),
-            "ldap" => Some(&[Service::Ldap(Ldap), Service::LdapAdmin(LdapAdmin)]),
-            "onlyoffice" => Some(&[Service::OnlyOffice(OnlyOffice)]),
-            "office" => Some(&[Service::Office(Office)]),
-            "push" => Some(&[Service::Push(NotifyPush)]),
-            "smb" => Some(&[Service::Smb(Smb)]),
-            "dav" => Some(&[Service::Dav(Dav)]),
-            "sftp" => Some(&[Service::Sftp(Sftp)]),
-            "kaspersky" => Some(&[Service::Kaspersky(Kaspersky)]),
-            "kaspersky-icap" => Some(&[Service::KasperskyIcap(KasperskyIcap)]),
-            "clamav-icap" => Some(&[Service::ClamIcap(ClamIcap)]),
-            _ => None,
+            "s3" => Some(vec![Service::ObjectStore(ObjectStore::S3)]),
+            "s3m" => Some(vec![Service::ObjectStore(ObjectStore::S3m)]),
+            "s3mb" => Some(vec![Service::ObjectStore(ObjectStore::S3mb)]),
+            "azure" => Some(vec![Service::ObjectStore(ObjectStore::Azure)]),
+            "ldap" => Some(vec![Service::Ldap(Ldap), Service::LdapAdmin(LdapAdmin)]),
+            "onlyoffice" => Some(vec![Service::OnlyOffice(OnlyOffice)]),
+            "office" => Some(vec![Service::Office(Office)]),
+            "push" => Some(vec![Service::Push(NotifyPush)]),
+            "smb" => Some(vec![Service::Smb(Smb)]),
+            "dav" => Some(vec![Service::Dav(Dav)]),
+            "sftp" => Some(vec![Service::Sftp(Sftp)]),
+            "kaspersky" => Some(vec![Service::Kaspersky(Kaspersky)]),
+            "kaspersky-icap" => Some(vec![Service::KasperskyIcap(KasperskyIcap)]),
+            "clamav-icap" => Some(vec![Service::ClamIcap(ClamIcap)]),
+            _ => presets
+                .iter()
+                .find_map(|preset| (preset.name == ty).then(|| PresetService(preset.name.clone())))
+                .map(Service::Preset)
+                .map(|service| vec![service]),
         }
     }
 
@@ -191,5 +210,30 @@ impl Service {
         .await
         .into_diagnostic()
         .wrap_err("Timeout after 30 seconds")?
+    }
+}
+
+fn get_preset<'a>(presets: &'a [Preset], name: &str) -> Option<&'a Preset> {
+    presets.iter().find(|preset| preset.name == name)
+}
+
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub struct PresetService(String);
+
+#[async_trait::async_trait]
+impl ServiceTrait for PresetService {
+    fn name(&self) -> &str {
+        self.0.as_str()
+    }
+
+    async fn post_setup(
+        &self,
+        _docker: &Docker,
+        _cloud_id: &str,
+        config: &HazeConfig,
+    ) -> Result<Vec<String>> {
+        let preset =
+            get_preset(&config.preset, &self.0).ok_or_else(|| Report::msg("invalid preset"))?;
+        Ok(preset.commands.clone())
     }
 }

@@ -49,7 +49,7 @@ async fn main() -> Result<()> {
         .wrap_err("Failed to connect to docker")?;
     let config = HazeConfig::load().wrap_err("Failed to load config")?;
 
-    let args = HazeArgs::parse(std::env::args())?;
+    let args = HazeArgs::parse(&config.preset, std::env::args())?;
 
     match args {
         HazeArgs::Clean => {
@@ -93,7 +93,9 @@ async fn main() -> Result<()> {
         } => {
             let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
             let container = if let Some(service) = service {
-                service.container_name(&cloud.id)
+                service
+                    .container_name(&cloud.id)
+                    .ok_or_else(|| Report::msg(format!("service has no logs")))?
             } else {
                 cloud.id
             };

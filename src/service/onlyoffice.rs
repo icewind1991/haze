@@ -27,11 +27,11 @@ impl ServiceTrait for OnlyOffice {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<String> {
+    ) -> Result<Option<String>> {
         let image = "onlyoffice/documentserver";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
-            name: self.container_name(cloud_id),
+            name: self.container_name(cloud_id).unwrap(),
             ..CreateContainerOptions::default()
         });
         let config = Config {
@@ -63,11 +63,11 @@ impl ServiceTrait for OnlyOffice {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(id)
+        Ok(Some(id))
     }
 
-    fn container_name(&self, cloud_id: &str) -> String {
-        format!("{}-onlyoffice", cloud_id)
+    fn container_name(&self, cloud_id: &str) -> Option<String> {
+        Some(format!("{}-onlyoffice", cloud_id))
     }
 
     fn apps(&self) -> &'static [&'static str] {
@@ -81,7 +81,7 @@ impl ServiceTrait for OnlyOffice {
         _config: &HazeConfig,
     ) -> Result<Vec<String>> {
         let info = docker
-            .inspect_container(&self.container_name(cloud_id), None)
+            .inspect_container(&self.container_name(cloud_id).unwrap(), None)
             .await
             .into_diagnostic()?;
         let ip = if matches!(

@@ -1,4 +1,5 @@
 use crate::cloud::CloudOptions;
+use crate::config::Preset;
 use crate::service::{Service, ServiceTrait};
 use miette::{IntoDiagnostic, Report, Result};
 use parse_display::Display;
@@ -78,20 +79,18 @@ pub enum LogService {
 }
 
 impl LogService {
-    pub fn from_type(ty: &str) -> Option<Self> {
+    pub fn from_type(presets: &[Preset], ty: &str) -> Option<Self> {
         if ty == "db" {
             return Some(LogService::Database);
         }
         Some(LogService::Service(
-            Service::from_type(ty)?.first()?.clone(),
+            Service::from_type(presets, ty)?.into_iter().next()?,
         ))
     }
 
-    pub fn container_name(&self, cloud_id: &str) -> String {
+    pub fn container_name(&self, cloud_id: &str) -> Option<String> {
         match self {
-            LogService::Database => {
-                format!("{}-db", cloud_id)
-            }
+            LogService::Database => Some(format!("{}-db", cloud_id)),
             LogService::Service(service) => service.container_name(cloud_id),
         }
     }
@@ -103,7 +102,7 @@ pub enum ExecService {
 }
 
 impl HazeArgs {
-    pub fn parse<I, S>(mut args: I) -> Result<HazeArgs>
+    pub fn parse<I, S>(presets: &[Preset], mut args: I) -> Result<HazeArgs>
     where
         S: AsRef<str> + Into<String> + Display,
         I: Iterator<Item = S>,
@@ -140,7 +139,7 @@ impl HazeArgs {
             }),
             HazeCommand::Start => {
                 let mut args = args.peekable();
-                let options = CloudOptions::parse(&mut args)?;
+                let options = CloudOptions::parse(presets, &mut args)?;
                 if let Some(leftover) = args.next() {
                     return Err(Report::msg(format!("unrecognized option {}", leftover)));
                 }
@@ -149,13 +148,13 @@ impl HazeArgs {
             HazeCommand::Stop => Ok(HazeArgs::Stop { filter }),
             HazeCommand::Test => {
                 let mut args = args.peekable();
-                let options = CloudOptions::parse(&mut args)?;
+                let options = CloudOptions::parse(presets, &mut args)?;
                 let args = args.map(S::into).collect();
                 Ok(HazeArgs::Test { options, args })
             }
             HazeCommand::Integration => {
                 let mut args = args.peekable();
-                let options = CloudOptions::parse(&mut args)?;
+                let options = CloudOptions::parse(presets, &mut args)?;
                 let args = args.map(S::into).collect();
                 Ok(HazeArgs::Integration { options, args })
             }
@@ -190,8 +189,8 @@ impl HazeArgs {
                 let mut args = args.peekable();
                 let follow = args.next_if(|arg| arg.as_ref() == "-f").is_some();
                 let service = args
-                    .next_if(|arg| LogService::from_type(arg.as_ref()).is_some())
-                    .and_then(|arg| LogService::from_type(arg.as_ref()));
+                    .next_if(|arg| LogService::from_type(presets, arg.as_ref()).is_some())
+                    .and_then(|arg| LogService::from_type(presets, arg.as_ref()));
                 Ok(HazeArgs::Logs {
                     filter,
                     follow,
@@ -213,7 +212,7 @@ impl HazeArgs {
             }
             HazeCommand::Shell => {
                 let mut args = args.peekable();
-                let options = CloudOptions::parse(&mut args)?;
+                let options = CloudOptions::parse(presets, &mut args)?;
                 let command = args.map(S::into).collect();
                 Ok(HazeArgs::Shell { options, command })
             }

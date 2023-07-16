@@ -27,11 +27,11 @@ impl ServiceTrait for Ldap {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<String> {
+    ) -> Result<Option<String>> {
         let image = "icewind1991/haze-ldap";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
-            name: self.container_name(cloud_id),
+            name: self.container_name(cloud_id).unwrap(),
             ..CreateContainerOptions::default()
         });
         let config = Config {
@@ -65,11 +65,11 @@ impl ServiceTrait for Ldap {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(id)
+        Ok(Some(id))
     }
 
-    fn container_name(&self, cloud_id: &str) -> String {
-        format!("{}-ldap", cloud_id)
+    fn container_name(&self, cloud_id: &str) -> Option<String> {
+        Some(format!("{}-ldap", cloud_id))
     }
 
     fn apps(&self) -> &'static [&'static str] {
@@ -96,11 +96,11 @@ impl ServiceTrait for LdapAdmin {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<String> {
+    ) -> Result<Option<String>> {
         let image = "osixia/phpldapadmin";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
-            name: self.container_name(cloud_id),
+            name: self.container_name(cloud_id).unwrap(),
             ..CreateContainerOptions::default()
         });
         let config = Config {
@@ -134,16 +134,16 @@ impl ServiceTrait for LdapAdmin {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(id)
+        Ok(Some(id))
     }
 
-    fn container_name(&self, cloud_id: &str) -> String {
-        format!("{}-ldap-admin", cloud_id)
+    fn container_name(&self, cloud_id: &str) -> Option<String> {
+        Some(format!("{}-ldap-admin", cloud_id))
     }
 
     async fn start_message(&self, docker: &Docker, cloud_id: &str) -> Result<Option<String>> {
         let info = docker
-            .inspect_container(&self.container_name(cloud_id), None)
+            .inspect_container(&self.container_name(cloud_id).unwrap(), None)
             .await
             .into_diagnostic()?;
         let ip = if matches!(

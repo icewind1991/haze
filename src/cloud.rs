@@ -1,4 +1,4 @@
-use crate::config::{HazeConfig, HazeVolumeConfig};
+use crate::config::{HazeConfig, HazeVolumeConfig, Preset};
 use crate::database::Database;
 use crate::exec::{exec, exec_tty, ExitCode};
 use crate::mapping::{default_mappings, Mapping};
@@ -38,7 +38,7 @@ pub struct CloudOptions {
 }
 
 impl CloudOptions {
-    pub fn parse<I, S>(args: &mut Peekable<I>) -> Result<CloudOptions>
+    pub fn parse<I, S>(presets: &[Preset], args: &mut Peekable<I>) -> Result<CloudOptions>
     where
         S: AsRef<str> + Into<String> + Display,
         I: Iterator<Item = S>,
@@ -56,8 +56,8 @@ impl CloudOptions {
             } else if let Ok(php_option) = PhpVersion::from_str(option.as_ref()) {
                 php = Some(php_option);
                 let _ = args.next();
-            } else if let Some(service) = Service::from_type(option.as_ref()) {
-                services.extend_from_slice(service);
+            } else if let Some(service) = Service::from_type(presets, option.as_ref()) {
+                services.extend_from_slice(&service);
                 let _ = args.next();
             } else if option.as_ref().ends_with(".tar.gz") {
                 app_package.push(option.to_string().into());
@@ -282,14 +282,14 @@ impl Cloud {
             env.push(format!("BLACKFIRE_CLIENT_TOKEN={}", blackfire.client_token));
         }
 
-        let service_containers = try_join_all(
+        let service_containers: Vec<Option<String>> = try_join_all(
             options
                 .services
                 .iter()
                 .map(|service| service.spawn(docker, &id, &network, config)),
         )
         .await?;
-        containers.extend_from_slice(&service_containers);
+        containers.extend(service_containers.iter().flatten().cloned());
 
         env.extend(
             options
@@ -308,10 +308,10 @@ impl Cloud {
         {
             Ok(container) => container,
             Err(e) => {
-                for container in service_containers {
+                for container in service_containers.iter().flatten() {
                     docker
                         .remove_container(
-                            &container,
+                            container,
                             Some(RemoveContainerOptions {
                                 force: true,
                                 ..RemoveContainerOptions::default()
@@ -519,9 +519,8 @@ impl Cloud {
                     .flat_map(|container| &container.labels)
                     .flat_map(|labels| labels.get("haze-type"))
                     .map(String::as_str)
-                    .flat_map(Service::from_type)
+                    .flat_map(|ty| Service::from_type(&[], ty))
                     .flatten()
-                    .cloned()
                     .collect();
                 let mut service_ids: Vec<String> = services
                     .iter()
