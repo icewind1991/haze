@@ -130,6 +130,11 @@ in {
             type = types.str;
             description = "Name of the preset";
           };
+          apps = mkOption {
+            type = types.listOf types.str;
+            description = "Apps to enable when the preset is enabled";
+            default = [];
+          };
           commands = mkOption {
             type = types.listOf types.str;
             description = "Commands to run post setup when the preset is enabled";

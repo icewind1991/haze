@@ -234,6 +234,12 @@ impl ServiceTrait for PresetService {
     ) -> Result<Vec<String>> {
         let preset =
             get_preset(&config.preset, &self.0).ok_or_else(|| Report::msg("invalid preset"))?;
-        Ok(preset.commands.clone())
+        let mut commands: Vec<_> = preset
+            .apps
+            .iter()
+            .map(|app| format!("occ app:enable {app} --force"))
+            .collect();
+        commands.extend_from_slice(&preset.commands);
+        Ok(commands)
     }
 }

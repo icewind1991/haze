@@ -208,5 +208,8 @@ impl HazeConfig {
 #[derive(Default, Deserialize, Debug)]
 pub struct Preset {
     pub name: String,
+    #[serde(default)]
+    pub apps: Vec<String>,
+    #[serde(default)]
     pub commands: Vec<String>,
 }
