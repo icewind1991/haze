@@ -320,31 +320,31 @@ impl HazeCommand {
 #[test]
 fn test_arg_parse() {
     assert_eq!(
-        HazeArgs::parse(vec!["haze"].into_iter()).unwrap(),
+        HazeArgs::parse(&[], vec!["haze"].into_iter()).unwrap(),
         HazeArgs::List { filter: None }
     );
     assert_eq!(
-        HazeArgs::parse(vec!["haze", "test"].into_iter()).unwrap(),
+        HazeArgs::parse(&[], vec!["haze", "test"].into_iter()).unwrap(),
         HazeArgs::Test {
             options: Default::default(),
             args: vec![]
         }
     );
     assert_eq!(
-        HazeArgs::parse(vec!["haze", "asdasd"].into_iter()).unwrap(),
+        HazeArgs::parse(&[], vec!["haze", "asdasd"].into_iter()).unwrap(),
         HazeArgs::List {
             filter: Some("asdasd".to_string())
         }
     );
     assert_eq!(
-        HazeArgs::parse(vec!["haze", "asdasd", "db"].into_iter()).unwrap(),
+        HazeArgs::parse(&[], vec!["haze", "asdasd", "db"].into_iter()).unwrap(),
         HazeArgs::Db {
             filter: Some("asdasd".to_string()),
             root: false
         }
     );
     assert_eq!(
-        HazeArgs::parse(vec!["haze", "exec", "foo", "bar"].into_iter()).unwrap(),
+        HazeArgs::parse(&[], vec!["haze", "exec", "foo", "bar"].into_iter()).unwrap(),
         HazeArgs::Exec {
             filter: None,
             service: None,
@@ -352,7 +352,11 @@ fn test_arg_parse() {
         }
     );
     assert_eq!(
-        HazeArgs::parse(vec!["haze", "asdasd", "exec", "foo", "bar"].into_iter()).unwrap(),
+        HazeArgs::parse(
+            &[],
+            vec!["haze", "asdasd", "exec", "foo", "bar"].into_iter()
+        )
+        .unwrap(),
         HazeArgs::Exec {
             filter: Some("asdasd".to_string()),
             service: None,
@@ -360,7 +364,11 @@ fn test_arg_parse() {
         }
     );
     assert_eq!(
-        HazeArgs::parse(vec!["haze", "asdasd", "exec", "db", "foo", "bar"].into_iter()).unwrap(),
+        HazeArgs::parse(
+            &[],
+            vec!["haze", "asdasd", "exec", "db", "foo", "bar"].into_iter()
+        )
+        .unwrap(),
         HazeArgs::Exec {
             filter: Some("asdasd".to_string()),
             service: Some(ExecService::Db),
@@ -368,27 +376,31 @@ fn test_arg_parse() {
         }
     );
     assert_eq!(
-        HazeArgs::parse(vec!["haze", "test", "foo", "bar"].into_iter()).unwrap(),
+        HazeArgs::parse(&[], vec!["haze", "test", "foo", "bar"].into_iter()).unwrap(),
         HazeArgs::Test {
             options: Default::default(),
             args: vec!["foo".into(), "bar".into()]
         }
     );
     assert_eq!(
-        HazeArgs::parse(vec!["haze", "logs", "-f", "smb"].into_iter()).unwrap(),
+        HazeArgs::parse(&[], vec!["haze", "logs", "-f", "smb"].into_iter()).unwrap(),
         HazeArgs::Logs {
             filter: None,
             follow: true,
-            service: Some(LogService::from_type("smb").unwrap()),
+            service: Some(LogService::from_type(&[], "smb").unwrap()),
             count: None,
         }
     );
     assert_eq!(
-        HazeArgs::parse(vec!["haze", "asdasd", "logs", "smb", "123"].into_iter()).unwrap(),
+        HazeArgs::parse(
+            &[],
+            vec!["haze", "asdasd", "logs", "smb", "123"].into_iter()
+        )
+        .unwrap(),
         HazeArgs::Logs {
             filter: Some("asdasd".to_string()),
             follow: false,
-            service: Some(LogService::from_type("smb").unwrap()),
+            service: Some(LogService::from_type(&[], "smb").unwrap()),
             count: Some(123),
         }
     );

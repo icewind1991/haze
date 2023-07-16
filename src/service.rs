@@ -218,7 +218,7 @@ fn get_preset<'a>(presets: &'a [Preset], name: &str) -> Option<&'a Preset> {
 }
 
 #[derive(Clone, Eq, PartialEq, Debug)]
-pub struct PresetService(String);
+pub struct PresetService(pub String);
 
 #[async_trait::async_trait]
 impl ServiceTrait for PresetService {

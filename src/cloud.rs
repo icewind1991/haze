@@ -82,16 +82,18 @@ impl CloudOptions {
 
 #[test]
 fn test_option_parse() {
+    use crate::config::Preset;
+    use crate::service::PresetService;
     use crate::service::{Ldap, LdapAdmin};
 
     let mut args = vec![].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse::<_, &str>(&mut args).unwrap(),
+        CloudOptions::parse::<_, &str>(&[], &mut args).unwrap(),
         CloudOptions::default()
     );
     let mut args = vec!["mariadb"].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions::parse(&[], &mut args).unwrap(),
         CloudOptions {
             db: Database::MariaDB,
             ..Default::default()
@@ -99,14 +101,14 @@ fn test_option_parse() {
     );
     let mut args = vec!["rest"].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions::parse(&[], &mut args).unwrap(),
         CloudOptions {
             ..Default::default()
         }
     );
     let mut args = vec!["7"].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions::parse(&[], &mut args).unwrap(),
         CloudOptions {
             php: PhpVersion::Php74,
             ..Default::default()
@@ -114,7 +116,7 @@ fn test_option_parse() {
     );
     let mut args = vec!["7", "pgsql", "rest"].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions::parse(&[], &mut args).unwrap(),
         CloudOptions {
             php: PhpVersion::Php74,
             db: Database::Postgres,
@@ -123,7 +125,7 @@ fn test_option_parse() {
     );
     let mut args = vec!["7", "ldap", "pgsql"].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions::parse(&[], &mut args).unwrap(),
         CloudOptions {
             php: PhpVersion::Php74,
             db: Database::Postgres,
@@ -133,11 +135,35 @@ fn test_option_parse() {
     );
     let mut args = vec!["7", "pgsql", "ldap"].into_iter().peekable();
     assert_eq!(
-        CloudOptions::parse(&mut args).unwrap(),
+        CloudOptions::parse(&[], &mut args).unwrap(),
         CloudOptions {
             php: PhpVersion::Php74,
             db: Database::Postgres,
             services: vec![Service::Ldap(Ldap), Service::LdapAdmin(LdapAdmin)],
+            ..Default::default()
+        }
+    );
+    let mut args = vec!["7", "pgsql", "ldap", "mypreset"]
+        .into_iter()
+        .peekable();
+    assert_eq!(
+        CloudOptions::parse(
+            &[Preset {
+                name: "mypreset".to_string(),
+                commands: Vec::new(),
+                apps: Vec::new(),
+            }],
+            &mut args
+        )
+        .unwrap(),
+        CloudOptions {
+            php: PhpVersion::Php74,
+            db: Database::Postgres,
+            services: vec![
+                Service::Ldap(Ldap),
+                Service::LdapAdmin(LdapAdmin),
+                Service::Preset(PresetService("mypreset".to_string()))
+            ],
             ..Default::default()
         }
     );
