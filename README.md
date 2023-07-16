@@ -71,6 +71,7 @@ Additionally, you can use the following options when starting an instance:
  - `kaspersky`: setup a kaspersky scan engine server in http mode. (Requires [manually setting up the image](https://github.com/icewind1991/kaspersky-docker))
  - `kaspersky-icap`: setup a kaspersky scan engine server in ICAP mode.
  - `clamav-icap`: setup a clam av scanner in ICAP mode.
+ - The name of any configured preset
 
 #### Run tests in a new instance
 
@@ -201,7 +202,7 @@ haze comes with a builtin reverse proxy to allow using a wildcard domain.
 - Setup a service to run `haze proxy` in the background as your own user. A systemd user service is recommended.
 - Configure your reverse proxy of choice to proxy `*.haze.example.com` and `haze.example.com` to the proxy's listen endpoint
 - (optional) acquire a wildcard ssl certificate for your domain and set your reverse proxy to use it.
-  This will be highly dependant on your DNS provider, [this](https://community.letsencrypt.org/t/dns-providers-who-easily-integrate-with-lets-encrypt-dns-validation/86438) lists some DNS providers and supported ACME clients.
+  This will be highly dependent on your DNS provider, [this](https://community.letsencrypt.org/t/dns-providers-who-easily-integrate-with-lets-encrypt-dns-validation/86438) lists some DNS providers and supported ACME clients.
 
 ### Usage
 
@@ -238,4 +239,10 @@ address = "haze.example.com" # base domain
 https = true # Is the proxy behind an https terminating proxy
 listen = "/run/haze/haze.sock" # either a unix socket path
 #listen = "127.0.0.1:8080"     # or a socket address
+
+# presets allow for easy usage of commonly used setups
+[[preset]]
+name = "groupfolders" # name of the preset
+apps = ["groupfolders"] # app to enable
+commands = ["occ groupfolders:create gf", "occ groupfolders:group 1 admin read write share delete"] # commands to run post-setup
 ```
