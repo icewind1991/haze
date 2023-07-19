@@ -1,6 +1,6 @@
 use crate::service::ServiceTrait;
+use crate::Result;
 use crate::{Cloud, HazeConfig};
-use crate::{Result, Service};
 use bollard::Docker;
 use miette::{miette, IntoDiagnostic};
 use std::collections::HashMap;
@@ -46,34 +46,18 @@ impl ActiveInstances {
             return Some(ip);
         }
 
-        let addr = if let Some(name) = name.strip_suffix("-push") {
+        // service proxy
+        let addr = if name.matches('-').count() == 2 {
+            let (name, service_name) = name.rsplit_once('-').unwrap();
             let cloud = Cloud::get_by_filter(&self.docker, Some(name.into()), &self.config)
                 .await
                 .ok()?;
-            let push = cloud
+            let service = cloud
                 .services
                 .iter()
-                .filter_map(|service| match service {
-                    Service::Push(push) => Some(push),
-                    _ => None,
-                })
-                .next()?;
-            let ip = push.get_ip(&self.docker, &cloud.id).await.ok()??;
-            SocketAddr::new(ip, 7867)
-        } else if let Some(name) = name.strip_suffix("-office") {
-            let cloud = Cloud::get_by_filter(&self.docker, Some(name.into()), &self.config)
-                .await
-                .ok()?;
-            let office = cloud
-                .services
-                .iter()
-                .filter_map(|service| match service {
-                    Service::Office(office) => Some(office),
-                    _ => None,
-                })
-                .next()?;
-            let ip = office.get_ip(&self.docker, &cloud.id).await.ok()??;
-            SocketAddr::new(ip, 9980)
+                .find(|service| service.name() == service_name)?;
+            let ip = service.get_ip(&self.docker, &cloud.id).await.ok()??;
+            SocketAddr::new(ip, service.proxy_port())
         } else {
             SocketAddr::new(
                 Cloud::get_by_filter(&self.docker, Some(name.into()), &self.config)

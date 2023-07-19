@@ -98,4 +98,8 @@ impl ServiceTrait for NotifyPush {
             format!("occ notify_push:setup {}", addr),
         ])
     }
+
+    fn proxy_port(&self) -> u16 {
+        7867
+    }
 }

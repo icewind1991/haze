@@ -3,6 +3,7 @@ mod dav;
 mod kaspersky;
 mod ldap;
 mod objectstore;
+mod oc;
 mod office;
 mod onlyoffice;
 mod push;
@@ -15,6 +16,7 @@ use crate::service::dav::Dav;
 use crate::service::kaspersky::{Kaspersky, KasperskyIcap};
 pub use crate::service::ldap::{Ldap, LdapAdmin};
 pub use crate::service::objectstore::ObjectStore;
+use crate::service::oc::Oc;
 pub use crate::service::office::Office;
 pub use crate::service::onlyoffice::OnlyOffice;
 pub use crate::service::push::NotifyPush;
@@ -155,6 +157,10 @@ pub trait ServiceTrait {
             Err(Report::msg("service not started"))
         }
     }
+
+    fn proxy_port(&self) -> u16 {
+        80
+    }
 }
 
 #[enum_dispatch]
@@ -172,6 +178,7 @@ pub enum Service {
     Kaspersky(Kaspersky),
     KasperskyIcap(KasperskyIcap),
     ClamIcap(ClamIcap),
+    Oc(Oc),
     Preset(PresetService),
 }
 
@@ -189,6 +196,7 @@ impl Service {
             "smb" => Some(vec![Service::Smb(Smb)]),
             "dav" => Some(vec![Service::Dav(Dav)]),
             "sftp" => Some(vec![Service::Sftp(Sftp)]),
+            "oc" => Some(vec![Service::Oc(Oc)]),
             "kaspersky" => Some(vec![Service::Kaspersky(Kaspersky)]),
             "kaspersky-icap" => Some(vec![Service::KasperskyIcap(KasperskyIcap)]),
             "clamav-icap" => Some(vec![Service::ClamIcap(ClamIcap)]),

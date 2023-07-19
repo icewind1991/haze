@@ -141,4 +141,8 @@ impl ServiceTrait for Office {
             ),
         ])
     }
+
+    fn proxy_port(&self) -> u16 {
+        9980
+    }
 }
