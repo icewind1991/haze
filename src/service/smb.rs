@@ -24,7 +24,7 @@ impl ServiceTrait for Smb {
         network: &str,
         _config: &HazeConfig,
     ) -> Result<Option<String>> {
-        let image = "servercontainers/samba";
+        let image = "ghcr.io/servercontainers/samba:smbd-only-a3.18.0-s4.18.2-r0";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
             name: self.container_name(cloud_id).unwrap(),
