@@ -71,6 +71,7 @@ Additionally, you can use the following options when starting an instance:
  - `kaspersky`: setup a kaspersky scan engine server in http mode. (Requires [manually setting up the image](https://github.com/icewind1991/kaspersky-docker))
  - `kaspersky-icap`: setup a kaspersky scan engine server in ICAP mode.
  - `clamav-icap`: setup a clam av scanner in ICAP mode.
+ - `oc`: start an ownCloud instance in the same network.
  - The name of any configured preset
 
 #### Run tests in a new instance
