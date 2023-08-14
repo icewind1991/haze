@@ -4,6 +4,7 @@ on:
   push:
     branches: ['main']
     paths:
+      - '.github/**'
       - 'images/**'
 
 permissions:
@@ -29,8 +30,11 @@ jobs:
         with:
           filters: |
             php:
+              - '.github/**'
               - 'images/php/**'
             haze:
+              - '.github/**'
+              - 'images/php/**'
               - 'images/haze/**'
 
       - name: Log in to the Container registry
