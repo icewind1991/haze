@@ -33,9 +33,10 @@ RUN apt-get update \
         libonig-dev \
         libldap2-dev \
         libsmbclient-dev \
+	libgmp-dev \
     && /configure_gd.sh \
     && docker-php-ext-install gd \
-    && docker-php-ext-install iconv zip pdo pdo_pgsql pdo_sqlite pgsql pdo_mysql intl curl mbstring pcntl ldap exif \
+    && docker-php-ext-install iconv zip pdo pdo_pgsql pdo_sqlite pgsql pdo_mysql intl curl mbstring pcntl ldap exif gmp \
     && pecl install inotify \
     && pecl install smbclient \
     && pecl install imagick \
