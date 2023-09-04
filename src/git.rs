@@ -5,7 +5,11 @@ use miette::{Context, IntoDiagnostic};
 use std::fs::read_dir;
 use std::path::Path;
 
-pub fn checkout_all<P: AsRef<Path>>(sources_root: P, name: &str) -> Result<()> {
+pub fn checkout_all<P: AsRef<Path>>(sources_root: P, mut name: &str) -> Result<()> {
+    // "main" and "master" are interchangeable
+    if name == "main" {
+        name = "master";
+    }
     let apps_dir = sources_root.as_ref().join("apps");
     for app in read_dir(apps_dir).into_diagnostic()? {
         let app = app.into_diagnostic()?;
