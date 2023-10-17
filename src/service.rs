@@ -11,7 +11,7 @@ mod sftp;
 mod smb;
 
 use crate::config::{HazeConfig, Preset};
-pub use crate::service::clam::ClamIcap;
+pub use crate::service::clam::{ClamIcap, ClamIcapTls};
 use crate::service::dav::Dav;
 use crate::service::kaspersky::{Kaspersky, KasperskyIcap};
 pub use crate::service::ldap::{Ldap, LdapAdmin};
@@ -51,7 +51,7 @@ pub trait ServiceTrait {
 
     async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
         let Some(container) = self.container_name(cloud_id) else {
-            return Ok(true)
+            return Ok(true);
         };
         let info = docker
             .inspect_container(&container, None)
@@ -89,7 +89,7 @@ pub trait ServiceTrait {
 
     async fn is_running(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
         let Some(container) = self.container_name(cloud_id) else {
-            return Ok(true)
+            return Ok(true);
         };
         let info = docker
             .inspect_container(&container, None)
@@ -178,6 +178,7 @@ pub enum Service {
     Kaspersky(Kaspersky),
     KasperskyIcap(KasperskyIcap),
     ClamIcap(ClamIcap),
+    ClamIcapTls(ClamIcapTls),
     Oc(Oc),
     Preset(PresetService),
 }
@@ -200,6 +201,9 @@ impl Service {
             "kaspersky" => Some(vec![Service::Kaspersky(Kaspersky)]),
             "kaspersky-icap" => Some(vec![Service::KasperskyIcap(KasperskyIcap)]),
             "clamav-icap" => Some(vec![Service::ClamIcap(ClamIcap)]),
+            "clamav-icap-tls" => Some(vec![Service::ClamIcapTls(ClamIcapTls)]),
+            "clam-icap" => Some(vec![Service::ClamIcap(ClamIcap)]),
+            "clam-icap-tls" => Some(vec![Service::ClamIcapTls(ClamIcapTls)]),
             _ => presets
                 .iter()
                 .find_map(|preset| (preset.name == ty).then(|| PresetService(preset.name.clone())))
