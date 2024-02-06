@@ -21,7 +21,8 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
     python3-pip \
     procps \
 #   chromium \
-  ncat && \
+    ncat && \
+  apt-get install --assume-yes libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libnss3 libxss1 libasound2 libxtst6 xauth xvfb && \
   curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.1.35.zip" -o "awscliv2.zip" && \
   unzip awscliv2.zip && \
   ./aws/install && \
