@@ -155,4 +155,26 @@ impl ServiceTrait for ObjectStore {
     fn apps(&self) -> &'static [&'static str] {
         &["files_external"]
     }
+
+    async fn post_setup(
+        &self,
+        _docker: &Docker,
+        _cloud_id: &str,
+        _config: &HazeConfig,
+    ) -> Result<Vec<String>> {
+        if *self == ObjectStore::S3 {
+            Ok(vec![
+                "occ files_external:create s3 amazons3 amazons3::accesskey".into(),
+                "occ files_external:config 1 bucket ext".into(),
+                "occ files_external:config 1 hostname s3".into(),
+                "occ files_external:config 1 port 9000".into(),
+                "occ files_external:config 1 use_ssl false".into(),
+                "occ files_external:config 1 use_path_style true".into(),
+                "occ files_external:config 1 key minio".into(),
+                "occ files_external:config 1 secret minio123".into(),
+            ])
+        } else {
+            Ok(Vec::new())
+        }
+    }
 }
