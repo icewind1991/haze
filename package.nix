@@ -6,13 +6,14 @@
   lib,
 }: let
   inherit (lib.sources) sourceByRegex;
+  inherit (builtins) fromTOML readFile;
   src = sourceByRegex ./. ["Cargo.*" "(src)(/.*)?"];
+  version = (fromTOML (readFile ./Cargo.toml)).package.version;
 in
   rustPlatform.buildRustPackage rec {
     pname = "haze";
-    version = "0.1.0";
 
-    inherit src;
+    inherit src version;
 
     cargoLock = {
       lockFile = ./Cargo.lock;
