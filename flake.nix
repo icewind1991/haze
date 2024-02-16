@@ -32,7 +32,10 @@
   in
     flake-utils.lib.eachDefaultSystem (
       system: let
-        overlays = [(import rust-overlay)];
+        overlays = [
+          (import rust-overlay)
+          (import ./overlay.nix)
+        ];
         pkgs = import nixpkgs {
           inherit system overlays;
           config.allowUnfree = true;
@@ -44,11 +47,8 @@
         hostTarget = pkgs.hostPlatform.config;
         cross-naersk' = callPackage cross-naersk {inherit naersk;};
 
-        src = sourceByRegex ./. ["Cargo.*" "(src)(/.*)?"];
-
         nearskOpt = {
-          pname = "haze";
-          root = src;
+          inherit (pkgs.haze) src pname;
         };
         buildTarget = target: (cross-naersk'.buildPackage target) nearskOpt;
         hostNaersk = cross-naersk'.hostNaersk;
@@ -57,7 +57,7 @@
         packages =
           genAttrs targets buildTarget
           // rec {
-            haze = packages.${hostTarget};
+            inherit (pkgs) haze;
             check = hostNaersk.buildPackage (nearskOpt
               // {
                 mode = "check";
@@ -81,7 +81,19 @@
       }
     )
     // {
+      overlays.default = import ./overlay.nix;
+      homeManagerModules.default = {
+        pkgs,
+        config,
+        lib,
+        ...
+      }: {
+        imports = [./hm-module.nix];
+        config = lib.mkIf config.programs.haze.enable {
+          nixpkgs.overlays = [self.overlays.default];
+          programs.haze.package = lib.mkDefault pkgs.haze;
+        };
+      };
       inherit targets releaseTargets;
-      homeManagerModule = import ./hm-module.nix self.packages;
     };
 }

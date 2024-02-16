@@ -1,4 +1,4 @@
-packages: {
+{
   config,
   lib,
   pkgs,
@@ -43,7 +43,6 @@ with lib; let
         };
       }
     ));
-  pkg = packages.${pkgs.system}.default;
 in {
   options.programs.haze = {
     enable = mkEnableOption "haze";
@@ -165,11 +164,17 @@ in {
         };
       });
     };
+
+    package = mkOption {
+      type = types.package;
+      defaultText = literalExpression "pkgs.haze";
+      description = "package to use";
+    };
   };
 
   config = mkIf cfg.enable {
     xdg.configFile."haze/haze.toml".source = configFile;
-    home.packages = [pkg];
+    home.packages = [cfg.package];
 
     systemd.user.services.haze = {
       Unit = {
@@ -177,7 +182,7 @@ in {
       };
 
       Service = {
-        ExecStart = "${pkg}/bin/haze proxy";
+        ExecStart = "${cfg.package}/bin/haze proxy";
         Restart = "on-failure";
         RestartSec = 10;
       };
