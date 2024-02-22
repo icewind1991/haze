@@ -28,18 +28,15 @@ RUN apt-get update \
         libcurl4-openssl-dev \
         libicu-dev \
         libzip-dev \
-        libmagickwand-dev \
-        libmagickcore-dev \
         libonig-dev \
         libldap2-dev \
         libsmbclient-dev \
-	libgmp-dev \
+	      libgmp-dev \
     && /configure_gd.sh \
     && docker-php-ext-install gd \
     && docker-php-ext-install iconv zip pdo pdo_pgsql pdo_sqlite pgsql pdo_mysql intl curl mbstring pcntl ldap exif gmp \
     && pecl install inotify \
     && pecl install smbclient \
-    && pecl install imagick \
     && apt-get remove -y \
         libfreetype6-dev \
         libjpeg62-turbo-dev \
@@ -50,9 +47,6 @@ RUN apt-get update \
         libcurl4-openssl-dev \
         libicu-dev \
         libzip-dev \
-        libmagick-dev \
-        libmagickwand-dev \
-        libmagickcore-dev \
         libonig-dev \
         libldap2-dev \
         libsmbclient-dev \
@@ -67,8 +61,7 @@ RUN pecl install apcu \
     && mv /tmp/blackfire-*.so `php -r "echo ini_get('extension_dir');"`/blackfire.so
 
 ARG BASE_IMAGE
-RUN echo "extension=imagick.so" > $PHP_INI_DIR/conf.d/imagick.ini \
-    && sh -c 'if [ "$BASE_IMAGE" = "php" ]; then echo "extension=smbclient.so" > $PHP_INI_DIR/conf.d/smbclient.ini; fi' \
+RUN sh -c 'if [ "$BASE_IMAGE" = "php" ]; then echo "extension=smbclient.so" > $PHP_INI_DIR/conf.d/smbclient.ini; fi' \
     && sh -c 'if [ "$BASE_IMAGE" = "php" ]; then echo "extension=blackfire.so" > $PHP_INI_DIR/conf.d/blackfire.ini; fi' \
     && echo "extension=inotify.so" > $PHP_INI_DIR/conf.d/inotify.ini \
     && echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > $PHP_INI_DIR/conf.d/xdebug.ini \
