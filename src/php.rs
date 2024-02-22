@@ -16,12 +16,14 @@ use tokio::time::{sleep, timeout};
 #[derive(Clone, Debug, Eq, PartialEq, Default)]
 #[allow(dead_code)]
 pub enum PhpVersion {
+    Php83,
     Php82,
     #[default]
     Php81,
     Php80,
     Php74,
     Php73,
+    Php83Dbg,
     Php82Dbg,
     Php81Dbg,
     Php80Dbg,
@@ -43,6 +45,7 @@ impl FromStr for PhpVersion {
             "8.0" => Ok(PhpVersion::Php80),
             "8.1" => Ok(PhpVersion::Php81),
             "8.2" => Ok(PhpVersion::Php82),
+            "8.3" => Ok(PhpVersion::Php83),
             "7-dbg" => Ok(PhpVersion::Php74Dbg),
             "7.3-dbg" => Ok(PhpVersion::Php73Dbg),
             "7.4-dbg" => Ok(PhpVersion::Php74Dbg),
@@ -50,6 +53,7 @@ impl FromStr for PhpVersion {
             "8.0-dbg" => Ok(PhpVersion::Php80Dbg),
             "8.1-dbg" => Ok(PhpVersion::Php81Dbg),
             "8.2-dbg" => Ok(PhpVersion::Php82Dbg),
+            "8.3-dbg" => Ok(PhpVersion::Php83Dbg),
             _ => Err(()),
         }
     }
@@ -64,11 +68,13 @@ impl PhpVersion {
             PhpVersion::Php80 => "icewind1991/haze:8.0",
             PhpVersion::Php81 => "icewind1991/haze:8.1",
             PhpVersion::Php82 => "icewind1991/haze:8.2",
+            PhpVersion::Php83 => "icewind1991/haze:8.3",
             PhpVersion::Php73Dbg => "icewind1991/haze:7.3-dbg",
             PhpVersion::Php74Dbg => "icewind1991/haze:7.4-dbg",
             PhpVersion::Php80Dbg => "icewind1991/haze:8.0-dbg",
             PhpVersion::Php81Dbg => "icewind1991/haze:8.1-dbg",
             PhpVersion::Php82Dbg => "icewind1991/haze:8.2-dbg",
+            PhpVersion::Php83Dbg => "icewind1991/haze:8.3-dbg",
         }
     }
 
@@ -79,11 +85,13 @@ impl PhpVersion {
             PhpVersion::Php80 => "8.0",
             PhpVersion::Php81 => "8.1",
             PhpVersion::Php82 => "8.2",
+            PhpVersion::Php83 => "8.3",
             PhpVersion::Php73Dbg => "7.3-dbg",
             PhpVersion::Php74Dbg => "7.4-dbg",
             PhpVersion::Php80Dbg => "8.0-dbg",
             PhpVersion::Php81Dbg => "8.1-dbg",
             PhpVersion::Php82Dbg => "8.2-dbg",
+            PhpVersion::Php83Dbg => "8.3-dbg",
         }
     }
 
