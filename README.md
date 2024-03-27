@@ -73,6 +73,7 @@ Additionally, you can use the following options when starting an instance:
  - `clamav-icap`: setup a clam av scanner in ICAP mode.
  - `clamav-icap-tls`: setup a clam av scanner in ICAP mode with TLS encryption.
  - `oc`: start an ownCloud instance in the same network.
+ - `imaginary`: start an Imaginary service and configure it for preview generation
  - The name of any configured preset
 
 #### Run tests in a new instance

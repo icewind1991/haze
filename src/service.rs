@@ -1,5 +1,6 @@
 mod clam;
 mod dav;
+mod imaginary;
 mod kaspersky;
 mod ldap;
 mod objectstore;
@@ -13,6 +14,7 @@ mod smb;
 use crate::config::{HazeConfig, Preset};
 pub use crate::service::clam::{ClamIcap, ClamIcapTls};
 use crate::service::dav::Dav;
+use crate::service::imaginary::Imaginary;
 use crate::service::kaspersky::{Kaspersky, KasperskyIcap};
 pub use crate::service::ldap::{Ldap, LdapAdmin};
 pub use crate::service::objectstore::ObjectStore;
@@ -180,6 +182,7 @@ pub enum Service {
     ClamIcap(ClamIcap),
     ClamIcapTls(ClamIcapTls),
     Oc(Oc),
+    Imaginary(Imaginary),
     Preset(PresetService),
 }
 
@@ -198,6 +201,7 @@ impl Service {
             "dav" => Some(vec![Service::Dav(Dav)]),
             "sftp" => Some(vec![Service::Sftp(Sftp)]),
             "oc" => Some(vec![Service::Oc(Oc)]),
+            "imaginary" => Some(vec![Service::Imaginary(Imaginary)]),
             "kaspersky" => Some(vec![Service::Kaspersky(Kaspersky)]),
             "kaspersky-icap" => Some(vec![Service::KasperskyIcap(KasperskyIcap)]),
             "clamav-icap" => Some(vec![Service::ClamIcap(ClamIcap)]),
