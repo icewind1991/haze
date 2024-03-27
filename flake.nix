@@ -52,6 +52,7 @@
         };
         buildTarget = target: (cross-naersk'.buildPackage target) nearskOpt;
         hostNaersk = cross-naersk'.hostNaersk;
+        toolchain = pkgs.rust-bin.stable.latest.default;
       in rec {
         # `nix build`
         packages =
@@ -75,7 +76,7 @@
 
         devShells = {
           default = cross-naersk'.mkShell targets {
-            nativeBuildInputs = with pkgs; [bacon cargo-edit cargo-outdated clippy];
+            nativeBuildInputs = with pkgs; [toolchain bacon cargo-edit cargo-outdated clippy];
           };
         };
       }

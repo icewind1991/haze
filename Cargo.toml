@@ -1,6 +1,6 @@
 [package]
 name = "haze"
-version = "1.3.0"
+version = "1.5.0"
 authors = ["Robin Appelman <robin@icewind.nl>"]
 edition = "2018"
 repository = "https://github.com/icewind1991/haze"
@@ -8,33 +8,33 @@ license = "MIT"
 description = "Easy setup and management of Nextcloud test instances using docker"
 
 [dependencies]
-bollard = "0.14.0"
+bollard = "0.16.1"
 maplit = "1.0.2"
-camino = { version = "1.1.4", features = ["serde1"] }
-tokio = { version = "1.29.1", features = ["fs", "macros", "signal"] }
-parse-display = "0.8.1"
-futures-util = "0.3.28"
-termion = "2.0.1"
-opener = "0.6.1"
-toml = "0.7.6"
+camino = { version = "1.1.6", features = ["serde1"] }
+tokio = { version = "1.36.0", features = ["fs", "macros", "signal", "rt-multi-thread"] }
+parse-display = "0.9.0"
+futures-util = "0.3.30"
+termion = "3.0.0"
+opener = "0.7.0"
+toml = "0.8.12"
 directories-next = "2.0.0"
-serde = "1.0.171"
+serde = "1.0.197"
 petname = "1.1.3"
-reqwest = { version = "0.11.18", default-features = false }
-tar = "0.4.38"
-flate2 = "1.0.26"
-async-trait = "0.1.71"
+reqwest = { version = "0.12.2", default-features = false }
+tar = "0.4.40"
+flate2 = "1.0.28"
+async-trait = "0.1.79"
 enum_dispatch = "0.3.12"
-miette = { version = "5.9.0", features = ["fancy"] }
+miette = { version = "7.2.0", features = ["fancy"] }
 shell-words = "1.1.0"
 warp = "0.3"
-tokio-stream = { version = "0.1.14", features = ["net"] }
-tracing = "0.1.37"
-tracing-subscriber = "0.3.17"
+tokio-stream = { version = "0.1.15", features = ["net"] }
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
 hyper-reverse-proxy = { version = "0.5.2-dev", git = "https://github.com/felipenoris/hyper-reverse-proxy" }
-hyper = "0.14.27"
+hyper = "0.14.28"
 atty = "0.2.14"
-git2 = { version = "0.17.2", default-features = false }
+git2 = { version = "0.18.3", default-features = false }
 
 [profile.release]
 lto = true
