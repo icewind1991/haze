@@ -2,7 +2,6 @@ ARG PHP_VERSION
 FROM icewind1991/haze-php:$PHP_VERSION
 
 RUN DEBIAN_FRONTEND=noninteractive ;\
-  echo 'deb http://http.debian.net/debian buster-backports main' >> /etc/apt/sources.list && \
 	apt-get update && \
 	apt-get install --assume-yes \
     cron \
