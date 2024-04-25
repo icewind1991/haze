@@ -1,6 +1,6 @@
 ARG PHP_VERSION
 ARG BASE_IMAGE=php
-FROM ${BASE_IMAGE}:${PHP_VERSION}-fpm
+FROM ${BASE_IMAGE}:${PHP_VERSION}-fpm-bookworm
 MAINTAINER  Robin Appelman <robin@icewind.nl>
 
 RUN DEBIAN_FRONTEND=noninteractive ;\
