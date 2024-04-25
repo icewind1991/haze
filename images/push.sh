@@ -2,7 +2,7 @@
 
 set -e
 
-versions=("8.0" "8.1" "8.2" "8.0-dbg" "8.1-dbg" "8.2-dbg")
+versions=("8.1" "8.2" "8.0-dbg" "8.1-dbg" "8.2-dbg")
 
 for version in "${versions[@]}"; do
   docker push "icewind1991/haze-php:$version"

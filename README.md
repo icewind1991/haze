@@ -54,7 +54,7 @@ haze start [database] [php-version] [services]
 ```
 
 Where `database` is one of `sqlite`, `mysql`, `mariadb`, `pgsql` or `oracle` with an optional version (e.g. `pgsql:12`), defaults to `sqlite`.
-And `php-version` is one of `8.0`, `8.1`, `8.2`, `8.3`, defaults to `8.1`. `7.3` and `7.4` are still supported but the docker images for those versions aren't being updated anymore so they might be missing some newer features.
+And `php-version` is one of `8.1`, `8.2`, `8.3`, defaults to `8.1`. `7.3` and `7.4` and `8.0` are still supported but the docker images for those versions aren't being updated anymore so they might be missing some newer features.
 
 Each php version also comes with a `-dbg` variant that has php compiled in debug mode and can be used for debugging php itself with gdb.
 
