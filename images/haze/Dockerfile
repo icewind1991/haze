@@ -19,6 +19,7 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
     gdb \
     python3-pip \
     procps \
+    rsnapshot \
 #   chromium \
     ncat && \
   apt-get install --assume-yes libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libnss3 libxss1 libasound2 libxtst6 xauth xvfb && \
@@ -48,7 +49,9 @@ ADD configs/cron.conf /etc/oc-cron.conf
 ADD misc/bootstrap.sh misc/occ misc/tests misc/phpunit misc/install misc/occ misc/integration misc/chromium-no-sandbox /usr/local/bin/
 ADD configs/sudoers /etc/sudoers.d/haze
 ADD configs/.s3cfg configs/.gdbinit configs/.aws /home/haze/
+ADD rsnapshot.conf /etc/rsnapshot.conf
 
 ENV WEBROOT /var/www/html
+ENV EDITOR /usr/bin/neovim
 
 ENTRYPOINT  ["bootstrap.sh"]
