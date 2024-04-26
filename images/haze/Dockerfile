@@ -30,7 +30,10 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
   curl -L https://github.com/harness/drone-cli/releases/latest/download/drone_linux_amd64.tar.gz | tar zx  && \
   install -t /usr/bin drone && \
   wget https://github.com/vimeo/psalm/releases/latest/download/psalm.phar -O /usr/local/bin/psalm && \
-  chmod +x /usr/local/bin/psalm
+  chmod +x /usr/local/bin/psalm && \
+  touch /var/log/rsnapshot.log && \
+  chmod 0777 /var/log/rsnapshot.log && \
+  chmod 0777 /var/cache/rsnapshot
 
 ADD misc/collaboraonline.sources /etc/apt/sources.list.d
 RUN DEBIAN_FRONTEND=noninteractive ;\
