@@ -192,7 +192,7 @@ impl Cloud {
         let id = options
             .name
             .map(|name| format!("haze-{}", name))
-            .unwrap_or_else(|| format!("haze-{}", petname(2, "-")));
+            .unwrap_or_else(|| format!("haze-{}", petname(2, "-").unwrap()));
 
         let workdir = config.work_dir.join(&id);
         let app_package_dir = workdir.join("app_package");
