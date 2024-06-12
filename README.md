@@ -6,13 +6,14 @@ Easy setup and management of Nextcloud test instances using docker
 
 ## What
 
-`haze` provides an easy way to setup Nextcloud test instances with a choice of php version, database server, optional s3 or ldap setup and more.
+`haze` provides an easy way to setup Nextcloud test instances with a choice of php version, database server, optional s3
+or ldap setup and more.
 
 ## Setup
 
 ### Requirements
 
- - Docker
+- Docker
 
 ### Installation
 
@@ -53,28 +54,35 @@ See the [configuration section](#configuration) for more options.
 haze start [database] [php-version] [services]
 ```
 
-Where `database` is one of `sqlite`, `mysql`, `mariadb`, `pgsql` or `oracle` with an optional version (e.g. `pgsql:12`), defaults to `sqlite`.
-And `php-version` is one of `8.1`, `8.2`, `8.3`, defaults to `8.1`. `7.3` and `7.4` and `8.0` are still supported but the docker images for those versions aren't being updated anymore so they might be missing some newer features.
+Where `database` is one of `sqlite`, `mysql`, `mariadb`, `pgsql` or `oracle` with an optional version (e.g. `pgsql:12`),
+defaults to `sqlite`.
+And `php-version` is one of `8.1`, `8.2`, `8.3`, defaults to `8.1`. `7.3` and `7.4` and `8.0` are still supported but
+the docker images for those versions aren't being updated anymore so they might be missing some newer features.
 
-Each php version also comes with a `-dbg` variant that has php compiled in debug mode and can be used for debugging php itself with gdb.
+Each php version also comes with a `-dbg` variant that has php compiled in debug mode and can be used for debugging php
+itself with gdb.
 
 Additionally, you can use the following options when starting an instance:
- - `s3`: setup an S3 server and configure to Nextcloud to use it as primary storage
- - `<path to app.tar.gz>`: by specifying the path to an app package this package will be extracted into the apps directory of the new instance (overwriting any existing app code). This can be used to quickly test a packaged app. 
- - `ldap`: setup an LDAP server
- - `office`: setup a Nextcloud Office server
- - `onlyoffice` setup an onlyoffice document server
- - `push` setup [client push](https://github.com/nextcloud/notify_push)
- - `smb`: setup a samba server for external storage use
- - `dav`: setup a WebDAV server for external storage use
- - `sftp`: setup a SFTP server for external storage use
- - `kaspersky`: setup a kaspersky scan engine server in http mode. (Requires [manually setting up the image](https://github.com/icewind1991/kaspersky-docker))
- - `kaspersky-icap`: setup a kaspersky scan engine server in ICAP mode.
- - `clamav-icap`: setup a clam av scanner in ICAP mode.
- - `clamav-icap-tls`: setup a clam av scanner in ICAP mode with TLS encryption.
- - `oc`: start an ownCloud instance in the same network.
- - `imaginary`: start an Imaginary service and configure it for preview generation
- - The name of any configured preset
+
+- `s3`: setup an S3 server and configure to Nextcloud to use it as primary storage.
+- `<path to app.tar.gz>`: by specifying the path to an app package this package will be extracted into the apps.
+  directory of the new instance (overwriting any existing app code). This can be used to quickly test a packaged app.
+- `ldap`: setup an LDAP server.
+- `office`: setup a Nextcloud Office server.
+- `onlyoffice` setup an onlyoffice document server.
+- `push` setup [client push](https://github.com/nextcloud/notify_push).
+- `smb`: setup a samba server for external storage use.
+- `dav`: setup a WebDAV server for external storage use.
+- `sftp`: setup a SFTP server for external storage use.
+- `kaspersky`: setup a kaspersky scan engine server in http mode. (
+  Requires [manually setting up the image](https://github.com/icewind1991/kaspersky-docker))
+- `kaspersky-icap`: setup a kaspersky scan engine server in ICAP mode.
+- `clamav-icap`: setup a clam av scanner in ICAP mode.
+- `clamav-icap-tls`: setup a clam av scanner in ICAP mode with TLS encryption.
+- `oc`: start an ownCloud instance in the same network.
+- `imaginary`: start an Imaginary service and configure it for preview generation.
+- `mail`: start an [smtp4dev](https://github.com/rnwood/smtp4dev) server and configure it the mail server.
+- The name of any configured preset.
 
 #### Run tests in a new instance
 
@@ -104,7 +112,8 @@ haze clean
 
 ## Controlling running instances
 
-The following commands run against the most recently started instance and allow optionally providing a `match` to select a specific instance by it's name.
+The following commands run against the most recently started instance and allow optionally providing a `match` to select
+a specific instance by it's name.
 
 #### Open an instance
 
@@ -178,13 +187,15 @@ haze [match] unpin
 haze [match] env <cmd> [args]
 ```
 
-Runs the provided command with `NEXTCLOUD_URL`, `DATABASE_URL` and `REDIS_URL` environment variables set for the matched instance.
+Runs the provided command with `NEXTCLOUD_URL`, `DATABASE_URL` and `REDIS_URL` environment variables set for the matched
+instance.
 
 This is indented to run a local [push daemon](https://github.com/nextcloud/notify_push) against an instance.
 
 ## Federation
 
-Multiple instances can reach each other by using their instance name as domain name to allow for testing federation between instances.
+Multiple instances can reach each other by using their instance name as domain name to allow for testing federation
+between instances.
 Alternatively, you can setup the haze proxy and the proxied domains to get https support between instances.
 
 ## Proxy
@@ -200,16 +211,22 @@ haze comes with a builtin reverse proxy to allow using a wildcard domain.
 
 ### Setup
 
-- Set a DNS record for `*.haze.exmaple.com` and `haze.example.com` pointing to your development machine. (127.0.0.1 will not work)
+- Set a DNS record for `*.haze.exmaple.com` and `haze.example.com` pointing to your development machine. (127.0.0.1 will
+  not work)
 - Set the `proxy` configuration with your domain and desired listen endpoint
 - Setup a service to run `haze proxy` in the background as your own user. A systemd user service is recommended.
-- Configure your reverse proxy of choice to proxy `*.haze.example.com` and `haze.example.com` to the proxy's listen endpoint
+- Configure your reverse proxy of choice to proxy `*.haze.example.com` and `haze.example.com` to the proxy's listen
+  endpoint
 - (optional) acquire a wildcard ssl certificate for your domain and set your reverse proxy to use it.
-  This will be highly dependent on your DNS provider, [this](https://community.letsencrypt.org/t/dns-providers-who-easily-integrate-with-lets-encrypt-dns-validation/86438) lists some DNS providers and supported ACME clients.
+  This will be highly dependent on your DNS
+  provider, [this](https://community.letsencrypt.org/t/dns-providers-who-easily-integrate-with-lets-encrypt-dns-validation/86438)
+  lists some DNS providers and supported ACME clients.
 
 ### Usage
 
-When the proxy is configured, generated urls for the instances will use a subdomain of the configured domain, e.g. the `rolling-bees` instance will be available at `rolling-bees.haze.example.com`. Additionally, `haze.example.com` will automatically point to the last created instance.
+When the proxy is configured, generated urls for the instances will use a subdomain of the configured domain, e.g.
+the `rolling-bees` instance will be available at `rolling-bees.haze.example.com`. Additionally, `haze.example.com` will
+automatically point to the last created instance.
 
 ## Configuration
 
@@ -223,7 +240,7 @@ work_dir = "/path/to/temp/dir" # path to temporary directory. optional, defaults
 enabled = false # whether or not to automatically install nextcloud on `haze start`. optional, defaults to false
 username = "foo" # username for admin user during auto setup. optional, defaults to "admin"
 password = "bar" # password for admin user during auto setup. optional, defaults to "admin"
-post_setup = [ # commands to execute after setup, defaults to []
+post_setup = [# commands to execute after setup, defaults to []
     "occ app:enable deck",
 ]
 

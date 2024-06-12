@@ -10,6 +10,7 @@ mod onlyoffice;
 mod push;
 mod sftp;
 mod smb;
+mod mail;
 
 use crate::config::{HazeConfig, Preset};
 pub use crate::service::clam::{ClamIcap, ClamIcapTls};
@@ -31,6 +32,7 @@ use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use std::net::IpAddr;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
+use crate::service::mail::Mail;
 
 #[async_trait::async_trait]
 #[enum_dispatch(Service)]
@@ -183,6 +185,7 @@ pub enum Service {
     ClamIcapTls(ClamIcapTls),
     Oc(Oc),
     Imaginary(Imaginary),
+    Mail(Mail),
     Preset(PresetService),
 }
 
@@ -208,6 +211,7 @@ impl Service {
             "clamav-icap-tls" => Some(vec![Service::ClamIcapTls(ClamIcapTls)]),
             "clam-icap" => Some(vec![Service::ClamIcap(ClamIcap)]),
             "clam-icap-tls" => Some(vec![Service::ClamIcapTls(ClamIcapTls)]),
+            "mail" => Some(vec![Service::Mail(Mail)]),
             _ => presets
                 .iter()
                 .find_map(|preset| (preset.name == ty).then(|| PresetService(preset.name.clone())))
