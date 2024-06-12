@@ -550,7 +550,7 @@ impl Cloud {
                     .collect();
                 let mut service_ids: Vec<String> = services
                     .iter()
-                    .filter_map(|service| service.names.as_ref()?.first().map(String::clone))
+                    .filter_map(|service| service.names.as_ref()?.first().cloned())
                     .collect();
 
                 let pinned = (info

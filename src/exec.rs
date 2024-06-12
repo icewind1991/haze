@@ -67,7 +67,7 @@ pub async fn exec_tty<S1: AsRef<str>, S2: Into<String>, Env: Into<String>>(
             let mut stdin = async_stdin().bytes();
             loop {
                 if let Some(Ok(byte)) = stdin.next() {
-                    input.write(&[byte]).await.ok();
+                    input.write_all(&[byte]).await.ok();
                 } else {
                     sleep(Duration::from_nanos(10)).await;
                 }
