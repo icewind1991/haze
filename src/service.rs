@@ -3,6 +3,7 @@ mod dav;
 mod imaginary;
 mod kaspersky;
 mod ldap;
+mod mail;
 mod objectstore;
 mod oc;
 mod office;
@@ -10,7 +11,6 @@ mod onlyoffice;
 mod push;
 mod sftp;
 mod smb;
-mod mail;
 
 use crate::config::{HazeConfig, Preset};
 pub use crate::service::clam::{ClamIcap, ClamIcapTls};
@@ -18,6 +18,7 @@ use crate::service::dav::Dav;
 use crate::service::imaginary::Imaginary;
 use crate::service::kaspersky::{Kaspersky, KasperskyIcap};
 pub use crate::service::ldap::{Ldap, LdapAdmin};
+use crate::service::mail::Mail;
 pub use crate::service::objectstore::ObjectStore;
 use crate::service::oc::Oc;
 pub use crate::service::office::Office;
@@ -29,10 +30,11 @@ use bollard::models::ContainerState;
 use bollard::Docker;
 use enum_dispatch::enum_dispatch;
 use miette::{IntoDiagnostic, Report, Result, WrapErr};
+use std::collections::HashMap;
 use std::net::IpAddr;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
-use crate::service::mail::Mail;
+use toml::Value;
 
 #[async_trait::async_trait]
 #[enum_dispatch(Service)]
@@ -80,6 +82,15 @@ pub trait ServiceTrait {
 
     fn apps(&self) -> &'static [&'static str] {
         &[]
+    }
+
+    fn config(
+        &self,
+        _docker: &Docker,
+        _cloud_id: &str,
+        _config: &HazeConfig,
+    ) -> Result<HashMap<String, Value>> {
+        Ok(HashMap::default())
     }
 
     async fn post_setup(
@@ -244,6 +255,17 @@ pub struct PresetService(pub String);
 impl ServiceTrait for PresetService {
     fn name(&self) -> &str {
         self.0.as_str()
+    }
+
+    fn config(
+        &self,
+        _docker: &Docker,
+        _cloud_id: &str,
+        config: &HazeConfig,
+    ) -> Result<HashMap<String, Value>> {
+        let preset =
+            get_preset(&config.preset, &self.0).ok_or_else(|| Report::msg("invalid preset"))?;
+        Ok(preset.config.clone())
     }
 
     async fn post_setup(

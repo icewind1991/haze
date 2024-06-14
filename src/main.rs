@@ -169,6 +169,17 @@ async fn main() -> Result<()> {
             let cloud = Cloud::create(&docker, options, &config).await?;
             println!("Waiting for servers to start");
             cloud.wait_for_start(&docker).await?;
+
+            if !cloud.preset_config.is_empty() {
+                println!("Writing preset config");
+                let encoded_preset_config =
+                    serde_json::to_string(&cloud.preset_config).into_diagnostic()?;
+                cloud
+                    .write_file(&docker, "config/preset.config.json", encoded_preset_config)
+                    .await?;
+                cloud.write_file(&docker, "config/preset.config.php", "<?php $CONFIG=json_decode(file_get_contents(__DIR__ . '/preset.config.json'), true);").await?;
+            }
+
             println!("Installing");
             if let Err(e) = cloud
                 .exec(
@@ -370,6 +381,17 @@ async fn setup(docker: &Docker, options: CloudOptions, config: &HazeConfig) -> R
     if config.auto_setup.enabled {
         println!("Waiting for servers to start");
         cloud.wait_for_start(docker).await?;
+
+        if !cloud.preset_config.is_empty() {
+            println!("Writing preset config");
+            let encoded_preset_config =
+                serde_json::to_string(&cloud.preset_config).into_diagnostic()?;
+            cloud
+                .write_file(docker, "config/preset.config.json", encoded_preset_config)
+                .await?;
+            cloud.write_file(docker, "config/preset.config.php", "<?php $CONFIG=json_decode(file_get_contents(__DIR__ . '/preset.config.json'), true);").await?;
+        }
+
         println!(
             "Installing with username {} and password {}",
             config.auto_setup.username, config.auto_setup.password

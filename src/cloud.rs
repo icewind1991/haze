@@ -1,6 +1,6 @@
 use crate::config::{HazeConfig, HazeVolumeConfig, Preset};
 use crate::database::Database;
-use crate::exec::{exec, exec_tty, ExitCode};
+use crate::exec::{exec, exec_io, exec_tty, ExitCode};
 use crate::mapping::{default_mappings, Mapping};
 use crate::php::{PhpVersion, PHP_MEMORY_LIMIT};
 use crate::service::Service;
@@ -17,7 +17,7 @@ use petname::petname;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
-use std::io::{stdout, Write};
+use std::io::{stdout, Cursor, Read, Write, Stdout};
 use std::iter::Peekable;
 use std::net::IpAddr;
 use std::os::unix::fs::MetadataExt;
@@ -27,6 +27,7 @@ use tokio::fs::create_dir_all;
 use tokio::fs::remove_dir_all;
 use tokio::task::spawn;
 use tokio::time::sleep;
+use toml::Value;
 
 #[derive(Clone, Default, Debug, Eq, PartialEq)]
 pub struct CloudOptions {
@@ -152,6 +153,7 @@ fn test_option_parse() {
                 name: "mypreset".to_string(),
                 commands: Vec::new(),
                 apps: Vec::new(),
+                config: HashMap::default(),
             }],
             &mut args
         )
@@ -181,6 +183,7 @@ pub struct Cloud {
     pub services: Vec<Service>,
     pub pinned: bool,
     pub address: String,
+    pub preset_config: HashMap<String, Value>,
 }
 
 impl Cloud {
@@ -317,6 +320,11 @@ impl Cloud {
         .await?;
         containers.extend(service_containers.iter().flatten().cloned());
 
+        let mut preset_config = HashMap::new();
+        for service in &options.services {
+            preset_config.extend(service.config(docker, &id, config)?);
+        }
+
         env.extend(
             options
                 .services
@@ -427,6 +435,7 @@ impl Cloud {
             services: options.services,
             pinned: false,
             address,
+            preset_config,
         })
     }
 
@@ -474,6 +483,34 @@ impl Cloud {
         } else {
             exec(docker, &self.id, "haze", cmd, env, Some(stdout())).await
         }
+    }
+
+    pub async fn write_file<C: AsRef<[u8]>>(
+        &self,
+        docker: &Docker,
+        path: &str,
+        contents: C,
+    ) -> Result<()> {
+        self.exec_io(
+            docker,
+            vec!["tee", path],
+            Vec::<String>::default(),
+            Option::<Stdout>::None,
+            Some(Cursor::new(contents.as_ref())),
+        )
+        .await?;
+        Ok(())
+    }
+
+    pub async fn exec_io<S: Into<String>, Env: Into<String>>(
+        &self,
+        docker: &Docker,
+        cmd: Vec<S>,
+        env: Vec<Env>,
+        std_out: Option<impl Write>,
+        std_in: Option<impl Read>,
+    ) -> Result<ExitCode> {
+        exec_io(docker, &self.id, "haze", cmd, env, std_out, std_in).await
     }
 
     pub async fn occ<'a, S: Into<String> + From<&'a str>, Env: Into<String>>(
@@ -581,6 +618,7 @@ impl Cloud {
                         services: found_services,
                         pinned,
                         address,
+                        preset_config: HashMap::default(),
                     },
                 ))
             })

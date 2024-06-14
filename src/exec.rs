@@ -3,7 +3,7 @@ use bollard::exec::{CreateExecOptions, ResizeExecOptions, StartExecResults};
 use bollard::Docker;
 use futures_util::StreamExt;
 use miette::{IntoDiagnostic, Report, Result, WrapErr};
-use std::io::{stdout, Read, Write};
+use std::io::{stdout, Read, Stdin, Write};
 use std::time::Duration;
 use termion::raw::IntoRawMode;
 use termion::{async_stdin, is_tty, terminal_size};
@@ -103,13 +103,35 @@ pub async fn exec<S1: AsRef<str>, S2: Into<String>, Env: Into<String>>(
     user: &str,
     cmd: Vec<S2>,
     env: Vec<Env>,
+    std_out: Option<impl Write>,
+) -> Result<ExitCode> {
+    exec_io(
+        docker,
+        container,
+        user,
+        cmd,
+        env,
+        std_out,
+        Option::<Stdin>::None,
+    )
+    .await
+}
+
+pub async fn exec_io<S1: AsRef<str>, S2: Into<String>, Env: Into<String>>(
+    docker: &Docker,
+    container: S1,
+    user: &str,
+    cmd: Vec<S2>,
+    env: Vec<Env>,
     mut std_out: Option<impl Write>,
+    std_in: Option<impl Read>,
 ) -> Result<ExitCode> {
     let cmd = cmd.into_iter().map(S2::into).collect();
     let env = env.into_iter().map(Env::into).collect();
     let config = CreateExecOptions {
         cmd: Some(cmd),
         user: Some(user.to_string()),
+        attach_stdin: Some(std_in.is_some()),
         attach_stdout: Some(true),
         attach_stderr: Some(true),
         env: Some(env),
@@ -121,12 +143,26 @@ pub async fn exec<S1: AsRef<str>, S2: Into<String>, Env: Into<String>>(
         .await
         .into_diagnostic()
         .wrap_err("Failed to setup exec")?;
-    if let StartExecResults::Attached { mut output, .. } = docker
+    if let StartExecResults::Attached {
+        mut output,
+        mut input,
+    } = docker
         .start_exec(&message.id, None)
         .await
         .into_diagnostic()
         .wrap_err("Failed to start exec")?
     {
+        if let Some(mut std_in) = std_in {
+            let mut buff = [0; 4 * 1024];
+            loop {
+                let bytes = std_in.read(&mut buff).into_diagnostic()?;
+                if bytes == 0 {
+                    break;
+                }
+                input.write_all(&buff[0..bytes]).await.into_diagnostic()?;
+            }
+            input.shutdown().await.into_diagnostic()?;
+        }
         while let Some(Ok(line)) = output.next().await {
             if let Some(std_out) = &mut std_out {
                 write!(std_out, "{}", line).into_diagnostic()?;

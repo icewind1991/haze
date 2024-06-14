@@ -669,6 +669,7 @@ dependencies = [
  "petname",
  "reqwest",
  "serde",
+ "serde_json",
  "shell-words",
  "tar",
  "termion",

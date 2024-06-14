@@ -36,7 +36,6 @@ pub async fn pull_image(docker: &Docker, image: &str) -> Result<()> {
             let info: CreateImageInfo = info
                 .into_diagnostic()
                 .wrap_err_with(|| format!("Error while pulling image {}", image))?;
-            // dbg!(&info);
             if let (Some(id), Some(status), Some(progress)) = (info.id, info.status, info.progress)
             {
                 match bars.get(&id) {

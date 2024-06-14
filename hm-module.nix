@@ -139,6 +139,13 @@ in {
             description = "Commands to run post setup when the preset is enabled";
             default = [];
           };
+          config = mkOption {
+            type = types.submodule {
+              freeformType = format.type;
+            };
+            description = "Configuration options to set before install";
+            default = {};
+          };
         };
       });
     };

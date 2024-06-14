@@ -2,10 +2,12 @@ use camino::Utf8PathBuf;
 use directories_next::ProjectDirs;
 use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::env::var;
 use std::fs::read_to_string;
 use std::net::IpAddr;
+use toml::Value;
 
 #[derive(Debug, Deserialize)]
 #[serde(from = "RawHazeConfig")]
@@ -208,6 +210,8 @@ impl HazeConfig {
 #[derive(Default, Deserialize, Debug)]
 pub struct Preset {
     pub name: String,
+    #[serde(default)]
+    pub config: HashMap<String, Value>,
     #[serde(default)]
     pub apps: Vec<String>,
     #[serde(default)]
