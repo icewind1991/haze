@@ -64,15 +64,15 @@ async fn main() -> Result<()> {
         HazeArgs::List { filter } => {
             let list = Cloud::list(&docker, filter, &config).await?;
             for cloud in list {
-                let mut services: Vec<_> = cloud.services.iter().map(Service::name).collect();
-                services.push(cloud.db.name());
+                let mut services: Vec<_> = cloud.services().map(Service::name).collect();
+                services.push(cloud.db().name());
                 let services = services.join(", ");
                 let pin = if cloud.pinned { "*" } else { "" };
                 println!(
                     "Cloud {}{}, {}, {}, running on {}",
                     cloud.id,
                     pin,
-                    cloud.php.name(),
+                    cloud.php().name(),
                     services,
                     cloud.address
                 );
@@ -124,7 +124,7 @@ async fn main() -> Result<()> {
                 }
                 Some(ExecService::Db) => {
                     cloud
-                        .db
+                        .db()
                         .exec_sh(
                             &docker,
                             &cloud.id,
@@ -156,7 +156,7 @@ async fn main() -> Result<()> {
         }
         HazeArgs::Db { filter, root } => {
             let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
-            cloud.db.exec(&docker, &cloud.id, root).await?;
+            cloud.db().exec(&docker, &cloud.id, root).await?;
         }
         HazeArgs::Open { filter } => {
             let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
@@ -342,7 +342,7 @@ async fn main() -> Result<()> {
             let ip = cloud
                 .ip
                 .ok_or_else(|| Report::msg(format!("{} is not running", cloud.id)))?;
-            let db_type = match cloud.db.family() {
+            let db_type = match cloud.db().family() {
                 DatabaseFamily::Sqlite => {
                     return Err(Report::msg("sqlite is not supported with `haze env`"))
                 }
@@ -353,7 +353,7 @@ async fn main() -> Result<()> {
                 DatabaseFamily::Postgres => "postgresql",
             };
             let db_ip = cloud
-                .db
+                .db()
                 .ip(&docker, &cloud.id)
                 .await
                 .ok_or_else(|| Report::msg(format!("{}-db is not running", cloud.id)))?;
@@ -459,7 +459,7 @@ async fn setup(docker: &Docker, options: CloudOptions, config: &HazeConfig) -> R
                 .await?;
         }
 
-        for service in &cloud.services {
+        for service in cloud.services() {
             for app in service.apps() {
                 cloud
                     .exec(
@@ -471,7 +471,7 @@ async fn setup(docker: &Docker, options: CloudOptions, config: &HazeConfig) -> R
                     .await?;
             }
         }
-        for service in &cloud.services {
+        for service in cloud.services() {
             for cmd in service.post_setup(docker, &cloud.id, config).await? {
                 cloud
                     .exec(

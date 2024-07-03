@@ -14,6 +14,7 @@ use flate2::read::GzDecoder;
 use futures_util::future::try_join_all;
 use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use petname::petname;
+use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
@@ -27,15 +28,14 @@ use tokio::fs::create_dir_all;
 use tokio::fs::remove_dir_all;
 use tokio::task::spawn;
 use tokio::time::sleep;
-use toml::Value;
 
 #[derive(Clone, Default, Debug, Eq, PartialEq)]
 pub struct CloudOptions {
-    name: Option<String>,
-    db: Database,
-    php: PhpVersion,
-    services: Vec<Service>,
-    app_packages: Vec<Utf8PathBuf>,
+    pub name: Option<String>,
+    pub db: Database,
+    pub php: PhpVersion,
+    pub services: Vec<Service>,
+    pub app_packages: Vec<Utf8PathBuf>,
 }
 
 impl CloudOptions {
@@ -176,11 +176,9 @@ pub struct Cloud {
     pub id: String,
     pub network: String,
     pub containers: Vec<String>,
-    pub php: PhpVersion,
-    pub db: Database,
     pub ip: Option<IpAddr>,
     pub workdir: Utf8PathBuf,
-    pub services: Vec<Service>,
+    pub options: CloudOptions,
     pub pinned: bool,
     pub address: String,
     pub preset_config: HashMap<String, Value>,
@@ -194,6 +192,7 @@ impl Cloud {
     ) -> Result<Self> {
         let id = options
             .name
+            .as_deref()
             .map(|name| format!("haze-{}", name))
             .unwrap_or_else(|| format!("haze-{}", petname(2, "-").unwrap()));
 
@@ -209,12 +208,12 @@ impl Cloud {
 
         let app_volumes = options
             .app_packages
-            .into_iter()
+            .iter()
             .map(|app_package| {
                 let app_name = app_package.file_name().unwrap().trim_end_matches(".tar.gz");
                 let app_dir = app_package_dir.join(app_name);
 
-                let app_package_file = fs::File::open(&app_package)
+                let app_package_file = fs::File::open(app_package)
                     .into_diagnostic()
                     .wrap_err_with(|| format!("Failed to open app bundle {}", app_package))?;
                 if app_package.metadata().into_diagnostic()?.len() > 1024 * 1024 {
@@ -296,7 +295,7 @@ impl Cloud {
 
         if let Some(db_name) = options
             .db
-            .spawn(docker, &id, &network)
+            .spawn(docker, &id, &network, "")
             .await
             .wrap_err("Failed to start database")?
         {
@@ -315,7 +314,7 @@ impl Cloud {
             options
                 .services
                 .iter()
-                .map(|service| service.spawn(docker, &id, &network, config)),
+                .map(|service| service.spawn(docker, &id, &network, config, &options)),
         )
         .await?;
         containers.extend(service_containers.iter().flatten().cloned());
@@ -395,21 +394,20 @@ impl Cloud {
 
         containers.push(container);
 
-        let services_clone = options.services.clone();
+        let options_clone = options.clone();
         let cloud_id = id.clone();
         let docker_clone = docker.clone();
         spawn(async move {
-            if let Err(e) = try_join_all(
-                services_clone
-                    .iter()
-                    .map(|service| service.wait_for_start(&docker_clone, &cloud_id)),
-            )
-            .await
+            if let Err(e) =
+                try_join_all(options_clone.services.iter().map(|service| {
+                    service.wait_for_start(&docker_clone, &cloud_id, &options_clone)
+                }))
+                .await
             {
                 println!("{:#}", e);
                 return;
             }
-            for service in services_clone {
+            for service in options_clone.services {
                 match service.start_message(&docker_clone, &cloud_id).await {
                     Ok(Some(msg)) => {
                         println!("{}", msg);
@@ -428,11 +426,9 @@ impl Cloud {
             id,
             network,
             containers,
-            php: options.php,
-            db: options.db,
             ip: Some(ip),
             workdir,
-            services: options.services,
+            options,
             pinned: false,
             address,
             preset_config,
@@ -610,12 +606,16 @@ impl Cloud {
                     Cloud {
                         id,
                         network,
-                        db,
-                        php,
                         containers: service_ids,
                         ip,
                         workdir,
-                        services: found_services,
+                        options: CloudOptions {
+                            name: None,
+                            php,
+                            db,
+                            services: found_services,
+                            app_packages: vec![],
+                        },
                         pinned,
                         address,
                         preset_config: HashMap::default(),
@@ -645,18 +645,19 @@ impl Cloud {
     }
 
     pub async fn wait_for_start(&self, docker: &Docker) -> Result<()> {
-        self.php
+        self.options
+            .php
             .wait_for_start(self.ip)
             .await
             .wrap_err("Failed to wait for php container")?;
-        self.db
+        self.options
+            .db
             .wait_for_start(docker, &self.id)
             .await
             .wrap_err("Failed to wait for database container")?;
         try_join_all(
-            self.services
-                .iter()
-                .map(|service| service.wait_for_start(docker, &self.id)),
+            self.services()
+                .map(|service| service.wait_for_start(docker, &self.id, &self.options)),
         )
         .await
         .wrap_err("Failed to wait for service containers")?;
@@ -705,5 +706,17 @@ impl Cloud {
             )
             .await
             .into_diagnostic()
+    }
+
+    pub fn services(&self) -> impl Iterator<Item = &Service> {
+        self.options.services.iter()
+    }
+
+    pub fn db(&self) -> &Database {
+        &self.options.db
+    }
+
+    pub fn php(&self) -> &PhpVersion {
+        &self.options.php
     }
 }

@@ -10,8 +10,11 @@ mod office;
 mod onlyoffice;
 mod push;
 mod sftp;
+// mod sharding;
+mod sharded;
 mod smb;
 
+use crate::cloud::CloudOptions;
 use crate::config::{HazeConfig, Preset};
 pub use crate::service::clam::{ClamIcap, ClamIcapTls};
 use crate::service::dav::Dav;
@@ -25,16 +28,17 @@ pub use crate::service::office::Office;
 pub use crate::service::onlyoffice::OnlyOffice;
 pub use crate::service::push::NotifyPush;
 use crate::service::sftp::Sftp;
+use crate::service::sharded::Sharding;
 use crate::service::smb::Smb;
 use bollard::models::ContainerState;
 use bollard::Docker;
 use enum_dispatch::enum_dispatch;
 use miette::{IntoDiagnostic, Report, Result, WrapErr};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
-use toml::Value;
 
 #[async_trait::async_trait]
 #[enum_dispatch(Service)]
@@ -51,25 +55,18 @@ pub trait ServiceTrait {
         _cloud_id: &str,
         _network: &str,
         _config: &HazeConfig,
-    ) -> Result<Option<String>> {
-        Ok(None)
+        _options: &CloudOptions,
+    ) -> Result<Vec<String>> {
+        Ok(Vec::new())
     }
 
-    async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
-        let Some(container) = self.container_name(cloud_id) else {
-            return Ok(true);
-        };
-        let info = docker
-            .inspect_container(&container, None)
-            .await
-            .into_diagnostic()?;
-        Ok(matches!(
-            info.state,
-            Some(ContainerState {
-                running: Some(true),
-                ..
-            })
-        ))
+    async fn is_healthy(
+        &self,
+        _docker: &Docker,
+        _cloud_id: &str,
+        _options: &CloudOptions,
+    ) -> Result<bool> {
+        Ok(true)
     }
 
     fn container_name(&self, _cloud_id: &str) -> Option<String> {
@@ -189,6 +186,7 @@ pub enum Service {
     Push(NotifyPush),
     Smb(Smb),
     Dav(Dav),
+    Sharding(Sharding),
     Sftp(Sftp),
     Kaspersky(Kaspersky),
     KasperskyIcap(KasperskyIcap),
@@ -212,6 +210,8 @@ impl Service {
             "office" => Some(vec![Service::Office(Office)]),
             "push" => Some(vec![Service::Push(NotifyPush)]),
             "smb" => Some(vec![Service::Smb(Smb)]),
+            "sharded" => Some(vec![Service::Sharding(Sharding)]),
+            "sharding" => Some(vec![Service::Sharding(Sharding)]),
             "dav" => Some(vec![Service::Dav(Dav)]),
             "sftp" => Some(vec![Service::Sftp(Sftp)]),
             "oc" => Some(vec![Service::Oc(Oc)]),
@@ -231,9 +231,14 @@ impl Service {
         }
     }
 
-    pub async fn wait_for_start(&self, docker: &Docker, cloud_id: &str) -> Result<()> {
+    pub async fn wait_for_start(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        options: &CloudOptions,
+    ) -> Result<()> {
         timeout(Duration::from_secs(30), async {
-            while !self.is_healthy(docker, cloud_id).await? {
+            while !self.is_healthy(docker, cloud_id, options).await? {
                 sleep(Duration::from_millis(100)).await
             }
             Ok(())
@@ -265,7 +270,12 @@ impl ServiceTrait for PresetService {
     ) -> Result<HashMap<String, Value>> {
         let preset =
             get_preset(&config.preset, &self.0).ok_or_else(|| Report::msg("invalid preset"))?;
-        Ok(preset.config.clone())
+        let config = preset
+            .config
+            .iter()
+            .map(|(k, v)| Ok((k.clone(), serde_json::to_value(v).into_diagnostic()?)))
+            .collect::<Result<HashMap<_, _>>>()?;
+        Ok(config)
     }
 
     async fn post_setup(

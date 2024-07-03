@@ -1,3 +1,4 @@
+use crate::cloud::CloudOptions;
 use crate::config::HazeConfig;
 use crate::image::pull_image;
 use crate::service::ServiceTrait;
@@ -27,6 +28,7 @@ impl ServiceTrait for Office {
         cloud_id: &str,
         network: &str,
         config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         let image = "collabora/code";
         pull_image(docker, image).await?;

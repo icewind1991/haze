@@ -53,8 +53,7 @@ impl ActiveInstances {
                 .await
                 .ok()?;
             let service = cloud
-                .services
-                .iter()
+                .services()
                 .find(|service| service.name() == service_name)?;
             let ip = service.get_ip(&self.docker, &cloud.id).await.ok()??;
             SocketAddr::new(ip, service.proxy_port())

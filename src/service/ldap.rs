@@ -1,3 +1,4 @@
+use crate::cloud::CloudOptions;
 use crate::config::HazeConfig;
 use crate::image::pull_image;
 use crate::service::ServiceTrait;
@@ -27,6 +28,7 @@ impl ServiceTrait for Ldap {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         let image = "icewind1991/haze-ldap";
         pull_image(docker, image).await?;
@@ -75,6 +77,15 @@ impl ServiceTrait for Ldap {
     fn apps(&self) -> &'static [&'static str] {
         &["user_ldap"]
     }
+
+    async fn is_healthy(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        _options: &CloudOptions,
+    ) -> Result<bool> {
+        self.is_running(docker, cloud_id).await
+    }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -96,6 +107,7 @@ impl ServiceTrait for LdapAdmin {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         let image = "osixia/phpldapadmin";
         pull_image(docker, image).await?;

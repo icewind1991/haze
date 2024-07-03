@@ -1,3 +1,4 @@
+use crate::cloud::CloudOptions;
 use crate::config::HazeConfig;
 use crate::exec::exec;
 use crate::image::{image_exists, pull_image};
@@ -29,6 +30,7 @@ impl ServiceTrait for Kaspersky {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         let image = "kaspersky";
         if !image_exists(docker, image).await {
@@ -71,7 +73,12 @@ impl ServiceTrait for Kaspersky {
         Ok(vec![id])
     }
 
-    async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
+    async fn is_healthy(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        _options: &CloudOptions,
+    ) -> Result<bool> {
         let exit = exec(
             docker,
             self.container_name(cloud_id).unwrap(),
@@ -130,6 +137,7 @@ impl ServiceTrait for KasperskyIcap {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         let image = "kaspersky-icap";
         if !image_exists(docker, image).await {
@@ -171,19 +179,6 @@ impl ServiceTrait for KasperskyIcap {
             .into_diagnostic()?;
         Ok(vec![id])
     }
-
-    // async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
-    //     let exit = exec(
-    //         docker,
-    //         self.container_name(cloud_id),
-    //         "root",
-    //         vec!["curl", "localhost/licenseinfo"],
-    //         vec![],
-    //         Option::<Stdout>::None,
-    //     )
-    //     .await?;
-    //     Ok(exit.to_result().is_ok())
-    // }
 
     fn container_name(&self, cloud_id: &str) -> Option<String> {
         Some(format!("{}-kaspersky-icap", cloud_id))

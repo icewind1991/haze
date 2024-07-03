@@ -1,3 +1,4 @@
+use crate::cloud::CloudOptions;
 use crate::config::HazeConfig;
 use crate::image::pull_image;
 use crate::service::ServiceTrait;
@@ -23,6 +24,7 @@ impl ServiceTrait for Mail {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         let image = "rnwood/smtp4dev";
         pull_image(docker, image).await?;
@@ -64,11 +66,6 @@ impl ServiceTrait for Mail {
 
     fn container_name(&self, cloud_id: &str) -> Option<String> {
         Some(format!("{}-mail", cloud_id))
-    }
-
-    // no need to wait for mail, as it won't be used until the user logs in
-    async fn is_healthy(&self, _docker: &Docker, _cloud_id: &str) -> Result<bool> {
-        Ok(true)
     }
 
     async fn post_setup(

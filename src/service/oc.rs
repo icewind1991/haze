@@ -1,3 +1,4 @@
+use crate::cloud::CloudOptions;
 use crate::config::HazeConfig;
 use crate::exec::exec;
 use crate::image::pull_image;
@@ -27,6 +28,7 @@ impl ServiceTrait for Oc {
         cloud_id: &str,
         network: &str,
         config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         let image = "owncloud/server:10.12.2";
         pull_image(docker, image).await?;
@@ -76,11 +78,6 @@ impl ServiceTrait for Oc {
 
     fn container_name(&self, cloud_id: &str) -> Option<String> {
         Some(format!("{}-oc", cloud_id))
-    }
-
-    // no need to wait for oc
-    async fn is_healthy(&self, _docker: &Docker, _cloud_id: &str) -> Result<bool> {
-        Ok(true)
     }
 
     async fn post_setup(

@@ -1,3 +1,4 @@
+use crate::cloud::CloudOptions;
 use crate::config::HazeConfig;
 use crate::image::pull_image;
 use crate::service::ServiceTrait;
@@ -23,6 +24,7 @@ impl ServiceTrait for Dav {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         let image = "ugeek/webdav:amd64";
         pull_image(docker, image).await?;
@@ -69,11 +71,6 @@ impl ServiceTrait for Dav {
 
     fn apps(&self) -> &'static [&'static str] {
         &["files_external"]
-    }
-
-    // no need to wait for dav, as it won't be used until the user logs in
-    async fn is_healthy(&self, _docker: &Docker, _cloud_id: &str) -> Result<bool> {
-        Ok(true)
     }
 
     async fn post_setup(

@@ -177,6 +177,7 @@ impl Database {
         docker: &Docker,
         cloud_id: &str,
         network: &str,
+        postfix: &str,
     ) -> Result<Option<String>> {
         if matches!(self, Database::Sqlite) {
             return Ok(None);
@@ -191,7 +192,7 @@ impl Database {
                 .wrap_err("Failed to pull database image")?;
         }
         let options = Some(CreateContainerOptions {
-            name: format!("{}-db", cloud_id),
+            name: format!("{}-db{}", cloud_id, postfix),
             ..CreateContainerOptions::default()
         });
         let config = Config {
@@ -208,7 +209,10 @@ impl Database {
             networking_config: Some(NetworkingConfig {
                 endpoints_config: hashmap! {
                     network => EndpointSettings {
-                        aliases: Some(vec![self.name().to_string()]),
+                        aliases: Some(vec![
+                            format!("{}{}", self.name(), postfix),
+                            format!("db{}", postfix),
+                        ]),
                         ..Default::default()
                     }
                 },
@@ -320,7 +324,7 @@ impl Database {
         };
 
         timeout(Duration::from_secs(time), async {
-            while !self.is_healthy(docker, cloud_id).await? {
+            while !self.is_healthy(docker, cloud_id, "").await? {
                 sleep(Duration::from_millis(250)).await
             }
             Result::<(), Report>::Ok(())
@@ -348,14 +352,14 @@ impl Database {
         }
     }
 
-    async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
+    pub async fn is_healthy(&self, docker: &Docker, cloud_id: &str, postfix: &str) -> Result<bool> {
         match self.family() {
             DatabaseFamily::Sqlite => Ok(true),
             DatabaseFamily::Mysql | DatabaseFamily::MariaDB => {
                 let mut output = Vec::new();
                 exec(
                     docker,
-                    format!("{}-db", cloud_id),
+                    format!("{}-db{}", cloud_id, postfix),
                     "root",
                     vec!["mysql", "-u", "haze", "-phaze", "-e", "SELECT 1"],
                     Vec::<String>::default(),
@@ -368,7 +372,7 @@ impl Database {
             DatabaseFamily::Postgres => {
                 let is_ready_status = exec(
                     docker,
-                    format!("{}-db", cloud_id),
+                    format!("{}-db{}", cloud_id, postfix),
                     "root",
                     vec!["pg_isready", "-U", "haze", "-q"],
                     Vec::<String>::default(),
@@ -378,7 +382,7 @@ impl Database {
                 if is_ready_status == 0 {
                     let connect_status = exec(
                         docker,
-                        format!("{}-db", cloud_id),
+                        format!("{}-db{}", cloud_id, postfix),
                         "root",
                         vec!["psql", "-U", "haze", "-qtA", "-c", ""],
                         Vec::<String>::default(),
@@ -394,7 +398,7 @@ impl Database {
                 let mut output = Vec::new();
                 exec(
                     docker,
-                    format!("{}-db", cloud_id),
+                    format!("{}-db{}", cloud_id, postfix),
                     "root",
                     vec!["sh", "-c", r#"echo "show user" | sqlplus -S system/haze"#],
                     Vec::<String>::default(),

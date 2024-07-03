@@ -1,3 +1,4 @@
+use crate::cloud::CloudOptions;
 use crate::config::HazeConfig;
 use crate::exec::exec;
 use crate::image::pull_image;
@@ -34,6 +35,7 @@ impl ServiceTrait for ClamIcap {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         let image = "ghcr.io/icewind1991/icap-clamav-service-tls";
         pull_image(docker, image).await?;
@@ -122,6 +124,7 @@ impl ServiceTrait for ClamIcapTls {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         let image = "ghcr.io/icewind1991/icap-clamav-service-tls";
         pull_image(docker, image).await?;

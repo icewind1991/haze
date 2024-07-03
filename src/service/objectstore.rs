@@ -1,3 +1,4 @@
+use crate::cloud::CloudOptions;
 use crate::config::HazeConfig;
 use crate::exec::exec;
 use crate::image::pull_image;
@@ -77,6 +78,7 @@ impl ServiceTrait for ObjectStore {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         pull_image(docker, self.image()).await?;
         let options = Some(CreateContainerOptions {
@@ -117,7 +119,15 @@ impl ServiceTrait for ObjectStore {
         Ok(vec![id])
     }
 
-    async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
+    async fn is_healthy(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        _options: &CloudOptions,
+    ) -> Result<bool> {
+        if !self.is_running(docker, cloud_id).await? {
+            return Ok(false);
+        }
         match self {
             ObjectStore::S3 | ObjectStore::S3mb => {
                 let mut output = Vec::new();

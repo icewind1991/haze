@@ -1,3 +1,4 @@
+use crate::cloud::CloudOptions;
 use crate::config::HazeConfig;
 use crate::image::pull_image;
 use crate::service::ServiceTrait;
@@ -26,6 +27,7 @@ impl ServiceTrait for NotifyPush {
         cloud_id: &str,
         network: &str,
         config: &HazeConfig,
+        _options: &CloudOptions,
     ) -> Result<Vec<String>> {
         let image = "icewind1991/notify_push";
         pull_image(docker, image).await?;
@@ -77,10 +79,6 @@ impl ServiceTrait for NotifyPush {
 
     fn apps(&self) -> &'static [&'static str] {
         &["notify_push"]
-    }
-
-    async fn is_healthy(&self, _docker: &Docker, _cloud_id: &str) -> Result<bool> {
-        Ok(true)
     }
 
     async fn post_setup(
