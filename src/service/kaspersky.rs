@@ -29,7 +29,7 @@ impl ServiceTrait for Kaspersky {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         let image = "kaspersky";
         if !image_exists(docker, image).await {
             bail!("You need to manually create the 'kaspersky' image");
@@ -68,7 +68,7 @@ impl ServiceTrait for Kaspersky {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(Some(id))
+        Ok(vec![id])
     }
 
     async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {
@@ -130,7 +130,7 @@ impl ServiceTrait for KasperskyIcap {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         let image = "kaspersky-icap";
         if !image_exists(docker, image).await {
             bail!("You need to manually create the 'kaspersky-icap' image");
@@ -169,7 +169,7 @@ impl ServiceTrait for KasperskyIcap {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(Some(id))
+        Ok(vec![id])
     }
 
     // async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {

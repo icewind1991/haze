@@ -23,7 +23,7 @@ impl ServiceTrait for Smb {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         let image = "ghcr.io/servercontainers/samba:smbd-only-a3.18.0-s4.18.2-r0";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
@@ -64,7 +64,7 @@ impl ServiceTrait for Smb {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(Some(id))
+        Ok(vec![id])
     }
 
     fn container_name(&self, cloud_id: &str) -> Option<String> {

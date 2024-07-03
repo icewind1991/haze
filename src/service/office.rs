@@ -27,7 +27,7 @@ impl ServiceTrait for Office {
         cloud_id: &str,
         network: &str,
         config: &HazeConfig,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         let image = "collabora/code";
         pull_image(docker, image).await?;
         let container_id = self.container_name(cloud_id).unwrap();
@@ -82,7 +82,7 @@ impl ServiceTrait for Office {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(Some(id))
+        Ok(vec![id])
     }
 
     fn container_name(&self, cloud_id: &str) -> Option<String> {

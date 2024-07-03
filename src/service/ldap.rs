@@ -27,7 +27,7 @@ impl ServiceTrait for Ldap {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         let image = "icewind1991/haze-ldap";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
@@ -65,7 +65,7 @@ impl ServiceTrait for Ldap {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(Some(id))
+        Ok(vec![id])
     }
 
     fn container_name(&self, cloud_id: &str) -> Option<String> {
@@ -96,7 +96,7 @@ impl ServiceTrait for LdapAdmin {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         let image = "osixia/phpldapadmin";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
@@ -134,7 +134,7 @@ impl ServiceTrait for LdapAdmin {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(Some(id))
+        Ok(vec![id])
     }
 
     fn container_name(&self, cloud_id: &str) -> Option<String> {

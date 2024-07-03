@@ -17,7 +17,7 @@ use petname::petname;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
-use std::io::{stdout, Cursor, Read, Write, Stdout};
+use std::io::{stdout, Cursor, Read, Stdout, Write};
 use std::iter::Peekable;
 use std::net::IpAddr;
 use std::os::unix::fs::MetadataExt;
@@ -311,7 +311,7 @@ impl Cloud {
             env.push(format!("BLACKFIRE_CLIENT_TOKEN={}", blackfire.client_token));
         }
 
-        let service_containers: Vec<Option<String>> = try_join_all(
+        let service_containers: Vec<Vec<String>> = try_join_all(
             options
                 .services
                 .iter()

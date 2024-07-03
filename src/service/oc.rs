@@ -27,7 +27,7 @@ impl ServiceTrait for Oc {
         cloud_id: &str,
         network: &str,
         config: &HazeConfig,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         let image = "owncloud/server:10.12.2";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
@@ -71,7 +71,7 @@ impl ServiceTrait for Oc {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(Some(id))
+        Ok(vec![id])
     }
 
     fn container_name(&self, cloud_id: &str) -> Option<String> {

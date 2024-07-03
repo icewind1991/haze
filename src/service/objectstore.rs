@@ -77,7 +77,7 @@ impl ServiceTrait for ObjectStore {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         pull_image(docker, self.image()).await?;
         let options = Some(CreateContainerOptions {
             name: format!("{}-object", cloud_id),
@@ -114,7 +114,7 @@ impl ServiceTrait for ObjectStore {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(Some(id))
+        Ok(vec![id])
     }
 
     async fn is_healthy(&self, docker: &Docker, cloud_id: &str) -> Result<bool> {

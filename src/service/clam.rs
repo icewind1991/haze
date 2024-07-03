@@ -34,7 +34,7 @@ impl ServiceTrait for ClamIcap {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         let image = "ghcr.io/icewind1991/icap-clamav-service-tls";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
@@ -70,7 +70,7 @@ impl ServiceTrait for ClamIcap {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(Some(id))
+        Ok(vec![id])
     }
 
     fn container_name(&self, cloud_id: &str) -> Option<String> {
@@ -122,7 +122,7 @@ impl ServiceTrait for ClamIcapTls {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         let image = "ghcr.io/icewind1991/icap-clamav-service-tls";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
@@ -158,7 +158,7 @@ impl ServiceTrait for ClamIcapTls {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(Some(id))
+        Ok(vec![id])
     }
 
     fn container_name(&self, cloud_id: &str) -> Option<String> {

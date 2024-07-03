@@ -27,7 +27,7 @@ impl ServiceTrait for OnlyOffice {
         cloud_id: &str,
         network: &str,
         _config: &HazeConfig,
-    ) -> Result<Option<String>> {
+    ) -> Result<Vec<String>> {
         let image = "onlyoffice/documentserver";
         pull_image(docker, image).await?;
         let options = Some(CreateContainerOptions {
@@ -63,7 +63,7 @@ impl ServiceTrait for OnlyOffice {
             .start_container::<String>(&id, None)
             .await
             .into_diagnostic()?;
-        Ok(Some(id))
+        Ok(vec![id])
     }
 
     fn container_name(&self, cloud_id: &str) -> Option<String> {
