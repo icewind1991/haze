@@ -15,7 +15,7 @@ use std::convert::identity;
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Sharding;
 
-const SHARDS: &[&str] = &["-1", "-2"];
+const SHARDS: &[&str] = &["-1", "-2", "-3", "-4"];
 
 #[async_trait::async_trait]
 impl ServiceTrait for Sharding {
@@ -73,25 +73,35 @@ impl ServiceTrait for Sharding {
               "table": "filecache",
               "primary_key": "fileid",
               "shard_key": "storage",
-              "companion_tables": ["filecache_extended"],
+              "companion_tables": ["filecache_extended", "files_metadata"],
               "shards": [
                 {
-                  "name": "haze",
+                  "dbname": "haze",
                   "host": "db-1",
-                  "tableprefix": "oc_",
                   "user": "haze",
                   "password": "haze",
                 },
                 {
-                  "name": "haze",
+                  "dbname": "haze",
                   "host": "db-2",
-                  "tableprefix": "oc_",
+                  "user": "haze",
+                  "password": "haze",
+                },
+                {
+                  "dbname": "haze",
+                  "host": "db-3",
+                  "user": "haze",
+                  "password": "haze",
+                },
+                {
+                  "dbname": "haze",
+                  "host": "db-4",
                   "user": "haze",
                   "password": "haze",
                 }
               ],
             }
         });
-        Ok(hashmap! {String::from("db.sharding") => shard_config})
+        Ok(hashmap! {String::from("dbsharding") => shard_config})
     }
 }
