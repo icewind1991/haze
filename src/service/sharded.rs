@@ -73,6 +73,7 @@ impl ServiceTrait for Sharding {
               "table": "filecache",
               "primary_key": "fileid",
               "shard_key": "storage",
+              "companion_keys": ["file_id"],
               "companion_tables": ["filecache_extended", "files_metadata"],
               "shards": [
                 {
@@ -155,6 +156,7 @@ impl ServiceTrait for SingleShard {
               "table": "filecache",
               "primary_key": "fileid",
               "shard_key": "storage",
+              "companion_keys": ["file_id"],
               "companion_tables": ["filecache_extended", "files_metadata"],
               "shards": [
                 {
