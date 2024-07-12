@@ -28,7 +28,7 @@ pub use crate::service::office::Office;
 pub use crate::service::onlyoffice::OnlyOffice;
 pub use crate::service::push::NotifyPush;
 use crate::service::sftp::Sftp;
-use crate::service::sharded::Sharding;
+use crate::service::sharded::{Sharding, SingleShard};
 use crate::service::smb::Smb;
 use bollard::models::ContainerState;
 use bollard::Docker;
@@ -187,6 +187,7 @@ pub enum Service {
     Smb(Smb),
     Dav(Dav),
     Sharding(Sharding),
+    SingleShard(SingleShard),
     Sftp(Sftp),
     Kaspersky(Kaspersky),
     KasperskyIcap(KasperskyIcap),
@@ -212,6 +213,8 @@ impl Service {
             "smb" => Some(vec![Service::Smb(Smb)]),
             "sharded" => Some(vec![Service::Sharding(Sharding)]),
             "sharding" => Some(vec![Service::Sharding(Sharding)]),
+            "single-shard" => Some(vec![Service::SingleShard(SingleShard)]),
+            "singleshard" => Some(vec![Service::SingleShard(SingleShard)]),
             "dav" => Some(vec![Service::Dav(Dav)]),
             "sftp" => Some(vec![Service::Sftp(Sftp)]),
             "oc" => Some(vec![Service::Oc(Oc)]),

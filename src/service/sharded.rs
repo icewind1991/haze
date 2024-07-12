@@ -105,3 +105,67 @@ impl ServiceTrait for Sharding {
         Ok(hashmap! {String::from("dbsharding") => shard_config})
     }
 }
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct SingleShard;
+
+#[async_trait::async_trait]
+impl ServiceTrait for SingleShard {
+    fn name(&self) -> &str {
+        "single-shard"
+    }
+
+    async fn spawn(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        network: &str,
+        _config: &HazeConfig,
+        options: &CloudOptions,
+    ) -> Result<Vec<String>> {
+        if options.db.family() == DatabaseFamily::Sqlite {
+            return Err(Report::msg("Sharding is not supported with sqlite"));
+        }
+
+        let container = options
+            .db
+            .spawn(docker, cloud_id, network, "-shard")
+            .await?;
+
+        Ok(container.into_iter().collect())
+    }
+
+    async fn is_healthy(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        options: &CloudOptions,
+    ) -> Result<bool> {
+        options.db.is_healthy(docker, cloud_id, "-shard").await
+    }
+
+    fn config(
+        &self,
+        _docker: &Docker,
+        _cloud_id: &str,
+        _config: &HazeConfig,
+    ) -> Result<HashMap<String, Value>> {
+        let shard_config = json!({
+            "filecache": {
+              "table": "filecache",
+              "primary_key": "fileid",
+              "shard_key": "storage",
+              "companion_tables": ["filecache_extended", "files_metadata"],
+              "shards": [
+                {
+                  "dbname": "haze",
+                  "host": "db-shard",
+                  "user": "haze",
+                  "password": "haze",
+                }
+              ],
+            }
+        });
+        Ok(hashmap! {String::from("dbsharding") => shard_config})
+    }
+}
