@@ -22,7 +22,7 @@ impl ObjectStore {
     fn image(&self) -> &str {
         match self {
             ObjectStore::S3 | ObjectStore::S3m | ObjectStore::S3mb => {
-                "minio/minio:RELEASE.2023-01-20T02-05-44Z.hotfix.b9b60d73d"
+                "minio/minio:RELEASE.2024-07-16T23-46-41Z"
             }
             ObjectStore::Azure => "arafato/azurite:2.6.5",
         }
@@ -182,6 +182,7 @@ impl ServiceTrait for ObjectStore {
                 "occ files_external:config 1 use_path_style true".into(),
                 "occ files_external:config 1 key minio".into(),
                 "occ files_external:config 1 secret minio123".into(),
+                "mc alias set s3 http://s3:9000 minio minio123".into(),
             ])
         } else {
             Ok(Vec::new())

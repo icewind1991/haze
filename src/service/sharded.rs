@@ -70,11 +70,6 @@ impl ServiceTrait for Sharding {
     ) -> Result<HashMap<String, Value>> {
         let shard_config = json!({
             "filecache": {
-              "table": "filecache",
-              "primary_key": "fileid",
-              "shard_key": "storage",
-              "companion_keys": ["file_id"],
-              "companion_tables": ["filecache_extended", "files_metadata"],
               "shards": [
                 {
                   "dbname": "haze",
@@ -153,11 +148,6 @@ impl ServiceTrait for SingleShard {
     ) -> Result<HashMap<String, Value>> {
         let shard_config = json!({
             "filecache": {
-              "table": "filecache",
-              "primary_key": "fileid",
-              "shard_key": "storage",
-              "companion_keys": ["file_id"],
-              "companion_tables": ["filecache_extended", "files_metadata"],
               "shards": [
                 {
                   "dbname": "haze",

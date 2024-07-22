@@ -43,6 +43,9 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
   apt-get update && \
 	apt-get install --assume-yes blackfire
 
+RUN curl https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/bin/mc && \
+    chmod +x /usr/bin/mc
+
 ADD configs/autoconfig_mariadb.php configs/autoconfig_mysql.php configs/autoconfig_pgsql.php configs/autoconfig_oci.php configs/s3.php configs/s3m.php configs/s3mb.php configs/swift.php configs/swiftv3.php configs/azure.php configs/config.php /root/
 ADD configs/nginx-app.conf /etc/nginx/
 
