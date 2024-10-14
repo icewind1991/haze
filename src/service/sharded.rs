@@ -161,3 +161,145 @@ impl ServiceTrait for SingleShard {
         Ok(hashmap! {String::from("dbsharding") => shard_config})
     }
 }
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ShardingMigrate;
+
+#[async_trait::async_trait]
+impl ServiceTrait for ShardingMigrate {
+    fn name(&self) -> &str {
+        "sharding-migrate"
+    }
+
+    async fn spawn(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        network: &str,
+        config: &HazeConfig,
+        options: &CloudOptions,
+    ) -> Result<Vec<String>> {
+        Sharding::spawn(&Sharding, docker, cloud_id, network, config, options).await
+    }
+
+    async fn is_healthy(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        options: &CloudOptions,
+    ) -> Result<bool> {
+        Sharding::is_healthy(&Sharding, docker, cloud_id, options).await
+    }
+
+    fn config(
+        &self,
+        _docker: &Docker,
+        _cloud_id: &str,
+        _config: &HazeConfig,
+    ) -> Result<HashMap<String, Value>> {
+        let shard_config = json!({
+            "filecache": {
+              "from_shard_key": 99,
+              "from_primary_key": 9999,
+              "shards": [
+                {
+                  "dbname": "haze",
+                  "host": "db-1",
+                  "user": "haze",
+                  "password": "haze",
+                },
+                {
+                  "dbname": "haze",
+                  "host": "db-2",
+                  "user": "haze",
+                  "password": "haze",
+                },
+                {
+                  "dbname": "haze",
+                  "host": "db-3",
+                  "user": "haze",
+                  "password": "haze",
+                },
+                {
+                  "dbname": "haze",
+                  "host": "db-4",
+                  "user": "haze",
+                  "password": "haze",
+                }
+              ],
+            }
+        });
+        Ok(hashmap! {String::from("dbsharding") => shard_config})
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct ShardingMigrateUnset;
+
+#[async_trait::async_trait]
+impl ServiceTrait for ShardingMigrateUnset {
+    fn name(&self) -> &str {
+        "sharding-migrate-unset"
+    }
+
+    async fn spawn(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        network: &str,
+        config: &HazeConfig,
+        options: &CloudOptions,
+    ) -> Result<Vec<String>> {
+        Sharding::spawn(&Sharding, docker, cloud_id, network, config, options).await
+    }
+
+    async fn is_healthy(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        options: &CloudOptions,
+    ) -> Result<bool> {
+        Sharding::is_healthy(&Sharding, docker, cloud_id, options).await
+    }
+
+    fn config(
+        &self,
+        _docker: &Docker,
+        _cloud_id: &str,
+        _config: &HazeConfig,
+    ) -> Result<HashMap<String, Value>> {
+        let shard_config = json!({
+            "filecache": {
+              "from_shard_key": 99,
+              "from_primary_key": 9999,
+              "shards": [
+                {
+                  "dbname": "haze",
+                  "host": "db-1",
+                  "user": "haze",
+                  "password": "haze",
+                },
+                {
+                  "dbname": "haze",
+                  "host": "db-2",
+                  "user": "haze",
+                  "password": "haze",
+                },
+                {
+                  "dbname": "haze",
+                  "host": "db-3",
+                  "user": "haze",
+                  "password": "haze",
+                },
+                {
+                  "dbname": "haze",
+                  "host": "db-4",
+                  "user": "haze",
+                  "password": "haze",
+                }
+              ],
+            }
+        });
+        Ok(hashmap! {String::from("_dbsharding") => shard_config})
+    }
+}

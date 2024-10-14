@@ -28,7 +28,7 @@ pub use crate::service::office::Office;
 pub use crate::service::onlyoffice::OnlyOffice;
 pub use crate::service::push::NotifyPush;
 use crate::service::sftp::Sftp;
-use crate::service::sharded::{Sharding, SingleShard};
+use crate::service::sharded::{Sharding, ShardingMigrate, ShardingMigrateUnset, SingleShard};
 use crate::service::smb::Smb;
 use bollard::models::ContainerState;
 use bollard::Docker;
@@ -188,6 +188,8 @@ pub enum Service {
     Dav(Dav),
     Sharding(Sharding),
     SingleShard(SingleShard),
+    ShardingMigrate(ShardingMigrate),
+    ShardingMigrateUnset(ShardingMigrateUnset),
     Sftp(Sftp),
     Kaspersky(Kaspersky),
     KasperskyIcap(KasperskyIcap),
@@ -215,6 +217,14 @@ impl Service {
             "sharding" => Some(vec![Service::Sharding(Sharding)]),
             "single-shard" => Some(vec![Service::SingleShard(SingleShard)]),
             "singleshard" => Some(vec![Service::SingleShard(SingleShard)]),
+            "sharded-migrate" => Some(vec![Service::ShardingMigrate(ShardingMigrate)]),
+            "sharding-migrate" => Some(vec![Service::ShardingMigrate(ShardingMigrate)]),
+            "sharded-migrate-unset" => {
+                Some(vec![Service::ShardingMigrateUnset(ShardingMigrateUnset)])
+            }
+            "sharding-migrate-unset" => {
+                Some(vec![Service::ShardingMigrateUnset(ShardingMigrateUnset)])
+            }
             "dav" => Some(vec![Service::Dav(Dav)]),
             "sftp" => Some(vec![Service::Sftp(Sftp)]),
             "oc" => Some(vec![Service::Oc(Oc)]),
