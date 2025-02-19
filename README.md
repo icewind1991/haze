@@ -32,11 +32,13 @@ See the [configuration section](#configuration) for more options.
 ### Quick examples
 
 - Start a Nextcloud instance with `postgresql`, `php 8.1` and `s3` primary storage:
+
   ```bash
   haze start pgsq s3
   ```
 
 - Start a Nextcloud instance with `sqlite`, `php 8.2` and an `smb` external storage:
+
   ```bash
   haze start 8.2 smb
   ```

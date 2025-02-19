@@ -2,10 +2,10 @@ name: Build haze images
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
     paths:
-      - '.github/**'
-      - 'images/**'
+      - ".github/**"
+      - "images/**"
 
 permissions:
   contents: read
@@ -16,8 +16,8 @@ jobs:
 
     strategy:
       matrix:
-        php-version: [ '8.1', '8.2', '8.3' ]
-        variant: [ '', '-dbg' ]
+        php-version: ["8.1", "8.2", "8.3"]
+        variant: ["", "-dbg"]
 
     name: haze-${{ matrix.php-version }}${{ matrix.variant }}
 

@@ -13,7 +13,7 @@ jobs:
         with:
           name: ci
           instance: https://cache.icewind.me
-          authToken: '${{ secrets.ATTIC_TOKEN }}'
+          authToken: "${{ secrets.ATTIC_TOKEN }}"
       - run: nix build .#check
 
   clippy:
@@ -26,7 +26,7 @@ jobs:
         with:
           name: ci
           instance: https://cache.icewind.me
-          authToken: '${{ secrets.ATTIC_TOKEN }}'
+          authToken: "${{ secrets.ATTIC_TOKEN }}"
       - run: nix build .#clippy
 
   test:
@@ -39,7 +39,7 @@ jobs:
         with:
           name: ci
           instance: https://cache.icewind.me
-          authToken: '${{ secrets.ATTIC_TOKEN }}'
+          authToken: "${{ secrets.ATTIC_TOKEN }}"
       - run: nix build .#test
 
   matrix:
@@ -65,7 +65,7 @@ jobs:
         with:
           name: ci
           instance: https://cache.icewind.me
-          authToken: '${{ secrets.ATTIC_TOKEN }}'
+          authToken: "${{ secrets.ATTIC_TOKEN }}"
       - run: nix build .#${{ matrix.target }}
       - uses: actions/upload-artifact@v4
         with:

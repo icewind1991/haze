@@ -27,7 +27,7 @@ jobs:
         with:
           name: ci
           instance: https://cache.icewind.me
-          authToken: '${{ secrets.ATTIC_TOKEN }}'
+          authToken: "${{ secrets.ATTIC_TOKEN }}"
       - run: nix build .#${{ matrix.target }}
       - name: Upload binary to release
         uses: svenstaro/upload-release-action@v2
