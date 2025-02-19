@@ -30,7 +30,7 @@ mod php;
 mod proxy;
 mod service;
 
-static FORWARD_ENV: &[&str] = &["OCC_LOG"];
+static FORWARD_ENV: &[&str] = &["OCC_LOG", "XDEBUG_MODE"];
 
 fn get_forward_env() -> Vec<String> {
     vars()
