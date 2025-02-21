@@ -155,6 +155,7 @@ pub fn default_mappings<'a>() -> impl IntoIterator<Item = Mapping<'a>> {
         Mapping::new(Absolute, "/var/run/docker.sock", "/var/run/docker.sock")
             .file()
             .dont_create(),
+        Mapping::new(WorkDir, "xdebug", "/tmp/xdebug"),
     ];
     IntoIterator::into_iter(mappings)
 }

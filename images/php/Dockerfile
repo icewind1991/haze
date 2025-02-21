@@ -70,6 +70,7 @@ RUN sh -c 'if [ "$BASE_IMAGE" = "php" ]; then echo "extension=smbclient.so" > $P
     && echo "xdebug.discover_client_host=true" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.client_host=hazehost" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.log_level=0" >> $PHP_INI_DIR/conf.d/xdebug.ini \
+    && echo "xdebug.output_dir=/tmp/xdebug" >> $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "memory_limit = 512M" > $PHP_INI_DIR/conf.d/memory_limit.ini \
     && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer
 
