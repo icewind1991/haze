@@ -46,7 +46,6 @@ pub async fn ensure_network_exists(docker: &Docker, name: &str) -> Result<String
             })
             .await
             .into_diagnostic()?
-            .id
-            .unwrap())
+            .id)
     }
 }

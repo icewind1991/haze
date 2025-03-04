@@ -2,17 +2,17 @@
 name = "haze"
 version = "1.6.0"
 authors = ["Robin Appelman <robin@icewind.nl>"]
-edition = "2018"
+edition = "2024"
 repository = "https://github.com/icewind1991/haze"
 license = "MIT"
 description = "Easy setup and management of Nextcloud test instances using docker"
 
 [dependencies]
-bollard = "0.16.1"
+bollard = "0.18.1"
 maplit = "1.0.2"
 camino = { version = "1.1.7", features = ["serde1"] }
 tokio = { version = "1.38.0", features = ["fs", "macros", "signal", "rt-multi-thread"] }
-parse-display = "0.9.1"
+parse-display = "0.10.0"
 futures-util = "0.3.30"
 termion = "4.0.1"
 opener = "0.7.1"
@@ -35,7 +35,7 @@ tracing-subscriber = "0.3.18"
 hyper-reverse-proxy = { version = "0.5.2-dev", git = "https://github.com/felipenoris/hyper-reverse-proxy" }
 hyper = "0.14.29"
 atty = "0.2.14"
-git2 = { version = "0.18.3", default-features = false }
+git2 = { version = "0.20.0", default-features = false }
 
 [profile.release]
 lto = true

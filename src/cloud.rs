@@ -1,14 +1,14 @@
 use crate::config::{HazeConfig, HazeVolumeConfig, Preset};
 use crate::database::Database;
-use crate::exec::{exec, exec_io, exec_tty, ExitCode};
-use crate::mapping::{default_mappings, Mapping};
-use crate::php::{PhpVersion, PHP_MEMORY_LIMIT};
+use crate::exec::{ExitCode, exec, exec_io, exec_tty};
+use crate::mapping::{Mapping, default_mappings};
+use crate::php::{PHP_MEMORY_LIMIT, PhpVersion};
 use crate::service::Service;
 use crate::service::ServiceTrait;
+use bollard::Docker;
 use bollard::container::{ListContainersOptions, RemoveContainerOptions, UpdateContainerOptions};
 use bollard::models::ContainerState;
 use bollard::network::CreateNetworkOptions;
-use bollard::Docker;
 use camino::Utf8PathBuf;
 use flate2::read::GzDecoder;
 use futures_util::future::try_join_all;
@@ -18,7 +18,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
-use std::io::{stdout, Cursor, Read, Stdout, Write};
+use std::io::{Cursor, Read, Stdout, Write, stdout};
 use std::iter::Peekable;
 use std::net::IpAddr;
 use std::os::unix::fs::MetadataExt;
@@ -254,9 +254,7 @@ impl Cloud {
             })
             .await
             .into_diagnostic()?
-            .id
-            .ok_or_else(|| Report::msg("No network id in response"))
-            .wrap_err("Failed to create network")?;
+            .id;
 
         let network_info = docker
             .inspect_network::<String>(&network, None)
