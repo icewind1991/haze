@@ -1,5 +1,5 @@
-use bollard::network::CreateNetworkOptions;
 use bollard::Docker;
+use bollard::network::CreateNetworkOptions;
 use miette::{IntoDiagnostic, Result, WrapErr};
 
 pub async fn clear_networks(docker: &Docker) -> Result<()> {

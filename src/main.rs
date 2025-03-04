@@ -350,10 +350,10 @@ async fn main() -> Result<()> {
                 .ok_or_else(|| Report::msg(format!("{} is not running", cloud.id)))?;
             let db_type = match cloud.db().family() {
                 DatabaseFamily::Sqlite => {
-                    return Err(Report::msg("sqlite is not supported with `haze env`"))
+                    return Err(Report::msg("sqlite is not supported with `haze env`"));
                 }
                 DatabaseFamily::Oracle => {
-                    return Err(Report::msg("oracle is not supported with `haze env`"))
+                    return Err(Report::msg("oracle is not supported with `haze env`"));
                 }
                 DatabaseFamily::Mysql | DatabaseFamily::MariaDB => "mysql",
                 DatabaseFamily::Postgres => "postgresql",

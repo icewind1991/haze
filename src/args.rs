@@ -8,63 +8,61 @@ use std::str::FromStr;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum HazeArgs {
-    List {
-        filter: Option<String>,
-    },
-    Start {
-        options: CloudOptions,
-    },
-    Stop {
-        filter: Option<String>,
-    },
+    /// List all instances
+    List { filter: Option<String> },
+    /// Start a new instance
+    Start { options: CloudOptions },
+    /// Stop an instance
+    Stop { filter: Option<String> },
+    /// Run tests in a new instance
     Test {
         options: CloudOptions,
         args: Vec<String>,
     },
+    /// Run a command in an instance
     Exec {
         filter: Option<String>,
         service: Option<ExecService>,
         command: Vec<String>,
     },
+    /// Run an occ command in an instance
     Occ {
         filter: Option<String>,
         command: Vec<String>,
     },
-    Db {
-        filter: Option<String>,
-        root: bool,
-    },
+    /// Connect to the database of an instance
+    Db { filter: Option<String>, root: bool },
+    /// Remove all non-pinned instances
     Clean,
+    /// View the logs from an instance or service
     Logs {
         filter: Option<String>,
         follow: bool,
         service: Option<LogService>,
         count: Option<usize>,
     },
-    Open {
-        filter: Option<String>,
-    },
-    Fmt {
-        path: String,
-    },
+    /// Open an instance in the browser
+    Open { filter: Option<String> },
+    /// Run code formatting from a new instance
+    Fmt { path: String },
+    /// Run integration tests in a new instance
     Integration {
         options: CloudOptions,
         args: Vec<String>,
     },
+    /// Start a shell in an empirical instance
     Shell {
         options: CloudOptions,
         command: Vec<String>,
     },
-    Pin {
-        filter: Option<String>,
-    },
-    Unpin {
-        filter: Option<String>,
-    },
+    /// Pin an instance
+    Pin { filter: Option<String> },
+    /// Unpin an instance
+    Unpin { filter: Option<String> },
+    /// Start the proxy
     Proxy,
-    Checkout {
-        branch: String,
-    },
+    /// Checkout a branch in all apps
+    Checkout { branch: String },
     Env {
         filter: Option<String>,
         command: String,
@@ -120,7 +118,7 @@ impl HazeArgs {
                     None => {
                         return Ok(HazeArgs::List {
                             filter: Some(command_or_filter.into()),
-                        })
+                        });
                     }
                 };
                 if !cmd.allows_filter() {
