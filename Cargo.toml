@@ -2,7 +2,7 @@
 name = "haze"
 version = "1.6.0"
 authors = ["Robin Appelman <robin@icewind.nl>"]
-edition = "2024"
+edition = "2021"
 repository = "https://github.com/icewind1991/haze"
 license = "MIT"
 description = "Easy setup and management of Nextcloud test instances using docker"
