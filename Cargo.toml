@@ -28,14 +28,15 @@ async-trait = "0.1.80"
 enum_dispatch = "0.3.13"
 miette = { version = "7.2.0", features = ["fancy"] }
 shell-words = "1.1.0"
-warp = "0.3"
-tokio-stream = { version = "0.1.15", features = ["net"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
-hyper-reverse-proxy = { version = "0.5.2-dev", git = "https://github.com/felipenoris/hyper-reverse-proxy" }
-hyper = "0.14.29"
 atty = "0.2.14"
 git2 = { version = "0.20.0", default-features = false }
+
+hyper-reverse-proxy = { version = "0.5.2-dev", git = "https://github.com/chpio/hyper-reverse-proxy", rev = "6934877eb74465204f605cc1c05ca5a9772db7c0" }
+hyper = "1.6.0"
+hyper-util = "0.1.10"
+axum = { version = "0.8.1", features = ["tokio"] }
 
 [profile.release]
 lto = true

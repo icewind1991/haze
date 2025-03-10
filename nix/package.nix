@@ -18,7 +18,7 @@ in
     cargoLock = {
       lockFile = ../Cargo.lock;
       outputHashes = {
-        "hyper-reverse-proxy-0.5.2-dev" = "sha256-qO7eST4caHrqTXT7IgJ6aZxtCh/8QH5EsOxCRppH8d4=";
+        "hyper-reverse-proxy-0.5.2-dev" = "sha256-+ebi4FVVkiOpf75e8K5oGkHJBYQjLNJhUPNj+78zd7Q=";
       };
     };
   }
