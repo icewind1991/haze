@@ -234,3 +234,10 @@ impl From<i64> for ExitCode {
         ExitCode(code)
     }
 }
+
+impl From<ExitCode> for std::process::ExitCode {
+    fn from(value: ExitCode) -> Self {
+        let code = u8::try_from(value.0).unwrap_or(1);
+        code.into()
+    }
+}

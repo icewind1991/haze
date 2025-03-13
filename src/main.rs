@@ -15,7 +15,7 @@ use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use std::env::vars;
 use std::io::stdout;
 use std::os::unix::process::CommandExt;
-use std::process::Command;
+use std::process::{Command, ExitCode};
 
 mod args;
 mod cloud;
@@ -46,7 +46,7 @@ fn get_forward_env() -> Vec<String> {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<ExitCode> {
     miette::set_panic_hook();
     tracing_subscriber::fmt::init();
 
@@ -216,8 +216,9 @@ async fn main() -> Result<()> {
                 cloud.enable_app(&docker, app).await?;
             }
             args.insert(0, "tests".to_string());
-            cloud.exec(&docker, args, false, get_forward_env()).await?;
+            let result = cloud.exec(&docker, args, false, get_forward_env()).await?;
             cloud.destroy(&docker).await?;
+            return Ok(result.into());
         }
         HazeArgs::Integration { options, mut args } => {
             let cloud = Cloud::create(&docker, options, &config).await?;
@@ -377,7 +378,7 @@ async fn main() -> Result<()> {
         }
     };
 
-    Ok(())
+    Ok(ExitCode::SUCCESS)
 }
 
 async fn setup(docker: &Docker, options: CloudOptions, config: &HazeConfig) -> Result<Cloud> {
