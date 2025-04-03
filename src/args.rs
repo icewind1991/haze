@@ -31,7 +31,11 @@ pub enum HazeArgs {
         command: Vec<String>,
     },
     /// Connect to the database of an instance
-    Db { filter: Option<String>, root: bool },
+    Db {
+        filter: Option<String>,
+        root: bool,
+        command: Vec<String>,
+    },
     /// Remove all non-pinned instances
     Clean,
     /// View the logs from an instance or service
@@ -178,10 +182,24 @@ impl HazeArgs {
                 filter,
                 command: args.map(S::into).collect(),
             }),
-            HazeCommand::Db => Ok(HazeArgs::Db {
-                filter,
-                root: args.next().filter(|arg| arg.as_ref() == "root").is_some(),
-            }),
+            HazeCommand::Db => {
+                let mut args = args.peekable();
+                let root = if let Some(first) = args.peek() {
+                    let root = first.as_ref() == "root";
+                    if root {
+                        let _ = args.next();
+                    }
+                    root
+                } else {
+                    false
+                };
+                let command = args.map(S::into).collect();
+                Ok(HazeArgs::Db {
+                    filter,
+                    root,
+                    command,
+                })
+            }
             HazeCommand::Clean => Ok(HazeArgs::Clean),
             HazeCommand::Logs => {
                 let mut args = args.peekable();
@@ -338,7 +356,36 @@ fn test_arg_parse() {
         HazeArgs::parse(&[], vec!["haze", "asdasd", "db"].into_iter()).unwrap(),
         HazeArgs::Db {
             filter: Some("asdasd".to_string()),
-            root: false
+            root: false,
+            command: Vec::new()
+        }
+    );
+    assert_eq!(
+        HazeArgs::parse(&[], vec!["haze", "asdasd", "db", "root"].into_iter()).unwrap(),
+        HazeArgs::Db {
+            filter: Some("asdasd".to_string()),
+            root: true,
+            command: Vec::new()
+        }
+    );
+    assert_eq!(
+        HazeArgs::parse(&[], vec!["haze", "asdasd", "db", "select", "1"].into_iter()).unwrap(),
+        HazeArgs::Db {
+            filter: Some("asdasd".to_string()),
+            root: false,
+            command: vec!["select".to_string(), "1".to_string()]
+        }
+    );
+    assert_eq!(
+        HazeArgs::parse(
+            &[],
+            vec!["haze", "asdasd", "db", "root", "select 1"].into_iter()
+        )
+        .unwrap(),
+        HazeArgs::Db {
+            filter: Some("asdasd".to_string()),
+            root: true,
+            command: vec!["select 1".to_string()]
         }
     );
     assert_eq!(

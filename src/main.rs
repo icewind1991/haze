@@ -160,9 +160,13 @@ async fn main() -> Result<ExitCode> {
                 )
                 .await?;
         }
-        HazeArgs::Db { filter, root } => {
+        HazeArgs::Db {
+            filter,
+            root,
+            command,
+        } => {
             let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;
-            cloud.db().exec(&docker, &cloud.id, root).await?;
+            cloud.db().exec(&docker, &cloud.id, root, &command).await?;
         }
         HazeArgs::Open { filter } => {
             let cloud = Cloud::get_by_filter(&docker, filter, &config).await?;

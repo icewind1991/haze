@@ -265,53 +265,118 @@ impl Database {
         }
     }
 
-    pub async fn exec(&self, docker: &Docker, cloud_id: &str, root: bool) -> Result<ExitCode> {
-        match self.family() {
-            DatabaseFamily::Sqlite => {
-                exec_tty(
-                    docker,
-                    cloud_id,
-                    "haze",
-                    vec!["sqlite3", "/var/www/html/data/haze.db"],
-                    Vec::<String>::default(),
-                )
-                .await
-            }
-            DatabaseFamily::MariaDB | DatabaseFamily::Mysql => {
-                exec_tty(
-                    docker,
-                    format!("{}-db", cloud_id),
-                    "mysql",
-                    vec![
-                        "mysql",
-                        "-u",
-                        if root { "root" } else { "haze" },
-                        "-phaze",
+    pub async fn exec(
+        &self,
+        docker: &Docker,
+        cloud_id: &str,
+        root: bool,
+        command: &[String],
+    ) -> Result<ExitCode> {
+        let command = command.join(" ");
+        if command.is_empty() {
+            match self.family() {
+                DatabaseFamily::Sqlite => {
+                    exec_tty(
+                        docker,
+                        cloud_id,
                         "haze",
-                    ],
-                    Vec::<String>::default(),
-                )
-                .await
+                        vec!["sqlite3", "/var/www/html/data/haze.db"],
+                        Vec::<String>::default(),
+                    )
+                    .await
+                }
+                DatabaseFamily::MariaDB | DatabaseFamily::Mysql => {
+                    exec_tty(
+                        docker,
+                        format!("{}-db", cloud_id),
+                        "mysql",
+                        vec![
+                            "mysql",
+                            "-u",
+                            if root { "root" } else { "haze" },
+                            "-phaze",
+                            "haze",
+                        ],
+                        Vec::<String>::default(),
+                    )
+                    .await
+                }
+                DatabaseFamily::Postgres => {
+                    exec_tty(
+                        docker,
+                        format!("{}-db", cloud_id),
+                        "root",
+                        vec!["psql", "haze", "haze"],
+                        vec!["PGPASSWORD=haze"],
+                    )
+                    .await
+                }
+                DatabaseFamily::Oracle => {
+                    exec_tty(
+                        docker,
+                        format!("{}-db", cloud_id),
+                        "root",
+                        vec!["sqlplus", "system/haze"],
+                        Vec::<String>::default(),
+                    )
+                    .await
+                }
             }
-            DatabaseFamily::Postgres => {
-                exec_tty(
-                    docker,
-                    format!("{}-db", cloud_id),
-                    "root",
-                    vec!["psql", "haze", "haze"],
-                    vec!["PGPASSWORD=haze"],
-                )
-                .await
-            }
-            DatabaseFamily::Oracle => {
-                exec_tty(
-                    docker,
-                    format!("{}-db", cloud_id),
-                    "root",
-                    vec!["sqlplus", "system/haze"],
-                    Vec::<String>::default(),
-                )
-                .await
+        } else {
+            let stdout = stdout();
+            match self.family() {
+                DatabaseFamily::Sqlite => {
+                    exec(
+                        docker,
+                        cloud_id,
+                        "haze",
+                        vec!["sqlite3", "/var/www/html/data/haze.db", "-cmd", &command],
+                        Vec::<String>::default(),
+                        Some(stdout),
+                    )
+                    .await
+                }
+                DatabaseFamily::MariaDB | DatabaseFamily::Mysql => {
+                    exec(
+                        docker,
+                        format!("{}-db", cloud_id),
+                        "mysql",
+                        vec![
+                            "mysql",
+                            "-u",
+                            if root { "root" } else { "haze" },
+                            "-phaze",
+                            "haze",
+                            "-e",
+                            &command,
+                        ],
+                        Vec::<String>::default(),
+                        Some(stdout),
+                    )
+                    .await
+                }
+                DatabaseFamily::Postgres => {
+                    exec(
+                        docker,
+                        format!("{}-db", cloud_id),
+                        "root",
+                        vec!["psql", "haze", "haze", "-c", &command],
+                        vec!["PGPASSWORD=haze"],
+                        Some(stdout),
+                    )
+                    .await
+                }
+                DatabaseFamily::Oracle => {
+                    exec(
+                        docker,
+                        format!("{}-db", cloud_id),
+                        "root",
+                        vec!["sqlplus", "system/haze"],
+                        Vec::<String>::default(),
+                        Some(stdout),
+                    )
+                    .await
+                }
             }
         }
     }

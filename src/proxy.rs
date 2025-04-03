@@ -226,7 +226,7 @@ async fn handler(State(state): State<AppState>, mut req: Request) -> Result<Resp
     )
     .await
     {
-        Ok(response) => Ok(response.map(|body| Body::new(body))),
+        Ok(response) => Ok(response.map(Body::new)),
         Err(error) => {
             error!(%error, "error while proxying request");
             Ok(StatusCode::BAD_REQUEST.into_response())
