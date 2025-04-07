@@ -181,10 +181,14 @@ async fn get_remote(
             .ok_or_else(|| String::from("No running instance known"))
     } else {
         let requested_instance = host.split('.').next().unwrap();
-        instances
-            .get(requested_instance)
-            .await
-            .ok_or_else(|| format!("Error {} has no known ip", requested_instance))
+        if requested_instance == "host-push" {
+            Ok((IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 7867).into())
+        } else {
+            instances
+                .get(requested_instance)
+                .await
+                .ok_or_else(|| format!("Error {} has no known ip", requested_instance))
+        }
     };
     match ip {
         Ok(ip) => Ok(ip),
