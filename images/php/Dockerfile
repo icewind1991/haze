@@ -37,6 +37,7 @@ RUN apt-get update \
     && docker-php-ext-install iconv zip pdo pdo_pgsql pdo_sqlite pgsql pdo_mysql intl curl mbstring pcntl ldap exif gmp \
     && pecl install inotify \
     && pecl install smbclient \
+    && pecl install excimer \
     && apt-get remove -y \
         libfreetype6-dev \
         libjpeg62-turbo-dev \
@@ -63,6 +64,7 @@ RUN pecl install apcu \
 ARG BASE_IMAGE
 RUN sh -c 'if [ "$BASE_IMAGE" = "php" ]; then echo "extension=smbclient.so" > $PHP_INI_DIR/conf.d/smbclient.ini; fi' \
     && sh -c 'if [ "$BASE_IMAGE" = "php" ]; then echo "extension=blackfire.so" > $PHP_INI_DIR/conf.d/blackfire.ini; fi' \
+    && echo "extension=excimer.so" > $PHP_INI_DIR/conf.d/excimer.ini \
     && echo "extension=inotify.so" > $PHP_INI_DIR/conf.d/inotify.ini \
     && echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > $PHP_INI_DIR/conf.d/xdebug.ini \
     && echo "xdebug.mode=debug,trace,profile" >> $PHP_INI_DIR/conf.d/xdebug.ini \
