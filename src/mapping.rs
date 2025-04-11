@@ -156,6 +156,7 @@ pub fn default_mappings<'a>() -> impl IntoIterator<Item = Mapping<'a>> {
             .file()
             .dont_create(),
         Mapping::new(WorkDir, "xdebug", "/tmp/xdebug"),
+        Mapping::new(WorkDir, "profiling", "/tmp/profiling"),
     ];
     IntoIterator::into_iter(mappings)
 }
