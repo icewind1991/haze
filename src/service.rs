@@ -175,6 +175,19 @@ pub trait ServiceTrait {
     }
 }
 
+#[derive(Clone, Eq, PartialEq, Debug)]
+pub struct RedisTls;
+
+impl ServiceTrait for RedisTls {
+    fn name(&self) -> &str {
+        "redis-tls"
+    }
+
+    fn env(&self) -> &[&str] {
+        &["REDIS_TLS=1"]
+    }
+}
+
 #[enum_dispatch]
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub enum Service {
@@ -198,6 +211,7 @@ pub enum Service {
     Oc(Oc),
     Imaginary(Imaginary),
     Mail(Mail),
+    RedisTls(RedisTls),
     Preset(PresetService),
 }
 
@@ -236,6 +250,7 @@ impl Service {
             "clam-icap" => Some(vec![Service::ClamIcap(ClamIcap)]),
             "clam-icap-tls" => Some(vec![Service::ClamIcapTls(ClamIcapTls)]),
             "mail" => Some(vec![Service::Mail(Mail)]),
+            "redis-tls" => Some(vec![Service::RedisTls(RedisTls)]),
             _ => presets
                 .iter()
                 .find_map(|preset| (preset.name == ty).then(|| PresetService(preset.name.clone())))

@@ -84,6 +84,7 @@ Additionally, you can use the following options when starting an instance:
 - `oc`: start an ownCloud instance in the same network.
 - `imaginary`: start an Imaginary service and configure it for preview generation.
 - `mail`: start an [smtp4dev](https://github.com/rnwood/smtp4dev) server and configure it the mail server.
+- `redis-tls`: connect to redis over TLS.
 - The name of any configured preset.
 
 #### Run tests in a new instance

@@ -70,6 +70,13 @@ then
     sed -i '/\/\/PLACEHOLDER/ r /root/azure.php' /var/www/html/config/config.php
 fi
 
+if [ -n "$REDIS_TLS" ]
+then
+    sed -i '/\/\/PLACEHOLDER/ r /root/redis-tls.php' /var/www/html/config/config.php
+else
+  sed -i '/\/\/PLACEHOLDER/ r /root/redis-default.php' /var/www/html/config/config.php
+fi
+
 if [ -n "$BLACKFIRE_SERVER_ID" ]
 then
   sh -c '
@@ -82,5 +89,14 @@ fi
 crontab /etc/oc-cron.conf
 
 /usr/sbin/cron -f &
-/usr/bin/redis-server --protected-mode no &
+if [ -n "$REDIS_TLS" ]
+then
+  /usr/bin/redis-server --protected-mode no \
+    --tls-port 6379 --port 0 \
+    --tls-cert-file /redis-certificates/server.crt \
+    --tls-key-file /redis-certificates/server.key \
+    --tls-ca-cert-file /redis-certificates/ca.crt &
+else
+  /usr/bin/redis-server --protected-mode no &
+fi
 /usr/local/bin/bootstrap-nginx.sh

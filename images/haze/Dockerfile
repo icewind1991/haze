@@ -46,7 +46,7 @@ RUN DEBIAN_FRONTEND=noninteractive ;\
 RUN curl https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/bin/mc && \
     chmod +x /usr/bin/mc
 
-ADD configs/autoconfig_mariadb.php configs/autoconfig_mysql.php configs/autoconfig_pgsql.php configs/autoconfig_oci.php configs/s3.php configs/s3m.php configs/s3mb.php configs/swift.php configs/swiftv3.php configs/azure.php configs/config.php /root/
+ADD configs /root/
 ADD configs/nginx-app.conf /etc/nginx/
 
 RUN mkdir --parent /var/log/cron
@@ -56,6 +56,7 @@ ADD misc/bootstrap.sh misc/occ misc/tests misc/phpunit misc/install misc/occ mis
 ADD configs/sudoers /etc/sudoers.d/haze
 ADD configs/.s3cfg configs/.gdbinit configs/.aws /home/haze/
 ADD rsnapshot.conf /etc/rsnapshot.conf
+ADD redis-certificates /redis-certificates
 
 ENV WEBROOT /var/www/html
 ENV EDITOR /usr/bin/neovim
