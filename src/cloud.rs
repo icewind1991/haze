@@ -1,14 +1,14 @@
 use crate::config::{HazeConfig, HazeVolumeConfig, Preset};
 use crate::database::Database;
-use crate::exec::{ExitCode, exec, exec_io, exec_tty};
-use crate::mapping::{Mapping, default_mappings};
-use crate::php::{PHP_MEMORY_LIMIT, PhpVersion};
+use crate::exec::{exec, exec_io, exec_tty, ExitCode};
+use crate::mapping::{default_mappings, Mapping};
+use crate::php::{PhpVersion, PHP_MEMORY_LIMIT};
 use crate::service::Service;
 use crate::service::ServiceTrait;
-use bollard::Docker;
 use bollard::container::{ListContainersOptions, RemoveContainerOptions, UpdateContainerOptions};
 use bollard::models::ContainerState;
 use bollard::network::CreateNetworkOptions;
+use bollard::Docker;
 use camino::Utf8PathBuf;
 use flate2::read::GzDecoder;
 use futures_util::future::try_join_all;
@@ -18,7 +18,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
-use std::io::{Cursor, Read, Stdout, Write, stdout};
+use std::io::{stdout, Cursor, Read, Stdout, Write};
 use std::iter::Peekable;
 use std::net::IpAddr;
 use std::os::unix::fs::MetadataExt;
@@ -333,7 +333,16 @@ impl Cloud {
 
         let container = match options
             .php
-            .spawn(docker, &id, env, &options.db, &network, volumes, gateway)
+            .spawn(
+                docker,
+                &id,
+                env,
+                &options.db,
+                &network,
+                volumes,
+                gateway,
+                &options.services,
+            )
             .await
             .wrap_err("Failed to start php container")
         {
@@ -571,14 +580,13 @@ impl Cloud {
                 let labels = cloud.labels?;
                 let db = labels.get("haze-db")?.parse().ok()?;
                 let php = labels.get("haze-php")?.parse().ok()?;
-                let found_services = services
-                    .iter()
-                    .flat_map(|container| &container.labels)
-                    .flat_map(|labels| labels.get("haze-type"))
-                    .map(String::as_str)
-                    .flat_map(|ty| Service::from_type(&[], ty))
-                    .flatten()
+
+                let found_services = labels
+                    .get("haze-services")?
+                    .split(',')
+                    .flat_map(|service| Service::from_type(&config.preset, service).into_iter().flatten())
                     .collect();
+
                 let mut service_ids: Vec<String> = services
                     .iter()
                     .filter_map(|service| service.names.as_ref()?.first().cloned())

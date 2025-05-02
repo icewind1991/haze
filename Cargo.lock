@@ -648,6 +648,7 @@ dependencies = [
  "hyper",
  "hyper-reverse-proxy",
  "hyper-util",
+ "itertools",
  "maplit",
  "miette",
  "opener",

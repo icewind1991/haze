@@ -1,10 +1,13 @@
 use crate::database::Database;
 use crate::image::pull_image;
 use crate::network::ensure_network_exists;
+use crate::service::Service;
+use crate::service::ServiceTrait;
 use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use bollard::models::{EndpointSettings, HostConfig};
 use bollard::network::ConnectNetworkOptions;
 use bollard::Docker;
+use itertools::Itertools;
 use maplit::hashmap;
 use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use reqwest::{Client, Url};
@@ -105,6 +108,7 @@ impl PhpVersion {
         network: &str,
         volumes: Vec<String>,
         host: &str,
+        services: &[Service],
     ) -> Result<String> {
         ensure_network_exists(docker, "haze").await?;
         pull_image(docker, self.image()).await?;
@@ -136,6 +140,7 @@ impl PhpVersion {
                 "haze-db".to_string() => db.name().to_string(),
                 "haze-php".to_string() => self.name().to_string(),
                 "haze-cloud-id".to_string() => id.to_string(),
+                "haze-services".to_string() => services.iter().map(|s| s.name()).join(","),
             }),
             ..Default::default()
         };
