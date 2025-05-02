@@ -1,13 +1,11 @@
 {
-  stdenv,
   rustPlatform,
-  libsodium,
   pkg-config,
   lib,
 }: let
   inherit (lib.sources) sourceByRegex;
   inherit (builtins) fromTOML readFile;
-  src = sourceByRegex ../. ["Cargo.*" "(src)(/.*)?"];
+  src = sourceByRegex ../. ["Cargo.*" "(src|redis-certificates)(/.*)?"];
   version = (fromTOML (readFile ../Cargo.toml)).package.version;
 in
   rustPlatform.buildRustPackage rec {

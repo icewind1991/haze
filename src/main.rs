@@ -8,11 +8,13 @@ use crate::exec::container_logs;
 use crate::git::checkout_all;
 use crate::network::clear_networks;
 use crate::proxy::proxy;
-use crate::service::Service;
 use crate::service::ServiceTrait;
+use crate::service::{RedisTls, Service};
 use bollard::Docker;
+use itertools::Itertools;
 use miette::{IntoDiagnostic, Report, Result, WrapErr};
 use std::env::vars;
+use std::fs::{create_dir_all, write};
 use std::io::stdout;
 use std::os::unix::process::CommandExt;
 use std::process::{Command, ExitCode};
@@ -369,15 +371,56 @@ async fn main() -> Result<ExitCode> {
                 .await
                 .ok_or_else(|| Report::msg(format!("{}-db is not running", cloud.id)))?;
 
-            let err = Command::new(command)
+            let mut command = Command::new(command);
+            command
                 .args(args)
                 .env("REDIS_URL", format!("redis://{}", ip))
                 .env("NEXTCLOUD_URL", &cloud.address)
                 .env(
                     "DATABASE_URL",
                     format!("{}://haze:haze@{}/haze", db_type, db_ip),
-                )
-                .exec();
+                );
+
+            if cloud.services().contains(&Service::RedisTls(RedisTls)) {
+                create_dir_all(config.work_dir.join("redis_certificates"))
+                    .into_diagnostic()
+                    .wrap_err("Failed to create redis certificate directory")?;
+                let redis_cert_path = config.work_dir.join("redis_certificates/client.cert");
+                let redis_key_path = config.work_dir.join("redis_certificates/client.key");
+                let redis_ca_path = config.work_dir.join("redis_certificates/ca.cert");
+                if !redis_cert_path.exists() {
+                    write(
+                        &redis_cert_path,
+                        include_bytes!("../redis-certificates/client.crt"),
+                    )
+                    .into_diagnostic()
+                    .wrap_err("Failed to write redis client certificate")?;
+                }
+                if !redis_key_path.exists() {
+                    write(
+                        &redis_key_path,
+                        include_bytes!("../redis-certificates/client.key"),
+                    )
+                    .into_diagnostic()
+                    .wrap_err("Failed to write redis client key")?;
+                }
+                if !redis_ca_path.exists() {
+                    write(
+                        &redis_ca_path,
+                        include_bytes!("../redis-certificates/ca.crt"),
+                    )
+                    .into_diagnostic()
+                    .wrap_err("Failed to write redis ca certificate")?;
+                }
+                command
+                    .env("REDIS_URL", format!("rediss://{}", ip))
+                    .env("REDIS_TLS_DONT_VALIDATE_HOSTNAME", "1")
+                    .env("REDIS_TLS_CERT", redis_cert_path)
+                    .env("REDIS_TLS_KEY", redis_key_path)
+                    .env("REDIS_TLS_CA", redis_ca_path);
+            }
+
+            let err = command.exec();
             return Err(err).into_diagnostic();
         }
     };

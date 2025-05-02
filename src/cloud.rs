@@ -584,7 +584,11 @@ impl Cloud {
                 let found_services = labels
                     .get("haze-services")?
                     .split(',')
-                    .flat_map(|service| Service::from_type(&config.preset, service).into_iter().flatten())
+                    .flat_map(|service| {
+                        Service::from_type(&config.preset, service)
+                            .into_iter()
+                            .flatten()
+                    })
                     .collect();
 
                 let mut service_ids: Vec<String> = services
