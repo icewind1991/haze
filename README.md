@@ -1,3 +1,5 @@
+# Moved to https://codeberg.org/icewind/haze
+
 # Haze
 
 Hazy with a chance of clouds.
